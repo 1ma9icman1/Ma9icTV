@@ -140,7 +140,13 @@ export default function App() {
       savePlaylists(updated);
       return updated;
     });
-  }, []);
+    // When importing a new playlist, select its first stream immediately so
+    // the player can start while the EPG guide loads. Preserve the current
+    // channel when refreshing the already-active playlist.
+    if (newPlaylist.id !== activePlaylistIdState && newPlaylist.channels.length > 0) {
+      setSelectedChannel(newPlaylist.channels[0]);
+    }
+  }, [activePlaylistIdState]);
 
   const handleDeletePlaylist = useCallback((id: string) => {
     setPlaylists((prev) => {

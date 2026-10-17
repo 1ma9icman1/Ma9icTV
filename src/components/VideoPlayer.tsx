@@ -303,8 +303,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           const playPromise = video.play();
           if (playPromise !== undefined) {
             playPromise.then(() => setIsPlaying(true)).catch(() => {
+              // Leave the player in its ready state; the visible Play Channel button
+              // retries playback directly from a user gesture without muting audio.
               setIsPlaying(false);
-              setErrorMsg('Your browser blocked automatic playback. Press Play to start this channel.');
             });
           }
         };

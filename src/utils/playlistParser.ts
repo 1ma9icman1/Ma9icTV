@@ -86,8 +86,9 @@ export function parseM3uString(content: string, playlistId: string): Channel[] {
         }
 
         // Filter out if user previously blacklisted this channel URL
+        const normalizedUrl = line.toLowerCase();
         if (
-          !blacklistedUrls.has(currentChannel.url.toLowerCase()) &&
+          !blacklistedUrls.has(normalizedUrl) &&
           !blacklistedIds.has(currentChannel.id)
         ) {
           channels.push(currentChannel as Channel);

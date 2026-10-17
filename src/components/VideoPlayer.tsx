@@ -317,6 +317,19 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           }));
           setQualities(levels);
 
+          // Default to adaptive quality capped at 720p to reduce bandwidth and buffering.
+          // If this stream has no rendition at or below 720p, cap at its lowest rendition.
+          const hls720Cap = data.levels.reduce((cap: number, level: any, index: number) => {
+            if (Number(level.height || 0) > 0 && Number(level.height) <= 720) return index;
+            return cap;
+          }, -1);
+          const lowestLevel = data.levels.reduce((lowest: number, level: any, index: number, all: any[]) => {
+            return Number(level.bitrate || 0) < Number(all[lowest]?.bitrate || Infinity) ? index : lowest;
+          }, 0);
+          hls.autoLevelCapping = hls720Cap >= 0 ? hls720Cap : lowestLevel;
+          hls.currentLevel = -1;
+          setCurrentQuality(-1);
+
           video.volume = Math.max(0.01, volumeRef.current);
           video.muted = false;
           setIsMuted(false);
@@ -544,9 +557,28 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   const handleSelectQuality = (qualityId: number) => {
-    if (!hlsRef.current) return;
-    hlsRef.current.currentLevel = qualityId;
-    setCurrentQuality(qualityId);
+    const hls = hlsRef.current;
+    if (!hls) return;
+
+    if (qualityId === -1) {
+      // "Auto" means adaptive streaming up to 720p, not unrestricted 1080p.
+      const levels = hls.levels || [];
+      const cap720 = levels.reduce((cap: number, level: any, index: number) => {
+        if (Number(level.height || 0) > 0 && Number(level.height) <= 720) return index;
+        return cap;
+      }, -1);
+      const lowestLevel = levels.reduce((lowest: number, level: any, index: number, all: any[]) => {
+        return Number(level.bitrate || 0) < Number(all[lowest]?.bitrate || Infinity) ? index : lowest;
+      }, 0);
+      hls.autoLevelCapping = cap720 >= 0 ? cap720 : lowestLevel;
+      hls.currentLevel = -1;
+      setCurrentQuality(-1);
+    } else {
+      // Choosing a specific resolution explicitly allows the user to go above 720p.
+      hls.autoLevelCapping = -1;
+      hls.currentLevel = qualityId;
+      setCurrentQuality(qualityId);
+    }
     setShowQualityMenu(false);
   };
 
@@ -842,7 +874,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               >
                 <Sliders className="w-3 h-3" />
                 <span>
-                  {currentQuality === -1 ? 'AUTO' : qualities[currentQuality]?.name || 'HD'}
+                  {currentQuality === -1 ? 'AUTO ≤720p' : qualities[currentQuality]?.name || 'HD'}
                 </span>
               </button>
 
@@ -854,7 +886,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                       currentQuality === -1 ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800'
                     }`}
                   >
-                    <span>Auto</span>
+                    <span>Auto (up to 720p)</span>
                     {currentQuality === -1 && <Check className="w-3.5 h-3.5" />}
                   </button>
                   {qualities.map((q) => (

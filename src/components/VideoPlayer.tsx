@@ -101,6 +101,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
+  const startupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -270,6 +271,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // Initialize playback
   const initPlayer = useCallback(
     (forceProxy?: boolean, preventFallback = false) => {
+      if (startupTimeoutRef.current) {
+        clearTimeout(startupTimeoutRef.current);
+        startupTimeoutRef.current = null;
+      }
       if (!channel) return;
       setAutoSkipCountdown(null);
 
@@ -310,6 +315,23 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       // In web browsers, CORS proxy is required for 95% of IPTV streams unless explicitly forced direct
       const shouldProxy = forceProxy !== undefined ? forceProxy : settings.proxyMode !== 'direct';
       setIsUsingProxy(shouldProxy);
+
+      // Some IPTV hosts never return a fatal HLS/media error, leaving the UI
+      // spinning forever. Put a deadline on startup and try the alternate route
+      // once in Auto mode; otherwise show a useful error instead of infinite loading.
+      startupTimeoutRef.current = setTimeout(() => {
+        startupTimeoutRef.current = null;
+        if (videoRef.current !== video || !video.paused && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) return;
+
+        if (!preventFallback && !shouldProxy) {
+          initPlayer(true, true);
+        } else if (!preventFallback && shouldProxy && settings.proxyMode === 'auto') {
+          initPlayer(false, true);
+        } else {
+          setErrorMsg('Stream did not start in time. The channel may be offline or this browser may not support its stream format. Try another channel.');
+          setIsLoading(false);
+        }
+      }, 18000);
 
       const streamUrl = shouldProxy
         ? `/api/proxy?url=${encodeURIComponent(channel.url)}&userAgent=${encodeURIComponent(settings.customUserAgent)}`
@@ -518,6 +540,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   useEffect(() => {
     initPlayer();
     return () => {
+      if (startupTimeoutRef.current) {
+        clearTimeout(startupTimeoutRef.current);
+        startupTimeoutRef.current = null;
+      }
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
@@ -730,6 +756,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             autoPlay
             preload="auto"
             onPlaying={() => {
+              if (startupTimeoutRef.current) {
+                clearTimeout(startupTimeoutRef.current);
+                startupTimeoutRef.current = null;
+              }
               setIsPlaying(true);
               setIsLoading(false);
               setErrorMsg(null);

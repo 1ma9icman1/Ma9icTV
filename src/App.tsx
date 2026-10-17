@@ -47,13 +47,13 @@ export default function App() {
   // Settings
   const [settings, setSettings] = useState<AppSettings>(() => getSettings());
 
-  // Navigation / Views - Default to EPG guide with live TV player
-  const [currentView, setCurrentView] = useState<'player' | 'epg'>('epg');
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
+  // Start directly in the live player. The channel sidebar stays hidden until requested.
+  const [currentView, setCurrentView] = useState<'player' | 'epg'>('player');
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(true);
   const [isRefreshingPlaylist, setIsRefreshingPlaylist] = useState<boolean>(false);
 
-  // Modals - Start with Choose Playlist modal open first as requested
-  const [isPlaylistModalOpen, setIsPlaylistModalOpen] = useState<boolean>(true);
+  // Keep the playlist picker closed on startup; users can open it from the Layers button.
+  const [isPlaylistModalOpen, setIsPlaylistModalOpen] = useState<boolean>(false);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState<boolean>(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState<boolean>(false);
 
@@ -68,6 +68,65 @@ export default function App() {
       ? { ...selected, epgUrl: resolvedEpgUrl }
       : selected;
   }, [playlists, activePlaylistIdState]);
+
+  // Load Pluto TV by default on startup, without opening the playlist picker.
+  // The normal playlist menu remains available for users to switch sources.
+  useEffect(() => {
+    let cancelled = false;
+    const loadDefaultPluto = async () => {
+      const plutoUrl = 'https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/plutotv_us.m3u';
+      const plutoId = 'default-pluto-tv-us';
+      try {
+        const response = await fetch('/api/parse-playlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: plutoUrl }),
+        });
+        if (!response.ok) throw new Error('Unable to load Pluto TV playlist');
+        const data = await response.json();
+        if (!Array.isArray(data.items) || data.items.length === 0) throw new Error('Pluto TV returned no channels');
+        if (cancelled) return;
+
+        const channels: Channel[] = data.items.map((item: any, idx: number) => ({
+          id: `${plutoId}-ch-${idx}`,
+          name: item.name || 'Pluto TV Channel',
+          url: item.url,
+          group: item.group?.title || 'Pluto TV',
+          logo: item.tvg?.logo || undefined,
+          tvgId: item.tvg?.id || undefined,
+          tvgName: item.tvg?.name || undefined,
+          isRadio: item.radio === 'true' || item.url?.endsWith('.mp3'),
+          raw: item.raw,
+        }));
+        const plutoPlaylist: Playlist = {
+          id: plutoId,
+          title: 'Pluto TV US',
+          url: plutoUrl,
+          type: 'm3u-url',
+          channelCount: channels.length,
+          addedAt: Date.now(),
+          lastUpdated: Date.now(),
+          epgUrl: 'https://i.mjh.nz/PlutoTV/us.xml.gz',
+          channels,
+        };
+        setPlaylists((prev) => {
+          const updated = [plutoPlaylist, ...prev.filter((playlist) => playlist.id !== plutoId && playlist.url !== plutoUrl)];
+          savePlaylists(updated);
+          return updated;
+        });
+        setActivePlaylistIdState(plutoId);
+        setActivePlaylistId(plutoId);
+        setSelectedChannel(channels[0]);
+        setCurrentView('player');
+        setIsSidebarCollapsed(true);
+      } catch (error) {
+        // Keep the built-in fallback stream playable if the Pluto playlist endpoint is unavailable.
+        console.warn('Ma9icTV: Could not auto-load Pluto TV; keeping the fallback playlist.', error);
+      }
+    };
+    void loadDefaultPluto();
+    return () => { cancelled = true; };
+  }, []);
 
   // Set default selected channel on first load or when playlist changes
   useEffect(() => {

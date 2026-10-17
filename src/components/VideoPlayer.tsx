@@ -109,6 +109,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [volume, setVolume] = useState<number>(settings.volume > 0 ? settings.volume : 0.8);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [captionsEnabled, setCaptionsEnabled] = useState<boolean>(false);
+  const captionsEnabledRef = useRef<boolean>(false);
   const volumeRef = useRef<number>(settings.volume > 0 ? settings.volume : 0.8);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [isUsingProxy, setIsUsingProxy] = useState<boolean>(true);
@@ -132,6 +133,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // Force captions off for every newly selected channel. HLS.js manages its own
   // subtitle selection, so disabling only video.textTracks is not sufficient.
   const disableCaptions = useCallback(() => {
+    captionsEnabledRef.current = false;
     setCaptionsEnabled(false);
     const hls = hlsRef.current;
     if (hls) {
@@ -170,6 +172,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     if (!video) return;
     const hls = hlsRef.current;
     const nextEnabled = !captionsEnabled;
+    captionsEnabledRef.current = nextEnabled;
     let selectedNativeTrack = false;
 
     if (hls) {
@@ -279,7 +282,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         hls.subtitleDisplay = false;
         hls.subtitleTrack = -1;
         hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, () => {
-          if (hlsRef.current === hls && !captionsEnabled) {
+          if (hlsRef.current === hls && !captionsEnabledRef.current) {
             hls.subtitleDisplay = false;
             hls.subtitleTrack = -1;
           }

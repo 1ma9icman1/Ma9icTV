@@ -327,7 +327,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   }, [streamReadyForEpgUrl, activePlaylistEpgUrl]);
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-[#0a0e17] text-slate-100 overflow-hidden select-none">
+    <div className="flex-1 min-h-0 min-w-0 flex flex-col h-full bg-[#0a0e17] text-slate-100 overflow-hidden select-none">
       {/* =========================================================================
           STAGE 1: TOP HERO SECTION (LIVE VIDEO PLAYER + PROGRAM INFO PANE)
           ========================================================================= */}
@@ -560,9 +560,9 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       {/* =========================================================================
           STAGE 3: THE EPG MULTI-CHANNEL HORIZONTAL GRID
           ========================================================================= */}
-      <div className="flex-1 overflow-hidden flex flex-col relative bg-[#070b12]">
+      <div className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col relative bg-[#070b12]">
         {/* Scrollable Container */}
-        <div ref={gridScrollRef} className="flex-1 overflow-auto relative">
+        <div ref={gridScrollRef} className="flex-1 min-h-0 min-w-0 overflow-auto overscroll-contain relative touch-pan-x touch-pan-y" style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-x pan-y" }} aria-label="Scrollable TV guide. Swipe horizontally for times and vertically for channels.">
           <div
             className="min-w-max flex flex-col"
             style={{ width: `${(typeof window !== "undefined" && window.innerWidth < 640 ? 150 : 260) + (timeSlots.length - 1) * 30 * minuteWidthPx}px` }}

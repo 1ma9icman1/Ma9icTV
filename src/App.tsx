@@ -434,7 +434,7 @@ export default function App() {
               className="hidden sm:flex px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 text-xs font-semibold items-center gap-1.5 transition-all shadow-sm"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>Browse Catalog (40+ Playlists)</span>
+              <span>CHOOSE SERVICE</span>
             </button>
 
             <div className="hidden sm:flex items-center bg-slate-900 rounded-lg border border-slate-800 p-0.5">

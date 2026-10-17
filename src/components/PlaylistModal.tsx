@@ -63,7 +63,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
   const [xtreamPass, setXtreamPass] = useState('');
 
   // Catalog search & filter states
-  const [catalogCategory, setCatalogCategory] = useState<'All' | 'Worldwide' | 'FAST Services' | 'Countries' | 'Categories'>('All');
+  const [catalogCategory, setCatalogCategory] = useState<'All' | 'Worldwide' | 'Streaming Services' | 'Countries' | 'Categories'>('All');
   const [catalogSearch, setCatalogSearch] = useState('');
   const [loadingItemUrl, setLoadingItemUrl] = useState<string | null>(null);
 
@@ -82,6 +82,9 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
         item.description.toLowerCase().includes(q) ||
         item.category.toLowerCase().includes(q)
       );
+    }).sort((a, b) => {
+      const order: Record<string, number> = { 'Streaming Services': 0, Worldwide: 1, Countries: 2, Categories: 3 };
+      return (order[a.category] ?? 99) - (order[b.category] ?? 99);
     });
   }, [catalogCategory, catalogSearch]);
 
@@ -436,7 +439,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
               {/* Category Pills & Search */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-                  {(['All', 'Worldwide', 'FAST Services', 'Countries', 'Categories'] as const).map((cat) => (
+                  {(['All', 'Worldwide', 'Streaming Services', 'Countries', 'Categories'] as const).map((cat) => (
                     <button
                       key={cat}
                       onClick={() => setCatalogCategory(cat)}
@@ -473,7 +476,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
                     <React.Fragment key={item.url}>
                     {(index === 0 || item.category !== filteredCatalog[index - 1]?.category) && (
                       <div className="col-span-full flex items-center gap-2 pt-2 pb-1 border-b border-slate-800/80">
-                        <span className="text-sm">{item.category === 'Worldwide' ? '🌍' : item.category === 'FAST Services' ? '📺' : item.category === 'Countries' ? '🗺️' : '🎬'}</span>
+                        <span className="text-sm">{item.category === 'Worldwide' ? '🌍' : item.category === 'Streaming Services' ? '📺' : item.category === 'Countries' ? '🗺️' : '🎬'}</span>
                         <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">{item.category === 'Worldwide' ? 'Worldwide Playlists' : item.category}</h4>
                         <span className="text-[10px] text-slate-500">{filteredCatalog.filter((entry) => entry.category === item.category).length} lists</span>
                       </div>

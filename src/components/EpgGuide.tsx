@@ -48,6 +48,7 @@ interface EpgGuideProps {
   onOpenPlaylistModal: () => void;
   onExpandPlayer?: () => void;
   activePlaylistTitle: string;
+  activePlaylistEpgUrl?: string;
 }
 
 export const EpgGuide: React.FC<EpgGuideProps> = ({
@@ -62,6 +63,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   onOpenPlaylistModal,
   onExpandPlayer,
   activePlaylistTitle,
+  activePlaylistEpgUrl,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
@@ -176,14 +178,15 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   }, []);
 
   // Handle loading XMLTV URL
-  const handleLoadXmltv = async (showAlert = true) => {
-    if (!epgUrlInput.trim()) return;
+  const handleLoadXmltv = async (showAlert = true, urlOverride?: string) => {
+    const sourceUrl = (urlOverride ?? epgUrlInput).trim();
+    if (!sourceUrl) return;
     setIsLoadingEpg(true);
     try {
       const res = await fetch('/api/parse-epg', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: epgUrlInput.trim() }),
+        body: JSON.stringify({ url: sourceUrl }),
       });
       if (!res.ok) throw new Error('Failed to load XMLTV file');
       const data = await res.json();
@@ -219,7 +222,8 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
         });
         setXmltvChannelAliases(aliases);
         setXmltvProgrammes(parsed);
-        localStorage.setItem('ma9ictv-epg-url', epgUrlInput.trim());
+        localStorage.setItem('ma9ictv-epg-url', sourceUrl);
+        if (showAlert) localStorage.setItem('ma9ictv-manual-epg-url', sourceUrl);
         if (parsed.length === 0) throw new Error('The XMLTV file contained no valid programme titles and times.');
       } else {
         throw new Error('The server returned no XMLTV programmes.');
@@ -232,13 +236,25 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     }
   };
 
-  // Reload the saved guide URL automatically after refresh. The URL is persisted;
-  // guide data is re-fetched so listings remain current rather than going stale.
+  // Prefer the active playlist's own guide feed. If it has none, fall back to
+  // the user's manually configured XMLTV URL instead of leaking another playlist's guide.
   useEffect(() => {
-    if (epgUrlInput.trim()) void handleLoadXmltv(false);
-    // Run only on mount; the URL is read from localStorage by the initial state.
+    const playlistUrl = activePlaylistEpgUrl?.trim();
+    const manualUrl = localStorage.getItem('ma9ictv-manual-epg-url')?.trim() || '';
+    const sourceUrl = playlistUrl || manualUrl;
+
+    setXmltvProgrammes([]);
+    setXmltvChannelAliases({});
+    setEpgUrlInput(sourceUrl);
+    if (sourceUrl) {
+      localStorage.setItem('ma9ictv-epg-url', sourceUrl);
+      void handleLoadXmltv(false, sourceUrl);
+    } else {
+      localStorage.removeItem('ma9ictv-epg-url');
+    }
+    // The URL is the dependency; loading is deliberately initiated for each source change.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [activePlaylistEpgUrl]);
 
   return (
     <div className="flex-1 flex flex-col h-full bg-[#0a0e17] text-slate-100 overflow-hidden select-none">

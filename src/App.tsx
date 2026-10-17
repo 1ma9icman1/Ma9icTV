@@ -441,6 +441,7 @@ export default function App() {
               onOpenPlaylistModal={() => setIsPlaylistModalOpen(true)}
               onExpandPlayer={() => setCurrentView('player')}
               activePlaylistTitle={activePlaylist.title}
+              activePlaylistEpgUrl={activePlaylist.epgUrl}
             />
           )}
         </main>

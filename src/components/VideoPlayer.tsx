@@ -129,33 +129,72 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   const embedInfo = channel ? getThirdPartyEmbed(channel.url) : { type: null, embedUrl: '' };
 
-  // Captions are always disabled by default, including after channel changes.
-  useEffect(() => {
+  // Force captions off for every newly selected channel. HLS.js manages its own
+  // subtitle selection, so disabling only video.textTracks is not sufficient.
+  const disableCaptions = useCallback(() => {
     setCaptionsEnabled(false);
+    const hls = hlsRef.current;
+    if (hls) {
+      hls.subtitleDisplay = false;
+      hls.subtitleTrack = -1;
+    }
+    const video = videoRef.current;
+    if (video) {
+      for (let i = 0; i < video.textTracks.length; i++) {
+        video.textTracks[i].mode = 'disabled';
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    disableCaptions();
     const video = videoRef.current;
     if (!video) return;
-    for (let i = 0; i < video.textTracks.length; i++) {
-      video.textTracks[i].mode = 'disabled';
-    }
-  }, [channel?.url]);
+
+    // Some browsers/streams add text tracks after metadata or playback starts.
+    const disableNewTracks = () => {
+      for (let i = 0; i < video.textTracks.length; i++) {
+        video.textTracks[i].mode = 'disabled';
+      }
+    };
+    video.textTracks.addEventListener('addtrack', disableNewTracks);
+    video.addEventListener('loadedmetadata', disableNewTracks);
+    return () => {
+      video.textTracks.removeEventListener('addtrack', disableNewTracks);
+      video.removeEventListener('loadedmetadata', disableNewTracks);
+    };
+  }, [channel?.url, disableCaptions]);
 
   const toggleCaptions = () => {
     const video = videoRef.current;
     if (!video) return;
-    const tracks = video.textTracks;
+    const hls = hlsRef.current;
     const nextEnabled = !captionsEnabled;
-    let selectedTrack = false;
+    let selectedNativeTrack = false;
+
+    if (hls) {
+      if (nextEnabled && hls.subtitleTracks.length > 0) {
+        hls.subtitleDisplay = true;
+        if (hls.subtitleTrack < 0) hls.subtitleTrack = 0;
+        setCaptionsEnabled(true);
+        return;
+      }
+      hls.subtitleDisplay = false;
+      hls.subtitleTrack = -1;
+    }
+
+    const tracks = video.textTracks;
     for (let i = 0; i < tracks.length; i++) {
       const track = tracks[i];
       const isCaptionTrack = track.kind === 'captions' || track.kind === 'subtitles';
-      if (nextEnabled && isCaptionTrack && !selectedTrack) {
+      if (nextEnabled && isCaptionTrack && !selectedNativeTrack) {
         track.mode = 'showing';
-        selectedTrack = true;
+        selectedNativeTrack = true;
       } else {
         track.mode = 'disabled';
       }
     }
-    setCaptionsEnabled(nextEnabled && selectedTrack);
+    setCaptionsEnabled(nextEnabled && selectedNativeTrack);
   };
 
   // Countdown timer for automatic advance on error
@@ -236,6 +275,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         });
 
         hlsRef.current = hls;
+        // Never inherit the stream's default subtitle track when changing channels.
+        hls.subtitleDisplay = false;
+        hls.subtitleTrack = -1;
+        hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, () => {
+          if (hlsRef.current === hls && !captionsEnabled) {
+            hls.subtitleDisplay = false;
+            hls.subtitleTrack = -1;
+          }
+        });
         hls.loadSource(streamUrl);
         hls.attachMedia(video);
 

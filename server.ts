@@ -181,7 +181,7 @@ async function startServer() {
           'User-Agent': userAgent || 'IPTVnator/0.25.0',
           'Accept-Encoding': 'gzip, deflate, br',
         };
-        const response = await fetch(url, { headers: fetchHeaders, redirect: 'follow' });
+        const response = await fetch(url, { headers: fetchHeaders, redirect: 'follow', signal: AbortSignal.timeout(20000) });
         if (!response.ok) {
           res.status(response.status).json({ error: `Failed to fetch playlist: ${response.statusText}` });
           return;
@@ -279,7 +279,12 @@ async function startServer() {
       const urls: string[] = typeof url === 'string'
         ? url.split(/,\s*(?=https?:\/\/)/i).map((item: string) => item.trim()).filter(Boolean)
         : [];
-      const sources = content ? [{ url: 'inline XMLTV', content: String(content) }] : urls.map((sourceUrl) => ({ url: sourceUrl }));
+      // Load the first guide source only for a fast initial guide. Large M3U
+      // headers can list dozens of feeds; downloading every feed before replying
+      // delays both the guide and the first visible programme data.
+      const sources = content
+        ? [{ url: 'inline XMLTV', content: String(content) }]
+        : urls.slice(0, 1).map((sourceUrl) => ({ url: sourceUrl }));
       if (sources.length === 0) {
         res.status(400).json({ error: 'No valid EPG URLs were found' });
         return;

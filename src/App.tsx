@@ -195,6 +195,7 @@ export default function App() {
         ...activePlaylist,
         channelCount: channels.length,
         lastUpdated: Date.now(),
+        epgUrl: activePlaylist.epgUrl || data.header?.urlTvg || undefined,
         channels,
       };
 

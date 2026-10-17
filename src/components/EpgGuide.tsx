@@ -75,6 +75,8 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   const [xmltvChannelAliases, setXmltvChannelAliases] = useState<Record<string, string[]>>({});
 
   const gridScrollRef = useRef<HTMLDivElement | null>(null);
+  const legacySavedEpgUrl = useRef(localStorage.getItem('ma9ictv-epg-url') || '');
+  const legacyEpgResolved = useRef(false);
   const [currentTimeMs, setCurrentTimeMs] = useState(Date.now());
 
   // Update clock every 30 seconds
@@ -243,7 +245,15 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   // the user's manually configured XMLTV URL instead of leaking another playlist's guide.
   useEffect(() => {
     const playlistUrl = activePlaylistEpgUrl?.trim();
-    const manualUrl = localStorage.getItem('ma9ictv-manual-epg-url')?.trim() || localStorage.getItem('ma9ictv-epg-url')?.trim() || '';
+    let manualUrl = localStorage.getItem('ma9ictv-manual-epg-url')?.trim() || '';
+    // Migrate the old single-URL setting once, unless it is already the active playlist's feed.
+    if (!legacyEpgResolved.current) {
+      if (!manualUrl && legacySavedEpgUrl.current && legacySavedEpgUrl.current !== playlistUrl) {
+        manualUrl = legacySavedEpgUrl.current;
+        localStorage.setItem('ma9ictv-manual-epg-url', manualUrl);
+      }
+      legacyEpgResolved.current = true;
+    }
     const sourceUrl = playlistUrl || manualUrl;
 
     setXmltvProgrammes([]);

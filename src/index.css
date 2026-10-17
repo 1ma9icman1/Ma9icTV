@@ -70,6 +70,9 @@ select:focus-visible, textarea:focus-visible, video:focus-visible {
   button { min-height: 32px; }
   input, select, textarea { max-width: 100%; }
   .no-scrollbar { -webkit-overflow-scrolling: touch; }
+  [class*="overflow-y-auto"], [class*="overflow-auto"], [class*="overflow-x-auto"] { -webkit-overflow-scrolling: touch; }
+  /* Keep nested catalogue and EPG scroll areas usable on touch screens. */
+  .overscroll-contain { overscroll-behavior: contain; }
 }
 @media (max-height: 500px) and (orientation: landscape) {
   header { min-height: 36px; }

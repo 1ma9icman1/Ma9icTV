@@ -238,7 +238,8 @@ async function startServer() {
       }
 
       // Check if #EXTM3U header contains url-tvg or x-tvg-url
-      const tvgUrlMatch = rawM3u.substring(0, 1000).match(/(?:url-tvg|x-tvg-url|tvg-url)\s*=\s*["']([^"']+)["']/i);
+      const m3uHeaderLine = rawM3u.split(/\r?\n/, 1)[0] || '';
+      const tvgUrlMatch = m3uHeaderLine.match(/(?:url-tvg|x-tvg-url|tvg-url)\s*=\s*["']([^"']+)["']/i);
       if (tvgUrlMatch) {
         header = { ...header, urlTvg: tvgUrlMatch[1] };
       }

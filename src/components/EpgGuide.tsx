@@ -22,6 +22,20 @@ import {
 import { Channel, EpgProgram, AppSettings } from '../types';
 import { VideoPlayer } from './VideoPlayer';
 
+function normalizeEpgName(value: string): string {
+  return value.normalize('NFKD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+// XMLTV timestamps commonly look like YYYYMMDDHHmmss +0000 or YYYYMMDDHHmmss.
+function parseXmltvDate(value: string): Date {
+  const raw = String(value || '').trim();
+  const match = raw.match(/^(\\d{4})(\\d{2})(\\d{2})(\\d{2})(\\d{2})(\\d{2})(?:\\s*([+-]\\d{4}))?$/);
+  if (!match) return new Date(raw);
+  const [, year, month, day, hour, minute, second, zone] = match;
+  const iso = `${year}-${month}-${day}T${hour}:${minute}:${second}${zone ? `${zone.slice(0, 3)}:${zone.slice(3)}` : 'Z'}`;
+  return new Date(iso);
+}
+
 interface EpgGuideProps {
   channels: Channel[];
   selectedChannel: Channel | null;
@@ -55,6 +69,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   const [epgUrlInput, setEpgUrlInput] = useState(() => localStorage.getItem('ma9ictv-epg-url') || '');
   const [isLoadingEpg, setIsLoadingEpg] = useState(false);
   const [xmltvProgrammes, setXmltvProgrammes] = useState<EpgProgram[]>([]);
+  const [xmltvChannelAliases, setXmltvChannelAliases] = useState<Record<string, string[]>>({});
 
   const gridScrollRef = useRef<HTMLDivElement | null>(null);
   const [currentTimeMs, setCurrentTimeMs] = useState(Date.now());
@@ -96,12 +111,16 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   const channelSchedules = useMemo(() => {
     const map = new Map<string, EpgProgram[]>();
     filteredChannels.forEach((ch) => {
-      const ids = [ch.tvgId, ch.tvgName, ch.name].filter(Boolean).map((v) => String(v).trim().toLowerCase());
-      const matches = xmltvProgrammes.filter((p) => ids.includes((p.channelId || '').trim().toLowerCase()));
+      const ids = [ch.tvgId, ch.tvgName, ch.name].filter(Boolean).map((v) => normalizeEpgName(String(v)));
+      const matches = xmltvProgrammes.filter((p) => {
+        const channelId = (p.channelId || '').trim().toLowerCase();
+        const aliases = xmltvChannelAliases[channelId] || [];
+        return ids.includes(channelId) || aliases.some((alias) => ids.includes(normalizeEpgName(alias)));
+      });
       map.set(ch.id, matches);
     });
     return map;
-  }, [filteredChannels, xmltvProgrammes]);
+  }, [filteredChannels, xmltvProgrammes, xmltvChannelAliases]);
 
   // Active channel programs
   const activeChannelPrograms = useMemo(() => {
@@ -169,30 +188,41 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       if (!res.ok) throw new Error('Failed to load XMLTV file');
       const data = await res.json();
       if (data.programmes && Array.isArray(data.programmes)) {
-        const parsed: EpgProgram[] = data.programmes.map((p: any, idx: number) => {
-          let startMs = parseXmltvDate(p.start).getTime();
-          let stopMs = parseXmltvDate(p.stop).getTime();
-          const now = Date.now();
-          if (isNaN(startMs)) startMs = now - 15 * 60000;
-          if (isNaN(stopMs)) stopMs = now + 45 * 60000;
+        const now = Date.now();
+        const parsed: EpgProgram[] = data.programmes.flatMap((p: any, idx: number) => {
+          const startMs = parseXmltvDate(p.start).getTime();
+          const stopMs = parseXmltvDate(p.stop).getTime();
+          // Discard malformed records rather than inventing times or generic titles.
+          if (!p.channel || !p.title?.trim() || !Number.isFinite(startMs) || !Number.isFinite(stopMs) || stopMs <= startMs) return [];
           const isLive = now >= startMs && now < stopMs;
-          const progress = isLive ? Math.round(((now - startMs) / (stopMs - startMs)) * 100) : 0;
-          return {
+          const progress = isLive ? Math.max(0, Math.min(100, Math.round(((now - startMs) / (stopMs - startMs)) * 100))) : 0;
+          return [{
             id: `xmltv-${idx}`,
-            channelId: p.channel,
-            title: p.title || 'Broadcast Program',
-            desc: p.desc || 'Live TV Schedule',
-            category: p.category || 'General',
+            channelId: String(p.channel).trim(),
+            title: String(p.title).trim(),
+            desc: p.desc || '',
+            category: p.category || '',
             start: new Date(startMs).toISOString(),
             stop: new Date(stopMs).toISOString(),
             startTime: new Date(startMs),
             stopTime: new Date(stopMs),
             isLive,
             progress,
-          };
+          }];
         });
+        const aliases: Record<string, string[]> = {};
+        (Array.isArray(data.channels) ? data.channels : []).forEach((channel: any) => {
+          const id = String(channel.id || '').trim().toLowerCase();
+          if (!id) return;
+          const names = Array.isArray(channel.names) ? channel.names : [channel.name].filter(Boolean);
+          aliases[id] = names.map((name: unknown) => String(name).trim()).filter(Boolean);
+        });
+        setXmltvChannelAliases(aliases);
         setXmltvProgrammes(parsed);
         localStorage.setItem('ma9ictv-epg-url', epgUrlInput.trim());
+        if (parsed.length === 0) throw new Error('The XMLTV file contained no valid programme titles and times.');
+      } else {
+        throw new Error('The server returned no XMLTV programmes.');
       }
     } catch (err: any) {
       console.error(err);
@@ -201,6 +231,14 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       setIsLoadingEpg(false);
     }
   };
+
+  // Reload the saved guide URL automatically after refresh. The URL is persisted;
+  // guide data is re-fetched so listings remain current rather than going stale.
+  useEffect(() => {
+    if (epgUrlInput.trim()) void handleLoadXmltv();
+    // Run only on mount; the URL is read from localStorage by the initial state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <div className="flex-1 flex flex-col h-full bg-[#0a0e17] text-slate-100 overflow-hidden select-none">

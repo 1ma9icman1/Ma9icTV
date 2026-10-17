@@ -36,6 +36,13 @@ import { EpgGuide } from './components/EpgGuide';
 import { SettingsModal } from './components/SettingsModal';
 import { ShortcutsModal } from './components/ShortcutsModal';
 
+// Pick a real HTTP(S) stream instead of blindly selecting a playlist's first
+// metadata row, which can be empty or non-playable and leave the EPG visible
+// with no video on startup.
+function getFirstStreamChannel(channels: Channel[]): Channel | null {
+  return channels.find((channel) => /^https?:\\/\\//i.test(String(channel.url || '').trim())) || null;
+}
+
 export default function App() {
   // Playlists and Channels state
   const [playlists, setPlaylists] = useState<Playlist[]>(() => getSavedPlaylists());
@@ -48,7 +55,7 @@ export default function App() {
     const savedActive = savedPlaylists.find((playlist) => playlist.id === savedActiveId)
       || savedPlaylists[0]
       || INITIAL_PRESETS[0];
-    return savedActive?.channels?.find((channel) => Boolean(channel.url)) || null;
+    return savedActive ? getFirstStreamChannel(savedActive.channels) : null;
   });
 
   // Favorites and History
@@ -180,7 +187,8 @@ export default function App() {
         });
         setActivePlaylistIdState(plutoId);
         setActivePlaylistId(plutoId);
-        setSelectedChannel(channels[0]);
+        const firstStream = getFirstStreamChannel(channels);
+        if (firstStream) setSelectedChannel(firstStream);
         setCurrentView('epg');
         setIsSidebarCollapsed(true);
       } catch (error) {
@@ -197,7 +205,8 @@ export default function App() {
     if (activePlaylist && activePlaylist.channels.length > 0) {
       const existsInCurrent = selectedChannel && activePlaylist.channels.some((c) => c.id === selectedChannel.id);
       if (!existsInCurrent) {
-        setSelectedChannel(activePlaylist.channels[0]);
+        const firstStream = getFirstStreamChannel(activePlaylist.channels);
+        if (firstStream) setSelectedChannel(firstStream);
       }
     }
   }, [activePlaylist, selectedChannel]);

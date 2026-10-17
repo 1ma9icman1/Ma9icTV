@@ -132,6 +132,8 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
         tvgId: item.tvg?.id || undefined,
         tvgName: item.tvg?.name || undefined,
         isRadio: item.radio === 'true' || item.url?.endsWith('.mp3'),
+        httpUserAgent: item.httpUserAgent || undefined,
+        httpReferrer: item.httpReferrer || undefined,
         raw: item.raw,
       }));
 

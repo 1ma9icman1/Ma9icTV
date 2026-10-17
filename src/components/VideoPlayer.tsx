@@ -299,6 +299,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       setIsLoading(true);
       setQualities([]);
       setCurrentQuality(-1);
+      setStats({ resolution: 'Unknown', bitrate: 'Auto', buffer: '0s' });
 
       // Clean up previous HLS instance
       if (hlsRef.current) {
@@ -314,16 +315,30 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         ? `/api/proxy?url=${encodeURIComponent(channel.url)}&userAgent=${encodeURIComponent(settings.customUserAgent)}`
         : channel.url;
 
-      const isHlsStream = streamUrl.includes('.m3u8') || !channel.isRadio;
+      // Treat known file formats as native media instead of trying to parse them as HLS.
+      // Many IPTV playlists mix .m3u8 live streams with direct MP4/audio URLs.
+      let originalPath = channel.url;
+      try {
+        originalPath = new URL(channel.url).pathname;
+      } catch {
+        originalPath = channel.url.split(/[?#]/, 1)[0];
+      }
+      const isHlsManifest = /\.m3u8$/i.test(originalPath);
+      const isDirectMediaFile = /\.(mp4|m4v|webm|mp3|m4a|aac|ogg|oga|wav)$/i.test(originalPath);
+      const isHlsStream = isHlsManifest || (!channel.isRadio && !isDirectMediaFile);
 
       if (isHlsStream && Hls.isSupported()) {
+        const configuredBuffer = Number(settings.bufferLengthSeconds) || 20;
         const hls = new Hls({
-          maxBufferLength: settings.bufferLengthSeconds || 30,
+          // Keep the user-selected buffer within a sensible range for TV devices.
+          maxBufferLength: Math.max(10, Math.min(configuredBuffer, 45)),
           maxMaxBufferLength: 60,
+          maxBufferSize: 60 * 1000 * 1000,
           liveSyncDurationCount: 3,
+          liveMaxLatencyDurationCount: 6,
           enableWorker: true,
           lowLatencyMode: false,
-          backBufferLength: 30,
+          backBufferLength: 15,
         });
 
         hlsRef.current = hls;
@@ -711,7 +726,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               setErrorMsg(null);
               onStreamConnected?.();
             }}
-            onPause={() => setIsPlaying(false)}
+            onWaiting={() => {
+              // Re-show the loading bar if playback stalls after starting.
+              if (videoRef.current && !videoRef.current.paused && !errorMsg) {
+                setIsLoading(true);
+              }
+            }}
+            onStalled={() => {
+              if (videoRef.current && !videoRef.current.paused && !errorMsg) {
+                setIsLoading(true);
+              }
+            }}
+            onPause={() => {
+              setIsPlaying(false);
+              if (videoRef.current?.ended) setIsLoading(false);
+            }}
             onTimeUpdate={() => {
               if (videoRef.current && videoRef.current.buffered.length > 0) {
                 const buf =

@@ -187,6 +187,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
     description: 'Complete worldwide Pluto TV catalog spanning 14+ international regions.',
     flag: '🌐',
     channelEstimate: '~1,500 channels',
+    epgUrl: 'https://i.mjh.nz/PlutoTV/all.xml',
   },
   {
     name: 'Samsung TV Plus (United States)',
@@ -195,6 +196,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
     description: 'Samsung TV Plus linear free channels (US lineup).',
     flag: '🇺🇸',
     channelEstimate: '~320 channels',
+    epgUrl: 'https://i.mjh.nz/SamsungTVPlus/us.xml',
   },
   {
     name: 'Samsung TV Plus (All Regions)',
@@ -203,6 +205,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
     description: 'Full international Samsung TV Plus catalog (11+ countries).',
     flag: '🌐',
     channelEstimate: '~1,200 channels',
+    epgUrl: 'https://i.mjh.nz/SamsungTVPlus/all.xml',
   },
   {
     name: 'Plex TV (United States)',
@@ -211,6 +214,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
     description: 'Free live TV channels on Plex (US region).',
     flag: '🇺🇸',
     channelEstimate: '~400 channels',
+    epgUrl: 'https://i.mjh.nz/Plex/us.xml',
   },
   {
     name: 'Plex TV (All Global Regions)',
@@ -219,6 +223,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
     description: 'Plex Live TV streams across 8+ international regions.',
     flag: '🌐',
     channelEstimate: '~1,000 channels',
+    epgUrl: 'https://i.mjh.nz/Plex/all.xml',
   },
   {
     name: 'The Roku Channel (All Channels)',

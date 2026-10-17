@@ -237,6 +237,16 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   // The same scroll areas also respond to TV remote arrow keys below.
   const handleDragPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
+
+    // Do not capture pointer events from controls inside the guide. Capturing
+    // a Play/Tune button on the scrolling parent can prevent its click event
+    // from reaching the button, especially in TV browsers.
+    const target = event.target;
+    if (target instanceof Element && target.closest('button, a, input, textarea, select, [role="button"]')) {
+      dragStateRef.current = null;
+      return;
+    }
+
     const element = event.currentTarget;
     dragStateRef.current = {
       pointerId: event.pointerId,

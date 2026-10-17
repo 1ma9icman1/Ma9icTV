@@ -484,6 +484,19 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
           </button>
         </div>
 
+        {/* EPG loading indicator */}
+        <div className="flex min-w-[110px] flex-1 flex-col justify-center gap-1 px-1 sm:px-2" role="status" aria-live="polite" aria-label={isLoadingEpg ? "Loading EPG guide" : xmltvProgrammes.length > 0 ? "EPG guide loaded" : "EPG guide waiting"}>
+          <div className="flex items-center justify-between gap-2 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider">
+            <span className={isLoadingEpg ? "text-indigo-300" : xmltvProgrammes.length > 0 ? "text-emerald-400" : "text-slate-500"}>
+              {isLoadingEpg ? "Loading EPG" : xmltvProgrammes.length > 0 ? "EPG Loaded" : "EPG Guide"}
+            </span>
+            {isLoadingEpg && <RefreshCw className="h-3 w-3 animate-spin text-indigo-400" />}
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={isLoadingEpg ? undefined : xmltvProgrammes.length > 0 ? 100 : 0}>
+            <div className={`h-full rounded-full transition-all duration-300 ${isLoadingEpg ? "w-1/3 animate-pulse bg-indigo-400" : xmltvProgrammes.length > 0 ? "w-full bg-emerald-500" : "w-0 bg-indigo-500"}`} />
+          </div>
+        </div>
+
         {/* Center: Search */}
         <div className="relative w-full sm:w-64 flex-1 sm:flex-none min-w-[140px]">
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />

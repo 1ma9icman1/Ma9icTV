@@ -252,7 +252,7 @@ export default function App() {
       {/* 1. Slim Left App Navigation Bar */}
       <aside className="fixed bottom-0 left-0 right-0 z-40 h-14 w-full flex-shrink-0 bg-slate-950/95 border-t border-slate-800/80 flex flex-row items-center justify-around px-2 py-1 select-none md:static md:h-auto md:w-16 md:flex-col md:justify-between md:border-t-0 md:border-r md:px-0 md:py-4">
         {/* Top: Logo & Main Navigation */}
-        <div className="flex flex-row items-center gap-2 h-full md:h-auto md:flex-col md:gap-6 w-full md:w-full">
+        <div className="flex flex-row items-center gap-2 h-full md:h-auto md:flex-col md:gap-6 w-auto md:w-full">
           {/* IPTVnator Logo */}
           <div
             onClick={() => setCurrentView('player')}
@@ -305,7 +305,7 @@ export default function App() {
         </div>
 
         {/* Bottom: Settings & Shortcuts */}
-        <div className="flex flex-col items-center gap-2 w-full px-2">
+        <div className="flex flex-row items-center gap-1 w-auto md:flex-col md:gap-2 md:w-full px-0 md:px-2">
           {/* Shortcuts Info */}
           <button
             onClick={() => setIsShortcutsModalOpen(true)}

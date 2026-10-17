@@ -754,17 +754,22 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                     </div>
 
                     {/* Timeline Program Blocks */}
-                    <div className="flex items-center relative py-1.5">
+                    <div
+                      className="relative flex-shrink-0 py-1.5"
+                      style={{ width: `${(timeSlots.length - 1) * 30 * minuteWidthPx}px`, height: '60px' }}
+                    >
                       {programs.map((prog) => {
                         const startMin = (prog.startTime.getTime() - timelineStartMs) / 60000;
                         const durationMin = (prog.stopTime.getTime() - prog.startTime.getTime()) / 60000;
-                        const widthPx = Math.max(60, durationMin * minuteWidthPx);
+                        const visibleEndMin = (timeSlots.length - 1) * 30;
 
-                        // If program is before or after timeline window, skip or clamp
-                        if (startMin + durationMin < 0 || startMin > (timeSlots.length - 1) * 30) {
-                          return null;
-                        }
+                        // Place each programme at its actual clock-time position. Previously
+                        // blocks flowed next to one another, hiding schedule gaps and shifting
+                        // programme highlights away from the red current-time line.
+                        if (startMin + durationMin <= 0 || startMin >= visibleEndMin) return null;
 
+                        const visibleStartMin = Math.max(0, startMin);
+                        const visibleDurationMin = Math.min(visibleEndMin, startMin + durationMin) - visibleStartMin;
                         const isNowPlayingThis =
                           currentTimeMs >= prog.startTime.getTime() && currentTimeMs < prog.stopTime.getTime();
 
@@ -775,7 +780,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                               onSelectChannel(channel);
                               setSelectedProgram(prog);
                             }}
-                            className={`h-12 rounded-xl p-2 mr-1.5 flex flex-col justify-between overflow-hidden cursor-pointer transition-all border ${
+                            className={`absolute top-1.5 h-12 rounded-xl p-2 flex flex-col justify-between overflow-hidden cursor-pointer transition-colors border ${
                               isNowPlayingThis && isSelected
                                 ? 'bg-indigo-600 text-white border-indigo-400 shadow-md shadow-indigo-600/30'
                                 : isNowPlayingThis
@@ -784,14 +789,21 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                                 ? 'bg-slate-900 border-indigo-900/60 text-slate-300 hover:bg-slate-800 hover:text-white'
                                 : 'bg-slate-900/60 border-slate-800/80 text-slate-300 hover:bg-slate-800 hover:text-white hover:border-slate-700'
                             }`}
-                            style={{ width: `${widthPx - 6}px` }}
+                            style={{
+                              left: `${visibleStartMin * minuteWidthPx}px`,
+                              width: `${Math.max(0, visibleDurationMin * minuteWidthPx - 3)}px`,
+                            }}
                           >
                             <div className="flex items-center justify-between gap-1">
                               <span className="text-[10px] font-mono opacity-80 truncate">
                                 {prog.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                               </span>
                               {isNowPlayingThis && (
-                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0"></span>
+                                <span
+                                  className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.9)]"
+                                  title="Currently airing"
+                                  aria-label="Currently airing"
+                                ></span>
                               )}
                             </div>
                             <h5 className="text-xs font-semibold truncate leading-tight">{prog.title}</h5>

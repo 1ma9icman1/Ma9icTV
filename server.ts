@@ -117,6 +117,7 @@ async function startServer() {
       if (isM3u8) {
         const text = await response.text();
         if (text.trim().startsWith('#EXTM3U')) {
+          const proxyParams = `userAgent=${encodeURIComponent(customUserAgent)}${customReferer ? `&referer=${encodeURIComponent(customReferer)}` : ''}`;
           const rewrittenLines = text.split('\n').map((line) => {
             const trimmed = line.trim();
             if (!trimmed || trimmed.startsWith('#')) {
@@ -125,7 +126,7 @@ async function startServer() {
                 return line.replace(/URI="([^"]+)"/, (_match, uri) => {
                   try {
                     const resolvedUri = new URL(uri, finalUrl).toString();
-                    return `URI="/api/proxy?url=${encodeURIComponent(resolvedUri)}&userAgent=${encodeURIComponent(customUserAgent)}"`;
+                    return `URI="/api/proxy?url=${encodeURIComponent(resolvedUri)}&${proxyParams}"`;
                   } catch {
                     return line;
                   }
@@ -137,7 +138,7 @@ async function startServer() {
             // Relative or absolute stream URI
             try {
               const fullUri = new URL(trimmed, finalUrl).toString();
-              return `/api/proxy?url=${encodeURIComponent(fullUri)}&userAgent=${encodeURIComponent(customUserAgent)}`;
+              return `/api/proxy?url=${encodeURIComponent(fullUri)}&${proxyParams}`;
             } catch {
               return line;
             }

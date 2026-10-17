@@ -24,6 +24,7 @@ export interface Playlist {
   addedAt: number;
   lastUpdated: number;
   userAgent?: string;
+  epgUrl?: string;
   channels: Channel[];
 }
 

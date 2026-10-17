@@ -112,6 +112,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const captionsEnabledRef = useRef<boolean>(false);
   const volumeRef = useRef<number>(settings.volume > 0 ? settings.volume : 0.8);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
+  const [controlsVisible, setControlsVisible] = useState<boolean>(true);
+  const controlsHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [isUsingProxy, setIsUsingProxy] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -129,6 +131,42 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   });
 
   const embedInfo = channel ? getThirdPartyEmbed(channel.url) : { type: null, embedUrl: '' };
+
+  const clearControlsHideTimer = useCallback(() => {
+    if (controlsHideTimerRef.current) {
+      clearTimeout(controlsHideTimerRef.current);
+      controlsHideTimerRef.current = null;
+    }
+  }, []);
+
+  const revealFullscreenControls = useCallback(() => {
+    setControlsVisible(true);
+    clearControlsHideTimer();
+    if (document.fullscreenElement && containerRef.current && document.fullscreenElement === containerRef.current) {
+      controlsHideTimerRef.current = setTimeout(() => setControlsVisible(false), 5000);
+    }
+  }, [clearControlsHideTimer]);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const fullscreen = !!document.fullscreenElement && document.fullscreenElement === containerRef.current;
+      setIsFullscreen(fullscreen);
+      setControlsVisible(true);
+      clearControlsHideTimer();
+      if (fullscreen) {
+        controlsHideTimerRef.current = setTimeout(() => setControlsVisible(false), 5000);
+      }
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      clearControlsHideTimer();
+    };
+  }, [clearControlsHideTimer]);
+
+  const handleFullscreenActivity = () => {
+    if (document.fullscreenElement === containerRef.current) revealFullscreenControls();
+  };
 
   // Force captions off for every newly selected channel. HLS.js manages its own
   // subtitle selection, so disabling only video.textTracks is not sufficient.
@@ -563,9 +601,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const toggleFullscreen = () => {
     if (!containerRef.current) return;
     if (!document.fullscreenElement) {
-      containerRef.current.requestFullscreen().then(() => setIsFullscreen(true)).catch(console.error);
+      containerRef.current.requestFullscreen().then(() => {
+        setIsFullscreen(true);
+        setControlsVisible(true);
+        revealFullscreenControls();
+      }).catch(console.error);
     } else {
-      document.exitFullscreen().then(() => setIsFullscreen(false)).catch(console.error);
+      clearControlsHideTimer();
+      document.exitFullscreen().then(() => {
+        setIsFullscreen(false);
+        setControlsVisible(true);
+      }).catch(console.error);
     }
   };
 
@@ -614,7 +660,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   return (
     <div
       ref={containerRef}
-      className={`relative bg-black flex items-center justify-center overflow-hidden select-none group ${
+      onMouseMove={handleFullscreenActivity}
+      onPointerMove={handleFullscreenActivity}
+      onTouchStart={handleFullscreenActivity}
+      className={`relative bg-black flex items-center justify-center overflow-hidden select-none group ${isFullscreen && !controlsVisible ? 'cursor-none' : ''} ${
         isEpgPreview
           ? 'w-full h-full rounded-2xl border border-slate-800 shadow-2xl'
           : 'flex-1 w-full h-full'
@@ -760,7 +809,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       )}
 
       {/* Top Overlay Badge for EPG Preview Mode */}
-      <div className="absolute top-2 left-2 z-20 flex items-center gap-2 pointer-events-none">
+      <div className={`absolute top-2 left-2 z-20 flex items-center gap-2 pointer-events-none transition-opacity duration-300 ${isFullscreen && !controlsVisible ? 'opacity-0' : 'opacity-100'}`}>
         <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-black/70 backdrop-blur-md text-emerald-400 border border-emerald-500/30 flex items-center gap-1 shadow-md">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
           LIVE TV
@@ -768,7 +817,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       </div>
 
       {/* Top Right Quick Controls */}
-      <div className="absolute top-2 right-2 z-20 flex items-center gap-1.5">
+      <div className={`absolute top-2 right-2 z-20 flex items-center gap-1.5 transition-opacity duration-300 ${isFullscreen && !controlsVisible ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
         {onExpandPlayer && isEpgPreview && (
           <button
             onClick={onExpandPlayer}
@@ -790,7 +839,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       {/* Floating Bottom Control Bar (Shown on hover or in preview) */}
       <div
         className={`absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-black/90 via-black/50 to-transparent transition-opacity duration-300 z-20 flex items-center justify-between ${
-          isEpgPreview ? 'opacity-90 group-hover:opacity-100' : 'opacity-0 group-hover:opacity-100'
+          isFullscreen ? (controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none') : (isEpgPreview ? 'opacity-90 group-hover:opacity-100' : 'opacity-0 group-hover:opacity-100')
         }`}
       >
         <div className="flex items-center gap-2">
@@ -924,7 +973,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
       {/* Diagnostics HUD */}
       {showStats && (
-        <div className="absolute top-10 right-2 bg-slate-950/90 border border-slate-700/80 rounded-xl p-3 text-[10px] font-mono text-slate-300 shadow-xl backdrop-blur-md z-30 space-y-1">
+        <div className={`absolute top-10 right-2 bg-slate-950/90 border border-slate-700/80 rounded-xl p-3 text-[10px] font-mono text-slate-300 shadow-xl backdrop-blur-md z-30 space-y-1 transition-opacity duration-300 ${isFullscreen && !controlsVisible ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
           <p><span className="text-slate-500">Bitrate:</span> {stats.bitrate}</p>
           <p><span className="text-slate-500">Buffer:</span> {stats.buffer}</p>
           <p><span className="text-slate-500">Mode:</span> {isUsingProxy ? 'CORS Proxy' : 'Direct'}</p>

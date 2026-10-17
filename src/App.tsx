@@ -49,7 +49,8 @@ export default function App() {
   // Settings
   const [settings, setSettings] = useState<AppSettings>(() => getSettings());
 
-  // Start directly in the live player. The channel sidebar stays hidden until requested.
+  // Start in the combined EPG + live stream layout.
+  // Fullscreen is requested separately below; browser policy may require one user gesture.
   const [currentView, setCurrentView] = useState<'player' | 'epg'>('epg');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(true);
   const [isRefreshingPlaylist, setIsRefreshingPlaylist] = useState<boolean>(false);

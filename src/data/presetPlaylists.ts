@@ -3,7 +3,7 @@ import { Playlist } from '../types';
 export interface CatalogPlaylist {
   name: string;
   url: string;
-  category: 'Worldwide' | 'FAST Services' | 'Countries' | 'Categories';
+  category: 'Worldwide' | 'Streaming Services' | 'Countries' | 'Categories';
   description: string;
   flag?: string;
   channelEstimate?: string;
@@ -174,7 +174,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
   {
     name: 'Pluto TV (United States)',
     url: 'https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/plutotv_us.m3u',
-    category: 'FAST Services',
+    category: 'Streaming Services',
     description: 'Pluto TV US live streaming channels with proxy support and embedded guide.',
     flag: '🇺🇸',
     channelEstimate: '~350 channels',
@@ -183,7 +183,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
   {
     name: 'Pluto TV (All Global Regions)',
     url: 'https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/plutotv_all.m3u',
-    category: 'FAST Services',
+    category: 'Streaming Services',
     description: 'Complete worldwide Pluto TV catalog spanning 14+ international regions.',
     flag: '🌐',
     channelEstimate: '~1,500 channels',
@@ -192,7 +192,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
   {
     name: 'Samsung TV Plus (United States)',
     url: 'https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/samsungtvplus_us.m3u',
-    category: 'FAST Services',
+    category: 'Streaming Services',
     description: 'Samsung TV Plus linear free channels (US lineup).',
     flag: '🇺🇸',
     channelEstimate: '~320 channels',
@@ -201,7 +201,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
   {
     name: 'Samsung TV Plus (All Regions)',
     url: 'https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/samsungtvplus_all.m3u',
-    category: 'FAST Services',
+    category: 'Streaming Services',
     description: 'Full international Samsung TV Plus catalog (11+ countries).',
     flag: '🌐',
     channelEstimate: '~1,200 channels',
@@ -210,7 +210,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
   {
     name: 'Plex TV (United States)',
     url: 'https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/plex_us.m3u',
-    category: 'FAST Services',
+    category: 'Streaming Services',
     description: 'Free live TV channels on Plex (US region).',
     flag: '🇺🇸',
     channelEstimate: '~400 channels',
@@ -219,7 +219,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
   {
     name: 'Plex TV (All Global Regions)',
     url: 'https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/plex_all.m3u',
-    category: 'FAST Services',
+    category: 'Streaming Services',
     description: 'Plex Live TV streams across 8+ international regions.',
     flag: '🌐',
     channelEstimate: '~1,000 channels',
@@ -228,7 +228,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
   {
     name: 'The Roku Channel (All Channels)',
     url: 'https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/roku_all.m3u',
-    category: 'FAST Services',
+    category: 'Streaming Services',
     description: 'Full Roku Linear TV lineup including news, movies, and classics.',
     flag: '📺',
     channelEstimate: '~450 channels',
@@ -237,7 +237,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
   {
     name: 'Tubi TV (Live TV)',
     url: 'https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/tubi_all.m3u',
-    category: 'FAST Services',
+    category: 'Streaming Services',
     description: 'Tubi free ad-supported streaming television live channels.',
     flag: '🍿',
     channelEstimate: '~250 channels',

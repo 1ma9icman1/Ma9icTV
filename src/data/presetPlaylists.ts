@@ -419,8 +419,8 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
     name: 'Movies & Cinema',
     url: 'https://iptv-org.github.io/iptv/categories/movies.m3u',
     category: 'Categories',
-    epgUrl: 'https://iptv-org.github.io/epg/guides/us/tvtv.us.epg.xml,https://iptv-org.github.io/epg/guides/uk/ontvtonight.com.epg.xml,https://iptv-org.github.io/epg/guides/ca/tvtv.us.epg.xml,https://iptv-org.github.io/epg/guides/au/ontvtonight.com.epg.xml',
-    description: 'Linear movie channels, public domain classics, and indie films.',
+    epgUrl: 'https://iptv-org.github.io/epg/guides/us/tvtv.us.epg.xml,https://iptv-org.github.io/epg/guides/uk/ontvtonight.com.epg.xml,https://iptv-org.github.io/epg/guides/ca/tvtv.us.epg.xml,https://iptv-org.github.io/epg/guides/au/ontvtonight.com.epg.xml,https://iptv-org.github.io/epg/guides/de/hd-plus.de.epg.xml,https://iptv-org.github.io/epg/guides/fr/programme-tv.net.epg.xml',
+    description: 'Linear movie channels, public domain classics, and indie films with expanded regional EPG coverage.',
     channelEstimate: '~320 channels',
   },
   {

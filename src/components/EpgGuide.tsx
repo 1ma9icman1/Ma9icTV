@@ -272,12 +272,14 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     const drag = dragStateRef.current;
     if (!drag || drag.pointerId !== event.pointerId) return;
     const wasDragged = drag.active;
-    dragStateRef.current = null;
+    // Keep the immediately following click from activating a programme/category after a drag.
+    dragStateRef.current = wasDragged
+      ? { ...drag, pointerId: -1, active: false, suppressClick: true }
+      : null;
     if (wasDragged) {
-      // Keep the following click from activating a programme/category after a drag.
       window.setTimeout(() => {
-        if (dragStateRef.current === null) dragStateRef.current = { pointerId: -1, startX: 0, startY: 0, scrollLeft: 0, scrollTop: 0, active: false, suppressClick: true };
-      }, 0);
+        if (dragStateRef.current?.pointerId === -1) dragStateRef.current = null;
+      }, 50);
     }
   };
 

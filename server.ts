@@ -364,7 +364,7 @@ async function startServer() {
 
       const channels = Array.from(channelsById.values());
       const programmes = Array.from(programmeByKey.values());
-      if (loadedSources === 0 || programmes.length === 0) {
+      if ((loadedSources === 0 || programmes.length === 0) && requestedOffset + sources.length >= allSources.length) {
         res.status(502).json({
           error: 'No valid XMLTV programme data could be loaded',
           sourceCount: allSources.length,

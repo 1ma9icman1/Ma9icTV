@@ -299,20 +299,25 @@ async function startServer() {
 
       // Normalize channels
       const rawChannels = Array.isArray(tvData.channel) ? tvData.channel : (tvData.channel ? [tvData.channel] : []);
-      const channels = rawChannels.map((c: any) => ({
-        id: c['@_id'] || '',
-        name: typeof c['display-name'] === 'string' ? c['display-name'] : (c['display-name']?.[0] || c['display-name']?.['#text'] || c['@_id'] || ''),
-        icon: c.icon?.['@_src'] || '',
-      }));
-
-      // Normalize all programmes. Keeping only the first 1,000 entries can silently
-      // discard today's listings when a provider's XMLTV file starts several days ago.
-      const rawProgrammes = Array.isArray(tvData.programme) ? tvData.programme : (tvData.programme ? [tvData.programme] : []);
       const readXmlText = (value: any): string => {
         if (typeof value === 'string') return value;
         if (Array.isArray(value)) return readXmlText(value[0]);
         return typeof value?.['#text'] === 'string' ? value['#text'] : '';
       };
+      const channels = rawChannels.map((c: any) => {
+        const displayNames = Array.isArray(c['display-name']) ? c['display-name'] : [c['display-name']];
+        const names = displayNames.map((value: any) => readXmlText(value)).filter(Boolean);
+        return {
+          id: c['@_id'] || '',
+          name: names[0] || c['@_id'] || '',
+          names,
+          icon: c.icon?.['@_src'] || '',
+        };
+      });
+
+      // Normalize all programmes. Keeping only the first 1,000 entries can silently
+      // discard today's listings when a provider's XMLTV file starts several days ago.
+      const rawProgrammes = Array.isArray(tvData.programme) ? tvData.programme : (tvData.programme ? [tvData.programme] : []);
       const programmes = rawProgrammes.map((p: any) => ({
         channel: p['@_channel'] || '',
         start: p['@_start'] || '',

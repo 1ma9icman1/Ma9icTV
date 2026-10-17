@@ -70,6 +70,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   const [selectedProgram, setSelectedProgram] = useState<EpgProgram | null>(null);
   const [epgUrlInput, setEpgUrlInput] = useState(() => localStorage.getItem('ma9ictv-epg-url') || '');
   const [isLoadingEpg, setIsLoadingEpg] = useState(false);
+  const [epgLoadError, setEpgLoadError] = useState('');
   const [xmltvProgrammes, setXmltvProgrammes] = useState<EpgProgram[]>([]);
   const [xmltvChannelAliases, setXmltvChannelAliases] = useState<Record<string, string[]>>({});
 
@@ -182,6 +183,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     const sourceUrl = (urlOverride ?? epgUrlInput).trim();
     if (!sourceUrl) return;
     setIsLoadingEpg(true);
+    setEpgLoadError('');
     try {
       const res = await fetch('/api/parse-epg', {
         method: 'POST',
@@ -230,6 +232,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       }
     } catch (err: any) {
       console.error('Could not load XMLTV guide:', err);
+      setEpgLoadError(err?.message || 'Could not load the XMLTV guide. Check the URL and server logs.');
       if (showAlert) alert('Could not load the XMLTV guide. Check the URL and server logs.');
     } finally {
       setIsLoadingEpg(false);
@@ -240,7 +243,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   // the user's manually configured XMLTV URL instead of leaking another playlist's guide.
   useEffect(() => {
     const playlistUrl = activePlaylistEpgUrl?.trim();
-    const manualUrl = localStorage.getItem('ma9ictv-manual-epg-url')?.trim() || '';
+    const manualUrl = localStorage.getItem('ma9ictv-manual-epg-url')?.trim() || localStorage.getItem('ma9ictv-epg-url')?.trim() || '';
     const sourceUrl = playlistUrl || manualUrl;
 
     setXmltvProgrammes([]);
@@ -443,6 +446,16 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
             {isLoadingEpg ? 'Loading…' : 'Load EPG'}
           </button>
         </form>
+
+        <div className="w-full text-[10px] text-slate-400 sm:w-auto sm:max-w-[260px] truncate" role="status" aria-live="polite">
+          {isLoadingEpg
+            ? 'Loading real programme guide…'
+            : epgLoadError
+              ? `EPG error: ${epgLoadError}`
+              : xmltvProgrammes.length > 0
+                ? `${xmltvProgrammes.length.toLocaleString()} listings loaded · ${Array.from(channelSchedules.values()).filter((items) => items.length > 0).length} channels matched`
+                : 'No EPG loaded yet'}
+        </div>
 
         {/* Right: Switch Playlist */}
         <div className="flex items-center gap-2">

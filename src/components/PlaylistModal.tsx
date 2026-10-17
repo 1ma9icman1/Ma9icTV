@@ -83,7 +83,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
         item.category.toLowerCase().includes(q)
       );
     }).sort((a, b) => {
-      const order: Record<string, number> = { 'Streaming Services': 0, Worldwide: 1, Countries: 2, Categories: 3 };
+      const order: Record<string, number> = { 'Streaming Services': 0, Worldwide: 1, Categories: 2, Countries: 3 };
       return (order[a.category] ?? 99) - (order[b.category] ?? 99);
     });
   }, [catalogCategory, catalogSearch]);
@@ -439,7 +439,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
               {/* Category Pills & Search */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
-                  {(['All', 'Streaming Services', 'Worldwide', 'Countries', 'Categories'] as const).map((cat) => (
+                  {(['All', 'Streaming Services', 'Worldwide', 'Categories', 'Countries'] as const).map((cat) => (
                     <button
                       key={cat}
                       onClick={() => setCatalogCategory(cat)}

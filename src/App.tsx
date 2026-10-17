@@ -10,6 +10,8 @@ import {
   Sparkles,
   RefreshCw,
   FolderOpen,
+  Maximize2,
+  Minimize2,
 } from 'lucide-react';
 
 import { Channel, Playlist, AppSettings } from './types';
@@ -51,6 +53,25 @@ export default function App() {
   const [currentView, setCurrentView] = useState<'player' | 'epg'>('epg');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(true);
   const [isRefreshingPlaylist, setIsRefreshingPlaylist] = useState<boolean>(false);
+  const [isAppFullscreen, setIsAppFullscreen] = useState<boolean>(() => Boolean(document.fullscreenElement));
+
+  useEffect(() => {
+    const syncFullscreenState = () => setIsAppFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener('fullscreenchange', syncFullscreenState);
+    return () => document.removeEventListener('fullscreenchange', syncFullscreenState);
+  }, []);
+
+  const toggleAppFullscreen = async () => {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await document.documentElement.requestFullscreen();
+      }
+    } catch (error) {
+      console.warn('Ma9icTV fullscreen is not supported or was blocked by this browser.', error);
+    }
+  };
 
   // Keep the playlist picker closed on startup; users can open it from the Layers button.
   const [isPlaylistModalOpen, setIsPlaylistModalOpen] = useState<boolean>(false);
@@ -429,6 +450,15 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={toggleAppFullscreen}
+              className="flex items-center justify-center gap-1.5 min-w-9 min-h-9 px-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-800 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-400"
+              title={isAppFullscreen ? 'Exit fullscreen' : 'Fullscreen — hide browser controls'}
+              aria-label={isAppFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+            >
+              {isAppFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
+              <span className="hidden lg:inline">{isAppFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</span>
+            </button>
             <button
               onClick={() => setIsPlaylistModalOpen(true)}
               className="hidden sm:flex px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 text-xs font-semibold items-center gap-1.5 transition-all shadow-sm"

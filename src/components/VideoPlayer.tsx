@@ -269,7 +269,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   // Initialize playback
   const initPlayer = useCallback(
-    (forceProxy?: boolean) => {
+    (forceProxy?: boolean, preventFallback = false) => {
       if (!channel) return;
       setAutoSkipCountdown(null);
 
@@ -429,9 +429,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 networkRetries++;
                 if (networkRetries <= 2) {
                   hls.startLoad();
-                } else if (!shouldProxy) {
-                  // Direct connection blocked by CORS or host firewall; retry via internal proxy
-                  initPlayer(true);
+                } else if (!shouldProxy && !preventFallback) {
+                  // Direct mode failed: make one final attempt through the proxy.
+                  initPlayer(true, true);
+                } else if (shouldProxy && settings.proxyMode === 'auto' && !preventFallback) {
+                  // Auto mode tries both routes once, without looping between them.
+                  initPlayer(false, true);
                 } else {
                   hls.destroy();
                   setErrorMsg('Stream host may be offline, geo-restricted, or blocking direct access.');
@@ -492,10 +495,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         };
 
         video.onerror = () => {
-          if (!shouldProxy) {
-            initPlayer(true);
+          if (!shouldProxy && !preventFallback) {
+            initPlayer(true, true);
+          } else if (shouldProxy && settings.proxyMode === 'auto' && !preventFallback) {
+            initPlayer(false, true);
           } else {
-            setErrorMsg('Host may be blocking direct access or stream link has expired.');
+            setErrorMsg('Host may be blocking access or the stream link has expired.');
             setIsLoading(false);
             if (settings.autoPlayNext && onNextChannel) {
               setAutoSkipCountdown(4);

@@ -231,6 +231,25 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     return () => clearTimeout(timer);
   }, []);
 
+  // TV remote / keyboard navigation: Up and Down move through channel rows.
+  // Keep these keys dedicated to the guide while this view is mounted.
+  useEffect(() => {
+    const handleGuideKeys = (event: KeyboardEvent) => {
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement) return;
+      if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp' && event.key !== 'PageDown' && event.key !== 'PageUp') return;
+      const grid = gridScrollRef.current;
+      if (!grid) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const distance = event.key === 'PageDown' || event.key === 'PageUp'
+        ? Math.max(180, Math.floor(grid.clientHeight * 0.75))
+        : 68;
+      grid.scrollBy({ top: event.key === 'ArrowUp' || event.key === 'PageUp' ? -distance : distance, behavior: 'smooth' });
+    };
+    window.addEventListener('keydown', handleGuideKeys, { capture: true });
+    return () => window.removeEventListener('keydown', handleGuideKeys, { capture: true });
+  }, []);
+
   // Handle loading XMLTV URL
   const handleLoadXmltv = async (showAlert = true, urlOverride?: string) => {
     const sourceUrl = (urlOverride ?? epgUrlInput).trim();
@@ -533,7 +552,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
           ========================================================================= */}
       <div className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col relative bg-[#070b12]">
         {/* Scrollable Container */}
-        <div ref={gridScrollRef} className="flex-1 min-h-0 min-w-0 relative overscroll-contain" style={{ height: 0, overflowX: "auto", overflowY: "scroll", WebkitOverflowScrolling: "touch", touchAction: "auto", overscrollBehavior: "contain" }} aria-label="Scrollable TV guide. Swipe horizontally for times and vertically for channels." tabIndex={0}>
+        <div ref={gridScrollRef} className="flex-1 min-h-0 min-w-0 relative overscroll-contain" style={{ height: 0, overflowX: "auto", overflowY: "scroll", WebkitOverflowScrolling: "touch", touchAction: "pan-x pan-y", overscrollBehavior: "contain", scrollbarWidth: "auto", scrollbarColor: "#6366f1 #0f172a" }} aria-label="Scrollable TV guide. Swipe horizontally for times and vertically for channels." tabIndex={0}>
           <div
             className="min-w-max flex flex-col"
             style={{ width: `${(typeof window !== "undefined" && window.innerWidth < 640 ? 150 : 260) + (timeSlots.length - 1) * 30 * minuteWidthPx}px` }}

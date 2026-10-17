@@ -112,18 +112,43 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     });
   }, [channels, selectedCategory, searchQuery]);
 
-  // Use actual XMLTV listings only. Never invent generic programme or episode titles.
+  // Index XMLTV once. The old implementation scanned every programme for every
+  // visible channel (channels × programmes), which froze the UI on large guides.
   const channelSchedules = useMemo(() => {
+    const programmesByName = new Map<string, EpgProgram[]>();
+    const addProgramme = (key: string, programme: EpgProgram) => {
+      const normalized = normalizeEpgName(key);
+      if (!normalized) return;
+      const existing = programmesByName.get(normalized);
+      if (existing) existing.push(programme);
+      else programmesByName.set(normalized, [programme]);
+    };
+
+    for (const programme of xmltvProgrammes) {
+      const channelId = (programme.channelId || '').trim().toLowerCase();
+      if (!channelId) continue;
+      addProgramme(channelId, programme);
+      for (const alias of xmltvChannelAliases[channelId] || []) addProgramme(alias, programme);
+    }
+
     const map = new Map<string, EpgProgram[]>();
-    filteredChannels.forEach((ch) => {
-      const ids = [ch.tvgId, ch.tvgName, ch.name].filter(Boolean).map((v) => normalizeEpgName(String(v)));
-      const matches = xmltvProgrammes.filter((p) => {
-        const channelId = (p.channelId || '').trim().toLowerCase();
-        const aliases = xmltvChannelAliases[channelId] || [];
-        return ids.includes(normalizeEpgName(channelId)) || aliases.some((alias) => ids.includes(normalizeEpgName(alias)));
-      });
-      map.set(ch.id, matches);
-    });
+    for (const channel of filteredChannels) {
+      const keys = [channel.tvgId, channel.tvgName, channel.name]
+        .filter(Boolean)
+        .map((value) => normalizeEpgName(String(value)));
+      const seen = new Set<string>();
+      const matches: EpgProgram[] = [];
+      for (const key of keys) {
+        for (const programme of programmesByName.get(key) || []) {
+          if (!seen.has(programme.id)) {
+            seen.add(programme.id);
+            matches.push(programme);
+          }
+        }
+      }
+      matches.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+      map.set(channel.id, matches);
+    }
     return map;
   }, [filteredChannels, xmltvProgrammes, xmltvChannelAliases]);
 

@@ -465,13 +465,20 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
 
               {/* Catalog Items Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1">
-                {filteredCatalog.map((item) => {
+                {filteredCatalog.map((item, index) => {
                   const isCurrentItemLoading = loadingItemUrl === item.url;
                   const alreadyLoaded = playlists.some((p) => p.url === item.url);
 
                   return (
+                    <React.Fragment key={item.url}>
+                    {(index === 0 || item.category !== filteredCatalog[index - 1]?.category) && (
+                      <div className="col-span-full flex items-center gap-2 pt-2 pb-1 border-b border-slate-800/80">
+                        <span className="text-sm">{item.category === 'Worldwide' ? '🌍' : item.category === 'FAST Services' ? '📺' : item.category === 'Countries' ? '🗺️' : '🎬'}</span>
+                        <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300">{item.category === 'Worldwide' ? 'Worldwide Playlists' : item.category}</h4>
+                        <span className="text-[10px] text-slate-500">{filteredCatalog.filter((entry) => entry.category === item.category).length} lists</span>
+                      </div>
+                    )}
                     <div
-                      key={item.url}
                       className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80 hover:border-slate-700 flex flex-col justify-between gap-3 transition-colors"
                     >
                       <div>
@@ -541,6 +548,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
                         </div>
                       </div>
                     </div>
+                    </React.Fragment>
                   );
                 })}
               </div>

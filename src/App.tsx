@@ -60,9 +60,13 @@ export default function App() {
   // Current active playlist object
   const activePlaylist = useMemo(() => {
     const selected = playlists.find((p) => p.id === activePlaylistIdState) || playlists[0] || INITIAL_PRESETS[0];
-    if (selected.epgUrl) return selected;
     const catalogEntry = CATALOG_PLAYLISTS.find((item) => item.url === selected.url);
-    return catalogEntry?.epgUrl ? { ...selected, epgUrl: catalogEntry.epgUrl } : selected;
+    // Catalog guide URLs are maintained centrally; prefer them over stale guide URLs
+    // saved by earlier versions. For custom playlists, keep the URL from their M3U header.
+    const resolvedEpgUrl = catalogEntry?.epgUrl || selected.epgUrl;
+    return resolvedEpgUrl && selected.epgUrl !== resolvedEpgUrl
+      ? { ...selected, epgUrl: resolvedEpgUrl }
+      : selected;
   }, [playlists, activePlaylistIdState]);
 
   // Set default selected channel on first load or when playlist changes

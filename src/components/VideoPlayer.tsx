@@ -338,11 +338,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           if (playPromise !== undefined) {
             playPromise
               .then(() => setIsPlaying(true))
-              .catch(() => {
-                // Do not retry muted: leave audio enabled and let the user start playback.
-                video.muted = false;
-                setIsMuted(false);
-                setIsPlaying(false);
+              .catch(async () => {
+                // Browsers commonly block autoplay with sound. Retry muted so the
+                // selected channel starts automatically; the viewer can unmute anytime.
+                try {
+                  video.muted = true;
+                  setIsMuted(true);
+                  await video.play();
+                  setIsPlaying(true);
+                } catch {
+                  setIsPlaying(false);
+                }
               });
           }
         });
@@ -413,10 +419,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           setIsLoading(false);
           const playPromise = video.play();
           if (playPromise !== undefined) {
-            playPromise.then(() => setIsPlaying(true)).catch(() => {
-              // Leave the player in its ready state; the visible Play Channel button
-              // retries playback directly from a user gesture without muting audio.
-              setIsPlaying(false);
+            playPromise.then(() => setIsPlaying(true)).catch(async () => {
+              // Audible autoplay may be blocked by browser policy. Retry muted so
+              // channel changes still start automatically without a Play click.
+              try {
+                video.muted = true;
+                setIsMuted(true);
+                await video.play();
+                setIsPlaying(true);
+              } catch {
+                setIsPlaying(false);
+              }
             });
           }
         };

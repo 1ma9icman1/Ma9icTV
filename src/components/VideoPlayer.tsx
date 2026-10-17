@@ -101,8 +101,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [volume, setVolume] = useState<number>(settings.volume);
-  const [isMuted, setIsMuted] = useState<boolean>(settings.muted);
+  // Keep audio enabled by default across channel changes. Browser autoplay rules may
+  // require a user click, but we never silently switch the player into muted mode.
+  const [volume, setVolume] = useState<number>(settings.volume > 0 ? settings.volume : 0.8);
+  const [isMuted, setIsMuted] = useState<boolean>(false);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [isUsingProxy, setIsUsingProxy] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -205,21 +207,19 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           }));
           setQualities(levels);
 
-          video.volume = volume;
-          video.muted = isMuted;
+          video.volume = Math.max(0.01, volume);
+          video.muted = false;
+          setIsMuted(false);
 
           const playPromise = video.play();
           if (playPromise !== undefined) {
             playPromise
               .then(() => setIsPlaying(true))
               .catch(() => {
-                // If browser autoplay policy blocks unmuted audio, retry muted
-                video.muted = true;
-                setIsMuted(true);
-                video
-                  .play()
-                  .then(() => setIsPlaying(true))
-                  .catch(() => setIsPlaying(false));
+                // Do not retry muted: leave audio enabled and let the user start playback.
+                video.muted = false;
+                setIsMuted(false);
+                setIsPlaying(false);
               });
           }
         });
@@ -282,8 +282,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       } else if (video.canPlayType('application/vnd.apple.mpegurl') || !isHlsStream) {
         // Native Safari HLS or direct audio/mp4 stream
         video.src = streamUrl;
-        video.volume = volume;
-        video.muted = isMuted;
+        video.volume = Math.max(0.01, volume);
+        video.muted = false;
+        setIsMuted(false);
 
         video.addEventListener('loadedmetadata', () => {
           setIsLoading(false);
@@ -402,11 +403,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   const handleVolumeChange = (newVol: number) => {
-    setVolume(newVol);
-    setIsMuted(newVol === 0);
+    const safeVolume = Math.max(0, Math.min(1, newVol));
+    setVolume(safeVolume);
+    setIsMuted(false);
     if (videoRef.current) {
-      videoRef.current.volume = newVol;
-      videoRef.current.muted = newVol === 0;
+      videoRef.current.volume = safeVolume;
+      videoRef.current.muted = false;
     }
   };
 

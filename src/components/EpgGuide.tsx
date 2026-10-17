@@ -499,7 +499,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
         {/* XMLTV source: real episode and movie titles come from this guide URL. */}
         <form
           onSubmit={(e) => { e.preventDefault(); void handleLoadXmltv(); }}
-          className="flex w-full sm:w-auto min-w-0 flex-1 sm:flex-none items-center gap-2"
+          className="hidden md:flex w-full sm:w-auto min-w-0 flex-1 sm:flex-none items-center gap-2"
         >
           <input
             type="text"
@@ -528,16 +528,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                 : 'No EPG loaded yet'}
         </div>
 
-        {/* Right: Switch Playlist */}
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onOpenPlaylistModal}
-            className="px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs font-medium flex items-center gap-1.5 transition-colors"
-          >
-            <FolderOpen className="w-3.5 h-3.5 text-amber-400" />
-            <span>Choose Playlist</span>
-          </button>
-        </div>
+
       </div>
 
       {/* Category Pills Bar */}

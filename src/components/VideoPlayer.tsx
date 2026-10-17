@@ -404,7 +404,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   const handleVolumeChange = (newVol: number) => {
-    const safeVolume = Math.max(0, Math.min(1, newVol));
+    const safeVolume = Math.max(0.05, Math.min(1, newVol));
     setVolume(safeVolume);
     volumeRef.current = safeVolume;
     setIsMuted(false);

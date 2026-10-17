@@ -178,7 +178,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
     description: 'Pluto TV US live streaming channels with proxy support and embedded guide.',
     flag: '🇺🇸',
     channelEstimate: '~350 channels',
-    epgUrl: 'https://i.mjh.nz/PlutoTV/us.xml.gz',
+    epgUrl: 'https://github.com/matthuisman/i.mjh.nz/raw/master/PlutoTV/us.xml.gz',
   },
   {
     name: 'Pluto TV (All Global Regions)',
@@ -187,7 +187,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
     description: 'Complete worldwide Pluto TV catalog spanning 14+ international regions.',
     flag: '🌐',
     channelEstimate: '~1,500 channels',
-    epgUrl: 'https://i.mjh.nz/PlutoTV/all.xml.gz',
+    epgUrl: 'https://github.com/matthuisman/i.mjh.nz/raw/master/PlutoTV/all.xml.gz',
   },
   {
     name: 'Samsung TV Plus (United States)',
@@ -196,7 +196,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
     description: 'Samsung TV Plus linear free channels (US lineup).',
     flag: '🇺🇸',
     channelEstimate: '~320 channels',
-    epgUrl: 'https://i.mjh.nz/SamsungTVPlus/us.xml.gz',
+    epgUrl: 'https://github.com/matthuisman/i.mjh.nz/raw/master/SamsungTVPlus/us.xml.gz',
   },
   {
     name: 'Samsung TV Plus (All Regions)',
@@ -205,7 +205,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
     description: 'Full international Samsung TV Plus catalog (11+ countries).',
     flag: '🌐',
     channelEstimate: '~1,200 channels',
-    epgUrl: 'https://i.mjh.nz/SamsungTVPlus/all.xml.gz',
+    epgUrl: 'https://github.com/matthuisman/i.mjh.nz/raw/master/SamsungTVPlus/all.xml.gz',
   },
   {
     name: 'Plex TV (United States)',
@@ -214,7 +214,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
     description: 'Free live TV channels on Plex (US region).',
     flag: '🇺🇸',
     channelEstimate: '~400 channels',
-    epgUrl: 'https://i.mjh.nz/Plex/us.xml.gz',
+    epgUrl: 'https://github.com/matthuisman/i.mjh.nz/raw/master/Plex/us.xml.gz',
   },
   {
     name: 'Plex TV (All Global Regions)',
@@ -223,7 +223,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
     description: 'Plex Live TV streams across 8+ international regions.',
     flag: '🌐',
     channelEstimate: '~1,000 channels',
-    epgUrl: 'https://i.mjh.nz/Plex/all.xml.gz',
+    epgUrl: 'https://github.com/matthuisman/i.mjh.nz/raw/master/Plex/all.xml.gz',
   },
   {
     name: 'The Roku Channel (All Channels)',
@@ -232,6 +232,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
     description: 'Full Roku Linear TV lineup including news, movies, and classics.',
     flag: '📺',
     channelEstimate: '~450 channels',
+    epgUrl: 'https://github.com/matthuisman/i.mjh.nz/raw/master/Roku/all.xml.gz',
   },
   {
     name: 'Tubi TV (Live TV)',

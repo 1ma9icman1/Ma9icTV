@@ -145,7 +145,6 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [selectedDateOffset, setSelectedDateOffset] = useState<number>(0); // 0 = today, 1 = tomorrow
   const [selectedProgram, setSelectedProgram] = useState<EpgProgram | null>(null);
   const [epgUrlInput, setEpgUrlInput] = useState('');
   const [isLoadingEpg, setIsLoadingEpg] = useState(false);
@@ -162,12 +161,8 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  // Compute selected target date
-  const targetDate = useMemo(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + selectedDateOffset);
-    return d;
-  }, [selectedDateOffset]);
+  // The guide follows today's schedule; date shortcuts were removed for a cleaner mobile layout.
+  const targetDate = useMemo(() => new Date(), []);
 
   // Extract all channel groups for categories
   const categories = useMemo(() => {
@@ -318,9 +313,9 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       {/* =========================================================================
           STAGE 1: TOP HERO SECTION (LIVE VIDEO PLAYER + PROGRAM INFO PANE)
           ========================================================================= */}
-      <section className="h-[270px] sm:h-[310px] md:h-[340px] flex-shrink-0 bg-gradient-to-b from-slate-950 via-[#0e1424] to-[#0a0e17] border-b border-slate-800/80 p-3 sm:p-4 flex flex-col md:flex-row gap-4 items-stretch z-20 shadow-lg">
+      <section className="h-[170px] sm:h-[310px] md:h-[340px] flex-shrink-0 bg-gradient-to-b from-slate-950 via-[#0e1424] to-[#0a0e17] border-b border-slate-800/80 p-2 sm:p-4 flex flex-col md:flex-row gap-2 sm:gap-4 items-stretch z-20 shadow-lg">
         {/* Left: Live Video Player Preview Stage */}
-        <div className="w-full md:w-[46%] lg:w-[42%] h-[180px] sm:h-[220px] md:h-full flex-shrink-0 relative">
+        <div className="w-full md:w-[46%] lg:w-[42%] h-full min-h-0 md:h-full flex-shrink-0 relative">
           <VideoPlayer
             channel={selectedChannel}
             settings={settings}
@@ -334,7 +329,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
         </div>
 
         {/* Right: Rich Channel & Current Program Synopsis */}
-        <div className="flex-1 flex flex-col justify-between overflow-hidden bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 shadow-xl backdrop-blur-md">
+        <div className="hidden md:flex flex-1 min-w-0 flex-col justify-between overflow-hidden bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 shadow-xl backdrop-blur-md">
           {selectedChannel ? (
             <>
               {/* Top Row: Channel Badge & Live Tags */}
@@ -456,47 +451,19 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       {/* =========================================================================
           STAGE 2: FILTER & CONTROLS TOOLBAR
           ========================================================================= */}
-      <div className="bg-slate-950 border-b border-slate-800/80 px-4 py-2 flex flex-wrap items-center justify-between gap-3 z-10">
-        {/* Left: Date Buttons & Jump to Now */}
-        <div className="flex items-center gap-2">
-          <div className="flex items-center bg-slate-900 rounded-xl p-0.5 border border-slate-800">
-            <button
-              onClick={() => setSelectedDateOffset(0)}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                selectedDateOffset === 0 ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Today
-            </button>
-            <button
-              onClick={() => setSelectedDateOffset(1)}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                selectedDateOffset === 1 ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Tomorrow
-            </button>
-            <button
-              onClick={() => setSelectedDateOffset(2)}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
-                selectedDateOffset === 2 ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Day +2
-            </button>
-          </div>
-
+      <div className="bg-slate-950 border-b border-slate-800/80 px-2 sm:px-4 py-2 flex flex-wrap items-center justify-between gap-2 sm:gap-3 z-10">
+        <div className="flex items-center">
           <button
             onClick={scrollToNow}
-            className="px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-indigo-400 hover:text-indigo-300 border border-slate-800 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
+            className="min-h-10 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-indigo-300 border border-slate-800 text-sm font-semibold flex items-center justify-center gap-2 transition-colors shadow-sm touch-manipulation"
           >
-            <Clock className="w-3.5 h-3.5 text-indigo-400" />
+            <Clock className="w-4 h-4 text-indigo-400" />
             <span>Jump to Now</span>
           </button>
         </div>
 
         {/* Center: Search */}
-        <div className="relative w-64">
+        <div className="relative w-full sm:w-64 flex-1 sm:flex-none min-w-[140px]">
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
           <input
             type="text"
@@ -544,12 +511,12 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
         <div ref={gridScrollRef} className="flex-1 overflow-auto relative">
           <div
             className="min-w-max flex flex-col"
-            style={{ width: `${260 + (timeSlots.length - 1) * 30 * minuteWidthPx}px` }}
+            style={{ width: `${(typeof window !== "undefined" && window.innerWidth < 640 ? 150 : 260) + (timeSlots.length - 1) * 30 * minuteWidthPx}px` }}
           >
             {/* 1. Sticky Time Ruler Header */}
             <div className="sticky top-0 z-30 flex bg-slate-950/95 backdrop-blur-md border-b border-slate-800 shadow-md">
               {/* Corner Channel Header */}
-              <div className="w-[260px] flex-shrink-0 px-4 py-2 border-r border-slate-800 bg-slate-950 text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+              <div className="w-[150px] sm:w-[260px] flex-shrink-0 px-2 sm:px-4 py-2 border-r border-slate-800 bg-slate-950 text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between gap-1">
                 <span>Channels ({filteredChannels.length})</span>
                 <span className="text-[10px] text-indigo-400 font-mono">LIVE TV</span>
               </div>
@@ -602,18 +569,18 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                     {/* Sticky Left Channel Card */}
                     <div
                       onClick={() => onSelectChannel(channel)}
-                      className={`sticky left-0 z-20 w-[260px] flex-shrink-0 px-3 py-2.5 border-r border-slate-800 flex items-center justify-between gap-3 cursor-pointer select-none transition-colors ${
+                      className={`sticky left-0 z-20 w-[150px] sm:w-[260px] flex-shrink-0 px-2 sm:px-3 py-2.5 border-r border-slate-800 flex items-center justify-between gap-1 sm:gap-3 cursor-pointer select-none transition-colors ${
                         isSelected ? 'bg-indigo-950/80 text-white' : 'bg-slate-950/90 text-slate-300'
                       }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
                         {/* Channel Number / Index */}
-                        <span className="text-[11px] font-mono font-bold text-slate-500 w-5 text-right flex-shrink-0">
+                        <span className="hidden sm:block text-[11px] font-mono font-bold text-slate-500 w-5 text-right flex-shrink-0">
                           {cIdx + 1}
                         </span>
 
                         {/* Logo */}
-                        <div className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 p-0.5 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-slate-900 border border-slate-800 p-0.5 flex items-center justify-center overflow-hidden flex-shrink-0">
                           {channel.logo ? (
                             <img
                               src={channel.logo}
@@ -643,7 +610,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                           e.stopPropagation();
                           onSelectChannel(channel);
                         }}
-                        className={`p-1.5 rounded-lg transition-colors flex-shrink-0 ${
+                        className={`p-2 sm:p-1.5 rounded-lg transition-colors flex-shrink-0 ${
                           isSelected
                             ? 'bg-indigo-600 text-white shadow-sm'
                             : 'text-slate-500 hover:text-white hover:bg-slate-800'

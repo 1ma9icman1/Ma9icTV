@@ -312,17 +312,17 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in select-none">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-sm animate-fade-in select-none">
+      <div className="bg-slate-900 border border-slate-800 rounded-xl sm:rounded-2xl w-full max-w-3xl min-w-0 overflow-hidden shadow-2xl flex flex-col h-[96dvh] max-h-[96dvh] sm:h-auto sm:max-h-[90vh]">
         {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-slate-800 flex items-center justify-between gap-2 flex-shrink-0">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
             <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
               <Layers className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-base font-semibold text-white">Playlists & Channel Catalog</h3>
-              <p className="text-xs text-slate-400">Browse worldwide IPTV collections, FAST services, or import custom M3U/Xtream</p>
+              <h3 className="text-sm sm:text-base font-semibold text-white">Playlists & Channel Catalog</h3>
+              <p className="hidden sm:block text-xs text-slate-400">Browse worldwide IPTV collections, FAST services, or import custom M3U/Xtream</p>
             </div>
           </div>
           <button onClick={onClose} className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors">
@@ -331,7 +331,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
         </div>
 
         {/* Modal Navigation Tabs */}
-        <div className="flex border-b border-slate-800 bg-slate-950/50 px-6 gap-2 overflow-x-auto text-xs font-medium">
+        <div className="flex-shrink-0 flex border-b border-slate-800 bg-slate-950/50 px-2 sm:px-6 gap-1 sm:gap-2 overflow-x-auto no-scrollbar text-xs font-medium">
           <button
             onClick={() => setActiveTab('catalog')}
             className={`py-3 px-3 border-b-2 flex items-center gap-2 transition-colors whitespace-nowrap ${
@@ -394,7 +394,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 overflow-y-auto flex-1">
+        <div className="min-h-0 min-w-0 p-3 sm:p-6 overflow-y-auto overscroll-contain flex-1">
           {errorMsg && (
             <div className="mb-4 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -436,7 +436,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
               </div>
 
               {/* Catalog Items Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-[50vh] overflow-y-auto pr-1">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2 sm:gap-3 max-h-[58dvh] sm:max-h-[50vh] overflow-y-auto overscroll-contain pr-1">
                 {filteredCatalog.map((item, index) => {
                   const isCurrentItemLoading = loadingItemUrl === item.url;
                   const alreadyLoaded = playlists.some((p) => p.url === item.url);
@@ -749,7 +749,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-slate-300 mb-1.5">Username</label>
                   <input

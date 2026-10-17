@@ -453,13 +453,13 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
             disabled={isLoadingEpg || !epgUrlInput.trim()}
             className="min-h-10 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold whitespace-nowrap"
           >
-            {isLoadingEpg ? 'Loading…' : 'Load EPG'}
+            {isLoadingEpg ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Loading…</> : 'Load EPG'}
           </button>
         </form>
 
         <div className="w-full text-[10px] text-slate-400 sm:w-auto sm:max-w-[260px] truncate" role="status" aria-live="polite">
           {isLoadingEpg
-            ? 'Loading real programme guide…'
+            ? <span className="inline-flex items-center gap-1.5"><RefreshCw className="w-3 h-3 animate-spin text-indigo-400" /> Loading real programme guide…</span>
             : epgLoadError
               ? `EPG error: ${epgLoadError}`
               : xmltvProgrammes.length > 0

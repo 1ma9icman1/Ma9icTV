@@ -77,6 +77,8 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   const [xmltvChannelAliases, setXmltvChannelAliases] = useState<Record<string, string[]>>({});
 
   const gridScrollRef = useRef<HTMLDivElement | null>(null);
+  const categoryScrollRef = useRef<HTMLDivElement | null>(null);
+  const dragStateRef = useRef<{ pointerId: number; startX: number; startY: number; scrollLeft: number; scrollTop: number; active: boolean; suppressClick: boolean } | null>(null);
   const legacySavedEpgUrl = useRef(localStorage.getItem('ma9ictv-epg-url') || '');
   const legacyEpgResolved = useRef(false);
   const [currentTimeMs, setCurrentTimeMs] = useState(Date.now());
@@ -231,20 +233,87 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     return () => clearTimeout(timer);
   }, []);
 
+  // Click-and-hold drag scrolling for mouse, touch, and trackpad users.
+  // The same scroll areas also respond to TV remote arrow keys below.
+  const handleDragPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    const element = event.currentTarget;
+    dragStateRef.current = {
+      pointerId: event.pointerId,
+      startX: event.clientX,
+      startY: event.clientY,
+      scrollLeft: element.scrollLeft,
+      scrollTop: element.scrollTop,
+      active: false,
+      suppressClick: false,
+    };
+    try { element.setPointerCapture(event.pointerId); } catch { /* capture may be unavailable on some TV browsers */ }
+  };
+
+  const handleDragPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = dragStateRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const dx = event.clientX - drag.startX;
+    const dy = event.clientY - drag.startY;
+    if (!drag.active && Math.hypot(dx, dy) < 6) return;
+    drag.active = true;
+    drag.suppressClick = true;
+    event.preventDefault();
+    const element = event.currentTarget;
+    if (element === categoryScrollRef.current) {
+      element.scrollLeft = drag.scrollLeft - dx;
+    } else {
+      element.scrollLeft = drag.scrollLeft - dx;
+      element.scrollTop = drag.scrollTop - dy;
+    }
+  };
+
+  const handleDragPointerUp = (event: React.PointerEvent<HTMLDivElement>) => {
+    const drag = dragStateRef.current;
+    if (!drag || drag.pointerId !== event.pointerId) return;
+    const wasDragged = drag.active;
+    dragStateRef.current = null;
+    if (wasDragged) {
+      // Keep the following click from activating a programme/category after a drag.
+      window.setTimeout(() => {
+        if (dragStateRef.current === null) dragStateRef.current = { pointerId: -1, startX: 0, startY: 0, scrollLeft: 0, scrollTop: 0, active: false, suppressClick: true };
+      }, 0);
+    }
+  };
+
+  const handleDragClickCapture = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (dragStateRef.current?.suppressClick) {
+      event.preventDefault();
+      event.stopPropagation();
+      dragStateRef.current = null;
+    }
+  };
+
   // TV remote / keyboard navigation: Up and Down move through channel rows.
   // Keep these keys dedicated to the guide while this view is mounted.
   useEffect(() => {
     const handleGuideKeys = (event: KeyboardEvent) => {
       if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement || event.target instanceof HTMLSelectElement) return;
-      if (event.key !== 'ArrowDown' && event.key !== 'ArrowUp' && event.key !== 'PageDown' && event.key !== 'PageUp') return;
+      if (!['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight', 'PageDown', 'PageUp'].includes(event.key)) return;
+      const categoryBar = categoryScrollRef.current;
+      const focusedCategory = categoryBar && event.target instanceof HTMLElement ? event.target.closest('button') : null;
+      if (categoryBar && focusedCategory && categoryBar.contains(focusedCategory) && (event.key === 'ArrowLeft' || event.key === 'ArrowRight')) {
+        const buttons = Array.from(categoryBar.querySelectorAll('button'));
+        const index = buttons.indexOf(focusedCategory as HTMLButtonElement);
+        const next = buttons[index + (event.key === 'ArrowRight' ? 1 : -1)];
+        if (next) { event.preventDefault(); event.stopPropagation(); next.focus(); }
+        return;
+      }
       const grid = gridScrollRef.current;
       if (!grid) return;
       event.preventDefault();
       event.stopPropagation();
+      const horizontal = event.key === 'ArrowLeft' || event.key === 'ArrowRight';
       const distance = event.key === 'PageDown' || event.key === 'PageUp'
         ? Math.max(180, Math.floor(grid.clientHeight * 0.75))
-        : 68;
-      grid.scrollBy({ top: event.key === 'ArrowUp' || event.key === 'PageUp' ? -distance : distance, behavior: 'smooth' });
+        : horizontal ? Math.max(100, Math.floor(grid.clientWidth * 0.25)) : 68;
+      if (horizontal) grid.scrollBy({ left: event.key === 'ArrowLeft' ? -distance : distance, behavior: 'smooth' });
+      else grid.scrollBy({ top: event.key === 'ArrowUp' || event.key === 'PageUp' ? -distance : distance, behavior: 'smooth' });
     };
     window.addEventListener('keydown', handleGuideKeys, { capture: true });
     return () => window.removeEventListener('keydown', handleGuideKeys, { capture: true });
@@ -531,7 +600,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       </div>
 
       {/* Category Pills Bar */}
-      <div className="bg-slate-950/60 border-b border-slate-800/60 px-4 py-1.5 overflow-x-auto flex items-center gap-1.5 no-scrollbar">
+      <div ref={categoryScrollRef} onPointerDown={handleDragPointerDown} onPointerMove={handleDragPointerMove} onPointerUp={handleDragPointerUp} onPointerCancel={handleDragPointerUp} onClickCapture={handleDragClickCapture} className="bg-slate-950/60 border-b border-slate-800/60 px-4 py-1.5 overflow-x-auto flex items-center gap-1.5 no-scrollbar cursor-grab active:cursor-grabbing select-none" style={{ touchAction: "pan-x", WebkitOverflowScrolling: "touch" }} aria-label="Scrollable channel categories">
         {categories.map((cat) => (
           <button
             key={cat}
@@ -552,7 +621,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
           ========================================================================= */}
       <div className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col relative bg-[#070b12]">
         {/* Scrollable Container */}
-        <div ref={gridScrollRef} className="flex-1 min-h-0 min-w-0 relative overscroll-contain" style={{ height: 0, overflowX: "auto", overflowY: "scroll", WebkitOverflowScrolling: "touch", touchAction: "pan-x pan-y", overscrollBehavior: "contain", scrollbarWidth: "auto", scrollbarColor: "#6366f1 #0f172a" }} aria-label="Scrollable TV guide. Swipe horizontally for times and vertically for channels." tabIndex={0}>
+        <div ref={gridScrollRef} onPointerDown={handleDragPointerDown} onPointerMove={handleDragPointerMove} onPointerUp={handleDragPointerUp} onPointerCancel={handleDragPointerUp} onClickCapture={handleDragClickCapture} className="flex-1 min-h-0 min-w-0 relative overscroll-contain cursor-grab active:cursor-grabbing" style={{ height: 0, overflowX: "auto", overflowY: "scroll", WebkitOverflowScrolling: "touch", touchAction: "pan-x pan-y", overscrollBehavior: "contain", scrollbarWidth: "auto", scrollbarColor: "#6366f1 #0f172a", userSelect: "none" }} aria-label="Scrollable TV guide. Click and drag horizontally for times and vertically for channels, or use TV remote arrows." tabIndex={0}>
           <div
             className="min-w-max flex flex-col"
             style={{ width: `${(typeof window !== "undefined" && window.innerWidth < 640 ? 150 : 260) + (timeSlots.length - 1) * 30 * minuteWidthPx}px` }}

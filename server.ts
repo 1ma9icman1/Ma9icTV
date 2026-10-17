@@ -305,15 +305,21 @@ async function startServer() {
         icon: c.icon?.['@_src'] || '',
       }));
 
-      // Normalize programmes
+      // Normalize all programmes. Keeping only the first 1,000 entries can silently
+      // discard today's listings when a provider's XMLTV file starts several days ago.
       const rawProgrammes = Array.isArray(tvData.programme) ? tvData.programme : (tvData.programme ? [tvData.programme] : []);
-      const programmes = rawProgrammes.slice(0, 1000).map((p: any) => ({
+      const readXmlText = (value: any): string => {
+        if (typeof value === 'string') return value;
+        if (Array.isArray(value)) return readXmlText(value[0]);
+        return typeof value?.['#text'] === 'string' ? value['#text'] : '';
+      };
+      const programmes = rawProgrammes.map((p: any) => ({
         channel: p['@_channel'] || '',
         start: p['@_start'] || '',
         stop: p['@_stop'] || '',
-        title: typeof p.title === 'string' ? p.title : (p.title?.['#text'] || ''),
-        desc: typeof p.desc === 'string' ? p.desc : (p.desc?.['#text'] || ''),
-        category: typeof p.category === 'string' ? p.category : (p.category?.['#text'] || ''),
+        title: readXmlText(p.title),
+        desc: readXmlText(p.desc),
+        category: readXmlText(p.category),
       }));
 
       res.json({

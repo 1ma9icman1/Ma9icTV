@@ -631,7 +631,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
             {/* 1. Sticky Time Ruler Header */}
             <div className="relative z-10 flex bg-slate-950/95 border-b border-slate-800 shadow-md">
               {/* Corner Channel Header */}
-              <div className="w-[150px] sm:w-[260px] flex-shrink-0 px-2 sm:px-4 py-2 border-r border-slate-800 bg-slate-950 text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between gap-1">
+              <div className="sticky left-0 z-30 w-[150px] sm:w-[260px] flex-shrink-0 px-2 sm:px-4 py-2 border-r border-slate-700 bg-[#070b12] text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between gap-1">
                 <span>Channels ({filteredChannels.length})</span>
                 <span className="text-[10px] text-indigo-400 font-mono">LIVE TV</span>
               </div>
@@ -689,8 +689,8 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                     {/* Sticky Left Channel Card */}
                     <div
                       onClick={() => onSelectChannel(channel)}
-                      className={`sticky left-0 z-20 w-[150px] sm:w-[260px] flex-shrink-0 px-2 sm:px-3 py-2.5 border-r border-slate-800 flex items-center justify-between gap-1 sm:gap-3 cursor-pointer select-none transition-colors ${
-                        isSelected ? 'bg-indigo-950/80 text-white' : 'bg-slate-950/90 text-slate-300'
+                      className={`sticky left-0 z-20 w-[150px] sm:w-[260px] flex-shrink-0 px-2 sm:px-3 py-2.5 border-r border-slate-700 flex items-center justify-between gap-1 sm:gap-3 cursor-pointer select-none transition-colors ${
+                        isSelected ? 'bg-[#1b1b46] text-white' : 'bg-[#070b12] text-slate-300'
                       }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">

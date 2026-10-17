@@ -330,8 +330,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           // This is a last-resort recovery even when the user's normal mode is Always Proxy.
           initPlayer(false, true);
         } else {
-          setErrorMsg('Stream did not start in time. The channel may be offline or this browser may not support its stream format. Try another channel.');
+          setErrorMsg('Stream did not start in time. The channel may be offline or this browser may not support its stream format.');
           setIsLoading(false);
+          // Some public movie/cinema playlist entries never raise an HLS error.
+          // Advance automatically after the same short warning used for fatal errors.
+          if (settings.autoPlayNext && onNextChannel) {
+            setAutoSkipCountdown(4);
+          }
         }
       }, 18000);
 

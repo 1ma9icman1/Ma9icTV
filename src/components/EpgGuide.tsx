@@ -441,10 +441,10 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
           className="flex w-full sm:w-auto min-w-0 flex-1 sm:flex-none items-center gap-2"
         >
           <input
-            type="url"
+            type="text"
             value={epgUrlInput}
             onChange={(e) => setEpgUrlInput(e.target.value)}
-            placeholder="XMLTV EPG URL (.xml / .xml.gz)"
+            placeholder="XMLTV EPG URL(s) (.xml / .xml.gz)"
             aria-label="XMLTV EPG URL"
             className="min-w-0 flex-1 sm:w-64 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
           />

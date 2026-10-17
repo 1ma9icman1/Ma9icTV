@@ -279,12 +279,12 @@ async function startServer() {
       const urls: string[] = typeof url === 'string'
         ? url.split(/,\s*(?=https?:\/\/)/i).map((item: string) => item.trim()).filter(Boolean)
         : [];
-      // Load the first guide source only for a fast initial guide. Large M3U
-      // headers can list dozens of feeds; downloading every feed before replying
-      // delays both the guide and the first visible programme data.
+      // Load a small bundle of guide sources. Catalog genre playlists may not
+      // provide their own EPG URL, so they use a few common regional guides.
+      // Keep the cap low to avoid excessive download time and memory use.
       const sources = content
         ? [{ url: 'inline XMLTV', content: String(content) }]
-        : urls.slice(0, 1).map((sourceUrl) => ({ url: sourceUrl }));
+        : urls.slice(0, 4).map((sourceUrl) => ({ url: sourceUrl }));
       if (sources.length === 0) {
         res.status(400).json({ error: 'No valid EPG URLs were found' });
         return;

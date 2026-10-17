@@ -127,7 +127,13 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
         id: `${playlistId}-ch-${idx}`,
         name: item.name || 'Unnamed Channel',
         url: item.url,
-        group: item.group?.title || 'General',
+        // M3U group-title values can contain semicolon-separated labels.
+        // Display those as clean category names instead of raw delimiters.
+        group: String(item.group?.title || 'General')
+          .split(';')
+          .map((part: string) => part.trim())
+          .filter(Boolean)
+          .join(' / ') || 'General',
         logo: item.tvg?.logo || undefined,
         tvgId: item.tvg?.id || undefined,
         tvgName: item.tvg?.name || undefined,

@@ -340,8 +340,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         }
       }, 18000);
 
+      const streamUserAgent = channel.httpUserAgent?.trim() || settings.customUserAgent;
+      const proxyParams = `url=${encodeURIComponent(channel.url)}&userAgent=${encodeURIComponent(streamUserAgent)}${channel.httpReferrer?.trim() ? `&referer=${encodeURIComponent(channel.httpReferrer.trim())}` : ''}`;
       const streamUrl = shouldProxy
-        ? `/api/proxy?url=${encodeURIComponent(channel.url)}&userAgent=${encodeURIComponent(settings.customUserAgent)}`
+        ? `/api/proxy?${proxyParams}`
         : channel.url;
 
       // Treat known file formats as native media instead of trying to parse them as HLS.

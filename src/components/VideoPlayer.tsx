@@ -160,6 +160,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
       if (!videoRef.current) return;
       const video = videoRef.current;
+      // Stop and detach the previous channel before attaching the new stream.
+      // Reusing stale media state can leave the player looking idle after a channel click.
+      video.pause();
+      video.onloadedmetadata = null;
+      video.onerror = null;
+      video.removeAttribute('src');
+      video.load();
+      video.muted = false;
+      video.volume = Math.max(0.01, volumeRef.current);
+      setIsMuted(false);
+      setIsPlaying(false);
       setErrorMsg(null);
       setIsLoading(true);
       setQualities([]);
@@ -287,13 +298,16 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         video.muted = false;
         setIsMuted(false);
 
-        video.addEventListener('loadedmetadata', () => {
+        video.onloadedmetadata = () => {
           setIsLoading(false);
           const playPromise = video.play();
           if (playPromise !== undefined) {
-            playPromise.then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+            playPromise.then(() => setIsPlaying(true)).catch(() => {
+              setIsPlaying(false);
+              setErrorMsg('Your browser blocked automatic playback. Press Play to start this channel.');
+            });
           }
-        });
+        };
 
         video.onerror = () => {
           if (!shouldProxy) {
@@ -495,6 +509,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 : 'aspect-[4/3] object-fill'
             }`}
             playsInline
+            autoPlay
+            preload="auto"
+            onPlaying={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
             onTimeUpdate={() => {
               if (videoRef.current && videoRef.current.buffered.length > 0) {
                 const buf =
@@ -504,6 +522,30 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               }
             }}
           />
+
+          {!isPlaying && !isLoading && !errorMsg && channel && (
+            <button
+              type="button"
+              onClick={() => {
+                const video = videoRef.current;
+                if (!video) return;
+                video.muted = false;
+                video.volume = Math.max(0.01, volumeRef.current);
+                setIsMuted(false);
+                setErrorMsg(null);
+                void video.play().then(() => setIsPlaying(true)).catch((error) => {
+                  console.warn('Manual playback could not start:', error);
+                  setErrorMsg('Playback could not start. The stream may be offline or blocked by the browser.');
+                });
+              }}
+              className="absolute inset-0 z-10 flex items-center justify-center bg-black/25 hover:bg-black/40 transition-colors"
+              aria-label="Play selected channel"
+            >
+              <span className="flex items-center gap-2 rounded-full bg-indigo-600/95 px-5 py-3 text-sm font-bold text-white shadow-xl">
+                <Play className="h-5 w-5 fill-current" /> Play Channel
+              </span>
+            </button>
+          )}
 
           {/* Radio Audio Visualizer */}
           {channel.isRadio && (

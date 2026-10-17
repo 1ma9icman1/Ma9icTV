@@ -599,7 +599,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
             {/* 2. Channel Rows with Horizontal Program Blocks */}
             {xmltvProgrammes.length === 0 && (
               <div className="sticky left-0 p-4 text-sm text-amber-200 bg-slate-950 border-b border-slate-800">
-                No real programme guide loaded. Enter your provider's XMLTV EPG URL above and select Load EPG. Generic episode titles are intentionally disabled.
+                No real programme guide loaded. Enter your provider's XMLTV EPG URL above and select Load EPG.
               </div>
             )}
             {xmltvProgrammes.length > 0 && filteredChannels.slice(0, epgPageLimit).every((ch) => !(channelSchedules.get(ch.id)?.length)) && (

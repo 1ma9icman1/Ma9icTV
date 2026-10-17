@@ -53,6 +53,17 @@ async function startServer() {
 
     try {
       const parsedUrl = new URL(targetUrl);
+      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+        res.status(400).send('Only HTTP and HTTPS stream URLs are supported');
+        return;
+      }
+
+      // Stop upstream downloads if the player navigates away or changes channels.
+      const abortController = new AbortController();
+      res.on('close', () => {
+        if (!res.writableEnded) abortController.abort();
+      });
+
       const headers: Record<string, string> = {
         'User-Agent': customUserAgent,
         'Accept': '*/*',
@@ -73,6 +84,7 @@ async function startServer() {
         method: 'GET',
         headers,
         redirect: 'follow',
+        signal: abortController.signal,
       });
 
       if (!response.ok && response.status !== 206) {
@@ -148,7 +160,11 @@ async function startServer() {
       const acceptRanges = response.headers.get('accept-ranges');
       if (acceptRanges) res.setHeader('Accept-Ranges', acceptRanges);
       res.setHeader('Access-Control-Allow-Origin', '*');
-      res.setHeader('Cache-Control', 'public, max-age=3600');
+      // IPTV segments are frequently replaced at the same live URL. Caching them
+      // for an hour can replay stale chunks and cause freezes or repeated buffering.
+      res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
 
       res.status(response.status);
 
@@ -164,7 +180,7 @@ async function startServer() {
       }
     } catch (err: any) {
       console.error('Proxy request failed:', err?.message || err);
-      if (!res.headersSent) {
+      if (!res.headersSent && !res.destroyed) {
         res.status(502).json({ error: 'Proxy request failed', details: err?.message });
       }
     }

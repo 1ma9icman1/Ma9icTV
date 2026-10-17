@@ -108,7 +108,14 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to load playlist (${response.statusText})`);
+        let reason = response.statusText || 'Request failed';
+        try {
+          const errorData = await response.json();
+          reason = errorData?.error || errorData?.details || reason;
+        } catch {
+          // Keep the HTTP status text if the server did not return JSON.
+        }
+        throw new Error(`Failed to load playlist (HTTP ${response.status}): ${reason}`);
       }
 
       const data = await response.json();

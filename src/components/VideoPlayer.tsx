@@ -765,11 +765,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
           LIVE TV
         </span>
-        {stats.resolution !== 'Unknown' && (
-          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-black/70 backdrop-blur-md text-indigo-300 border border-indigo-500/30 shadow-md">
-            {stats.resolution}
-          </span>
-        )}
       </div>
 
       {/* Top Right Quick Controls */}
@@ -886,9 +881,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 title="Select Stream Quality"
               >
                 <Sliders className="w-3 h-3" />
-                <span>
-                  {currentQuality === -1 ? '' : qualities[currentQuality]?.name || ''}
-                </span>
               </button>
 
               {showQualityMenu && (
@@ -933,7 +925,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       {/* Diagnostics HUD */}
       {showStats && (
         <div className="absolute top-10 right-2 bg-slate-950/90 border border-slate-700/80 rounded-xl p-3 text-[10px] font-mono text-slate-300 shadow-xl backdrop-blur-md z-30 space-y-1">
-          <p><span className="text-slate-500">Res:</span> {stats.resolution}</p>
           <p><span className="text-slate-500">Bitrate:</span> {stats.bitrate}</p>
           <p><span className="text-slate-500">Buffer:</span> {stats.buffer}</p>
           <p><span className="text-slate-500">Mode:</span> {isUsingProxy ? 'CORS Proxy' : 'Direct'}</p>

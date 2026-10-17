@@ -176,7 +176,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   }, []);
 
   // Handle loading XMLTV URL
-  const handleLoadXmltv = async () => {
+  const handleLoadXmltv = async (showAlert = true) => {
     if (!epgUrlInput.trim()) return;
     setIsLoadingEpg(true);
     try {
@@ -225,8 +225,8 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
         throw new Error('The server returned no XMLTV programmes.');
       }
     } catch (err: any) {
-      console.error(err);
-      alert('Could not parse XMLTV file from the provided URL.');
+      console.error('Could not load XMLTV guide:', err);
+      if (showAlert) alert('Could not load the XMLTV guide. Check the URL and server logs.');
     } finally {
       setIsLoadingEpg(false);
     }
@@ -235,7 +235,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   // Reload the saved guide URL automatically after refresh. The URL is persisted;
   // guide data is re-fetched so listings remain current rather than going stale.
   useEffect(() => {
-    if (epgUrlInput.trim()) void handleLoadXmltv();
+    if (epgUrlInput.trim()) void handleLoadXmltv(false);
     // Run only on mount; the URL is read from localStorage by the initial state.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

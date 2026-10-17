@@ -25,7 +25,7 @@ import {
   getSettings,
   saveSettings,
 } from './utils/storage';
-import { INITIAL_PRESETS } from './data/presetPlaylists';
+import { INITIAL_PRESETS, CATALOG_PLAYLISTS } from './data/presetPlaylists';
 
 import { ChannelList } from './components/ChannelList';
 import { VideoPlayer } from './components/VideoPlayer';
@@ -59,7 +59,10 @@ export default function App() {
 
   // Current active playlist object
   const activePlaylist = useMemo(() => {
-    return playlists.find((p) => p.id === activePlaylistIdState) || playlists[0] || INITIAL_PRESETS[0];
+    const selected = playlists.find((p) => p.id === activePlaylistIdState) || playlists[0] || INITIAL_PRESETS[0];
+    if (selected.epgUrl) return selected;
+    const catalogEntry = CATALOG_PLAYLISTS.find((item) => item.url === selected.url);
+    return catalogEntry?.epgUrl ? { ...selected, epgUrl: catalogEntry.epgUrl } : selected;
   }, [playlists, activePlaylistIdState]);
 
   // Set default selected channel on first load or when playlist changes

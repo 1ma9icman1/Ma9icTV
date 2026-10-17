@@ -153,17 +153,28 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const video = videoRef.current;
     if (!video) return;
 
-    // Some browsers/streams add text tracks after metadata or playback starts.
-    const disableNewTracks = () => {
+    // Some providers mark subtitle tracks as default or add them after playback
+    // begins. Keep them off unless the user explicitly turns CC on.
+    const enforceCaptionPreference = () => {
+      if (captionsEnabledRef.current) return;
+      const hls = hlsRef.current;
+      if (hls) {
+        hls.subtitleDisplay = false;
+        hls.subtitleTrack = -1;
+      }
       for (let i = 0; i < video.textTracks.length; i++) {
         video.textTracks[i].mode = 'disabled';
       }
     };
-    video.textTracks.addEventListener('addtrack', disableNewTracks);
-    video.addEventListener('loadedmetadata', disableNewTracks);
+
+    const mediaEvents = ['loadstart', 'loadedmetadata', 'loadeddata', 'canplay', 'playing'];
+    video.textTracks.addEventListener('addtrack', enforceCaptionPreference);
+    video.textTracks.addEventListener('change', enforceCaptionPreference);
+    mediaEvents.forEach((eventName) => video.addEventListener(eventName, enforceCaptionPreference));
     return () => {
-      video.textTracks.removeEventListener('addtrack', disableNewTracks);
-      video.removeEventListener('loadedmetadata', disableNewTracks);
+      video.textTracks.removeEventListener('addtrack', enforceCaptionPreference);
+      video.textTracks.removeEventListener('change', enforceCaptionPreference);
+      mediaEvents.forEach((eventName) => video.removeEventListener(eventName, enforceCaptionPreference));
     };
   }, [channel?.url, disableCaptions]);
 
@@ -281,12 +292,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         // Never inherit the stream's default subtitle track when changing channels.
         hls.subtitleDisplay = false;
         hls.subtitleTrack = -1;
-        hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, () => {
+        const enforceHlsCaptionPreference = () => {
           if (hlsRef.current === hls && !captionsEnabledRef.current) {
             hls.subtitleDisplay = false;
             hls.subtitleTrack = -1;
           }
-        });
+        };
+        hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, enforceHlsCaptionPreference);
+        hls.on(Hls.Events.SUBTITLE_TRACK_SWITCH, enforceHlsCaptionPreference);
+        hls.on(Hls.Events.MANIFEST_PARSED, enforceHlsCaptionPreference);
         hls.loadSource(streamUrl);
         hls.attachMedia(video);
 

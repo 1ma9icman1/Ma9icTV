@@ -254,38 +254,13 @@ async function startServer() {
     }
   });
 
-  // Parse XMLTV EPG endpoint
+  // Parse XMLTV EPG endpoint. M3U headers can advertise one guide URL or a
+  // comma-separated list of guides (the Free-TV curated playlist uses many).
   app.post('/api/parse-epg', async (req: Request, res: Response) => {
     try {
       const { url, content } = req.body;
-      let rawXml = content;
-
-      if (url && !content) {
-        const response = await fetch(url, {
-          headers: {
-            'User-Agent': 'IPTVnator/0.25.0',
-            'Accept-Encoding': 'gzip, deflate',
-          },
-          redirect: 'follow',
-        });
-
-        if (!response.ok) {
-          res.status(response.status).json({ error: `Failed to fetch EPG: ${response.statusText}` });
-          return;
-        }
-
-        const arrayBuffer = await response.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
-
-        if (buffer.length > 2 && buffer[0] === 0x1f && buffer[1] === 0x8b) {
-          rawXml = zlib.gunzipSync(buffer).toString('utf-8');
-        } else {
-          rawXml = buffer.toString('utf-8');
-        }
-      }
-
-      if (!rawXml) {
-        res.status(400).json({ error: 'No EPG data provided' });
+      if (!url && !content) {
+        res.status(400).json({ error: 'No EPG URL or XML data provided' });
         return;
       }
 
@@ -294,44 +269,116 @@ async function startServer() {
         attributeNamePrefix: '@_',
       });
 
-      const parsedData = xmlParser.parse(rawXml);
-      const tvData = parsedData.tv || {};
-
-      // Normalize channels
-      const rawChannels = Array.isArray(tvData.channel) ? tvData.channel : (tvData.channel ? [tvData.channel] : []);
       const readXmlText = (value: any): string => {
         if (typeof value === 'string') return value;
-        if (Array.isArray(value)) return readXmlText(value[0]);
+        if (Array.isArray(value)) return value.map(readXmlText).filter(Boolean).join(' ');
         return typeof value?.['#text'] === 'string' ? value['#text'] : '';
       };
-      const channels = rawChannels.map((c: any) => {
-        const displayNames = Array.isArray(c['display-name']) ? c['display-name'] : [c['display-name']];
-        const names = displayNames.map((value: any) => readXmlText(value)).filter(Boolean);
-        return {
-          id: c['@_id'] || '',
-          name: names[0] || c['@_id'] || '',
-          names,
-          icon: c.icon?.['@_src'] || '',
-        };
-      });
 
-      // Normalize all programmes. Keeping only the first 1,000 entries can silently
-      // discard today's listings when a provider's XMLTV file starts several days ago.
-      const rawProgrammes = Array.isArray(tvData.programme) ? tvData.programme : (tvData.programme ? [tvData.programme] : []);
-      const programmes = rawProgrammes.map((p: any) => ({
-        channel: p['@_channel'] || '',
-        start: p['@_start'] || '',
-        stop: p['@_stop'] || '',
-        title: readXmlText(p.title),
-        desc: readXmlText(p.desc),
-        category: readXmlText(p.category),
-      }));
+      const urls: string[] = typeof url === 'string'
+        ? url.split(/,\s*(?=https?:\/\/)/i).map((item: string) => item.trim()).filter(Boolean)
+        : [];
+      const sources = content ? [{ url: 'inline XMLTV', content: String(content) }] : urls.map((sourceUrl) => ({ url: sourceUrl }));
+      if (sources.length === 0) {
+        res.status(400).json({ error: 'No valid EPG URLs were found' });
+        return;
+      }
+
+      const channelsById = new Map<string, any>();
+      const programmeByKey = new Map<string, any>();
+      const failedSources: string[] = [];
+      let loadedSources = 0;
+
+      const parseSource = async (source: { url: string; content?: string }) => {
+        try {
+          let rawXml = source.content;
+          if (!rawXml) {
+            const response = await fetch(source.url, {
+              headers: {
+                'User-Agent': 'Ma9icTV/1.0 XMLTV',
+                'Accept-Encoding': 'gzip, deflate',
+              },
+              redirect: 'follow',
+              signal: AbortSignal.timeout(20000),
+            });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+            const buffer = Buffer.from(await response.arrayBuffer());
+            rawXml = buffer.length > 2 && buffer[0] === 0x1f && buffer[1] === 0x8b
+              ? zlib.gunzipSync(buffer).toString('utf-8')
+              : buffer.toString('utf-8');
+          }
+
+          const parsedData = xmlParser.parse(rawXml);
+          const tvData = parsedData.tv || {};
+          const rawChannels = Array.isArray(tvData.channel) ? tvData.channel : (tvData.channel ? [tvData.channel] : []);
+          const rawProgrammes = Array.isArray(tvData.programme) ? tvData.programme : (tvData.programme ? [tvData.programme] : []);
+
+          for (const channel of rawChannels) {
+            const id = String(channel['@_id'] || '').trim();
+            if (!id) continue;
+            const displayNames = Array.isArray(channel['display-name']) ? channel['display-name'] : [channel['display-name']];
+            const names = displayNames.map(readXmlText).filter(Boolean);
+            const existing = channelsById.get(id);
+            channelsById.set(id, {
+              id,
+              name: names[0] || id,
+              names: Array.from(new Set([...(existing?.names || []), ...names])),
+              icon: channel.icon?.['@_src'] || existing?.icon || '',
+            });
+          }
+
+          for (const programme of rawProgrammes) {
+            const channel = String(programme['@_channel'] || '').trim();
+            const start = String(programme['@_start'] || '').trim();
+            const stop = String(programme['@_stop'] || '').trim();
+            const title = readXmlText(programme.title).trim();
+            if (!channel || !start || !stop || !title) continue;
+            const key = `${channel}| ${start}| ${stop}| ${title}`;
+            if (!programmeByKey.has(key)) {
+              programmeByKey.set(key, {
+                channel,
+                start,
+                stop,
+                title,
+                desc: readXmlText(programme.desc),
+                category: readXmlText(programme.category),
+              });
+            }
+          }
+          loadedSources += 1;
+        } catch (error: any) {
+          failedSources.push(`${source.url}: ${error?.message || 'fetch/parse failed'}`);
+        }
+      };
+
+      // Limit concurrent downloads so large multi-guide headers don't overwhelm Render.
+      const concurrency = 8;
+      for (let index = 0; index < sources.length; index += concurrency) {
+        await Promise.all(sources.slice(index, index + concurrency).map(parseSource));
+      }
+
+      const channels = Array.from(channelsById.values());
+      const programmes = Array.from(programmeByKey.values());
+      if (loadedSources === 0 || programmes.length === 0) {
+        res.status(502).json({
+          error: 'No valid XMLTV programme data could be loaded',
+          sourceCount: sources.length,
+          failedSourceCount: failedSources.length,
+          failedSources: failedSources.slice(0, 10),
+        });
+        return;
+      }
 
       res.json({
         channels,
         programmes,
         channelCount: channels.length,
         programmeCount: programmes.length,
+        sourceCount: sources.length,
+        loadedSourceCount: loadedSources,
+        failedSourceCount: failedSources.length,
+        failedSources: failedSources.slice(0, 10),
       });
     } catch (err: any) {
       console.error('EPG parse error:', err);

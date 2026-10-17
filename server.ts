@@ -253,6 +253,39 @@ async function startServer() {
         }
       }
 
+      // Preserve per-stream headers used by many public IPTV sources.
+      // Without these, a stream can work in an IPTV app but fail in a browser proxy.
+      const streamHeaders = new Map<string, { httpUserAgent?: string; httpReferrer?: string }>();
+      let pendingHeaders: { httpUserAgent?: string; httpReferrer?: string } = {};
+      for (const rawLine of rawM3u.split(/\r?\n/)) {
+        const line = rawLine.trim();
+        if (!line) continue;
+        if (line.startsWith('#EXTINF:')) {
+          pendingHeaders = {};
+          const uaAttr = line.match(/(?:http-user-agent|user-agent)\s*=\s*["']([^"']+)["']/i);
+          const refAttr = line.match(/(?:http-referrer|http-referer|referer|referrer)\s*=\s*["']([^"']+)["']/i);
+          if (uaAttr) pendingHeaders.httpUserAgent = uaAttr[1].trim();
+          if (refAttr) pendingHeaders.httpReferrer = refAttr[1].trim();
+        } else if (line.startsWith('#EXTVLCOPT:')) {
+          const ua = line.match(/http-user-agent\s*=\s*(.+)$/i);
+          const ref = line.match(/http-referrer\s*=\s*(.+)$/i);
+          if (ua) pendingHeaders.httpUserAgent = ua[1].trim();
+          if (ref) pendingHeaders.httpReferrer = ref[1].trim();
+        } else if (!line.startsWith('#') && /^https?:\/\//i.test(line)) {
+          if (pendingHeaders.httpUserAgent || pendingHeaders.httpReferrer) {
+            streamHeaders.set(line, { ...pendingHeaders });
+          }
+          pendingHeaders = {};
+        }
+      }
+      for (const item of items) {
+        const headers = streamHeaders.get(String(item.url || '').trim());
+        if (headers) {
+          if (headers.httpUserAgent) item.httpUserAgent = headers.httpUserAgent;
+          if (headers.httpReferrer) item.httpReferrer = headers.httpReferrer;
+        }
+      }
+
       // Check if #EXTM3U header contains url-tvg or x-tvg-url
       const m3uHeaderLine = rawM3u.split(/\r?\n/, 1)[0] || '';
       const tvgUrlMatch = m3uHeaderLine.match(/(?:url-tvg|x-tvg-url|tvg-url)\s*=\s*["']([^"']+)["']/i);

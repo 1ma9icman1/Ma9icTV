@@ -553,7 +553,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
           ========================================================================= */}
       <div className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col relative bg-[#070b12]">
         {/* Scrollable Container */}
-        <div ref={gridScrollRef} className="flex-1 min-h-0 min-w-0 overflow-auto overscroll-contain relative touch-pan-x touch-pan-y" style={{ WebkitOverflowScrolling: "touch", touchAction: "pan-x pan-y" }} aria-label="Scrollable TV guide. Swipe horizontally for times and vertically for channels.">
+        <div ref={gridScrollRef} className="flex-1 min-h-0 min-w-0 relative overscroll-contain" style={{ height: 0, overflowX: "auto", overflowY: "scroll", WebkitOverflowScrolling: "touch", touchAction: "auto", overscrollBehavior: "contain" }} aria-label="Scrollable TV guide. Swipe horizontally for times and vertically for channels." tabIndex={0}>
           <div
             className="min-w-max flex flex-col"
             style={{ width: `${(typeof window !== "undefined" && window.innerWidth < 640 ? 150 : 260) + (timeSlots.length - 1) * 30 * minuteWidthPx}px` }}

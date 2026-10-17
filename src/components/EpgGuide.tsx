@@ -693,11 +693,6 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
             </div>
 
             {/* 2. Channel Rows with Horizontal Program Blocks */}
-            {xmltvProgrammes.length > 0 && filteredChannels.slice(0, epgPageLimit).every((ch) => !(channelSchedules.get(ch.id)?.length)) && (
-              <div className="sticky left-0 p-4 text-sm text-amber-200 bg-slate-950 border-b border-slate-800">
-                EPG data loaded, but none of these channels matched. Check the playlist's tvg-id values and the XMLTV channel IDs.
-              </div>
-            )}
             <div className="flex flex-col divide-y divide-slate-800/50">
               {filteredChannels.slice(0, epgPageLimit).map((channel, cIdx) => {
                 const isSelected = selectedChannel?.id === channel.id;

@@ -31,6 +31,7 @@ interface VideoPlayerProps {
   onToggleFavorite?: () => void;
   mode?: 'full' | 'compact' | 'epg-preview';
   onExpandPlayer?: () => void;
+  onStreamConnected?: () => void;
 }
 
 // Detect YouTube or Twitch embeds for channels in public IPTV playlists
@@ -94,6 +95,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   onToggleFavorite,
   mode = 'full',
   onExpandPlayer,
+  onStreamConnected,
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -481,6 +483,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       {embedInfo.type !== null ? (
         <div className="w-full h-full flex items-center justify-center bg-black relative">
           <iframe
+            onLoad={onStreamConnected}
             src={embedInfo.embedUrl}
             title={channel.name}
             className="w-full h-full border-0"
@@ -512,7 +515,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             playsInline
             autoPlay
             preload="auto"
-            onPlaying={() => setIsPlaying(true)}
+            onPlaying={() => {
+              setIsPlaying(true);
+              onStreamConnected?.();
+            }}
             onPause={() => setIsPlaying(false)}
             onTimeUpdate={() => {
               if (videoRef.current && videoRef.current.buffered.length > 0) {

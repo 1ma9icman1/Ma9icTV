@@ -178,7 +178,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
     description: 'Pluto TV US live streaming channels with proxy support and embedded guide.',
     flag: '🇺🇸',
     channelEstimate: '~350 channels',
-    epgUrl: 'https://github.com/matthuisman/i.mjh.nz/raw/master/PlutoTV/us.xml.gz',
+    epgUrl: 'https://i.mjh.nz/PlutoTV/us.xml.gz',
   },
   {
     name: 'Pluto TV (All Global Regions)',
@@ -187,7 +187,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
     description: 'Complete worldwide Pluto TV catalog spanning 14+ international regions.',
     flag: '🌐',
     channelEstimate: '~1,500 channels',
-    epgUrl: 'https://github.com/matthuisman/i.mjh.nz/raw/master/PlutoTV/all.xml.gz',
+    epgUrl: 'https://i.mjh.nz/PlutoTV/all.xml.gz',
   },
   {
     name: 'Samsung TV Plus (United States)',

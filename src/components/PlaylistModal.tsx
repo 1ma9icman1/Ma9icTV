@@ -24,7 +24,7 @@ import { CATALOG_PLAYLISTS, CatalogPlaylist } from '../data/presetPlaylists';
 
 function extractM3uEpgUrl(text: string): string | undefined {
   const header = text.split(/\r?\n/).find((line) => line.trim().startsWith('#EXTM3U')) || '';
-  const match = header.match(/(?:url-tvg|x-tvg-url|tvg-url)=[\"']([^\"']+)[\"']/i);
+  const match = header.match(/(?:url-tvg|x-tvg-url|tvg-url)\s*=\s*[\"']([^\"']+)[\"']/i);
   return match?.[1]?.trim() || undefined;
 }
 

@@ -18,6 +18,7 @@ import {
   SkipForward,
   Zap,
   Info,
+  Captions,
   Maximize2,
 } from 'lucide-react';
 import { Channel, AppSettings } from '../types';
@@ -107,6 +108,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // require a user click, but we never silently switch the player into muted mode.
   const [volume, setVolume] = useState<number>(settings.volume > 0 ? settings.volume : 0.8);
   const [isMuted, setIsMuted] = useState<boolean>(false);
+  const [captionsEnabled, setCaptionsEnabled] = useState<boolean>(false);
   const volumeRef = useRef<number>(settings.volume > 0 ? settings.volume : 0.8);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [isUsingProxy, setIsUsingProxy] = useState<boolean>(true);
@@ -126,6 +128,35 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   });
 
   const embedInfo = channel ? getThirdPartyEmbed(channel.url) : { type: null, embedUrl: '' };
+
+  // Captions are always disabled by default, including after channel changes.
+  useEffect(() => {
+    setCaptionsEnabled(false);
+    const video = videoRef.current;
+    if (!video) return;
+    for (let i = 0; i < video.textTracks.length; i++) {
+      video.textTracks[i].mode = 'disabled';
+    }
+  }, [channel?.url]);
+
+  const toggleCaptions = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    const tracks = video.textTracks;
+    const nextEnabled = !captionsEnabled;
+    let selectedTrack = false;
+    for (let i = 0; i < tracks.length; i++) {
+      const track = tracks[i];
+      const isCaptionTrack = track.kind === 'captions' || track.kind === 'subtitles';
+      if (nextEnabled && isCaptionTrack && !selectedTrack) {
+        track.mode = 'showing';
+        selectedTrack = true;
+      } else {
+        track.mode = 'disabled';
+      }
+    }
+    setCaptionsEnabled(nextEnabled && selectedTrack);
+  };
 
   // Countdown timer for automatic advance on error
   useEffect(() => {
@@ -691,6 +722,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
           {/* Mute & Volume Slider */}
           <div className="flex items-center gap-1.5 ml-1">
+            <button
+              onClick={toggleCaptions}
+              aria-label={captionsEnabled ? 'Turn captions off' : 'Turn captions on'}
+              aria-pressed={captionsEnabled}
+              className={`p-1.5 rounded-lg transition-colors ${captionsEnabled ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:text-white hover:bg-white/10'}`}
+              title={captionsEnabled ? 'Turn captions off (CC)' : 'Turn captions on (CC)'}
+            >
+              <Captions className="w-4 h-4" />
+            </button>
             <button
               onClick={toggleMute}
               className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors"

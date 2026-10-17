@@ -82,7 +82,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
   }, [filteredChannels, pageLimit]);
 
   return (
-    <div className="flex flex-col h-[42%] min-h-[180px] md:h-full bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 w-full md:w-80 lg:w-96 flex-shrink-0 select-none">
+    <div className="flex flex-col h-[40%] min-h-[145px] max-h-[44dvh] md:h-full md:max-h-none md:min-h-0 bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 w-full md:w-80 lg:w-96 min-w-0 flex-shrink-0 select-none">
       {/* Search Bar & View Mode Header */}
       <div className="p-3 border-b border-slate-800 space-y-2">
         <div className="flex items-center gap-2">
@@ -198,7 +198,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
       </div>
 
       {/* Channels List / Grid Area */}
-      <div className="flex-1 overflow-y-auto p-2 space-y-1">
+      <div className="flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-contain p-2 space-y-1">
         {filteredChannels.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-8 text-center text-slate-500 h-64">
             <Sparkles className="w-10 h-10 mb-2 stroke-[1.5] text-slate-600" />
@@ -207,7 +207,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
           </div>
         ) : isGridView ? (
           /* Grid View Mode */
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-2">
             {visibleChannels.map((channel) => {
               const isSelected = selectedChannel?.id === channel.id;
               const isFav = favorites.includes(channel.id);

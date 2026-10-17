@@ -1,5 +1,5 @@
 import { Channel } from '../types';
-import { isChannelBlacklisted } from './storage';
+import { getBlacklistedChannels } from './storage';
 
 /**
  * Sanitizes channel names and removes unwanted junk text,
@@ -26,6 +26,11 @@ export function sanitizeChannelName(name: string): string {
 export function parseM3uString(content: string, playlistId: string): Channel[] {
   const lines = content.split(/\r?\n/);
   const channels: Channel[] = [];
+  // Read blacklist once. Re-reading/parsing localStorage for every channel made
+  // large local M3U imports needlessly expensive.
+  const blacklist = getBlacklistedChannels();
+  const blacklistedUrls = new Set(blacklist.map((entry) => entry.url.toLowerCase()));
+  const blacklistedIds = new Set(blacklist.map((entry) => entry.id).filter(Boolean));
 
   let currentChannel: Partial<Channel> | null = null;
 
@@ -81,7 +86,10 @@ export function parseM3uString(content: string, playlistId: string): Channel[] {
         }
 
         // Filter out if user previously blacklisted this channel URL
-        if (!isChannelBlacklisted({ url: currentChannel.url, id: currentChannel.id })) {
+        if (
+          !blacklistedUrls.has(currentChannel.url.toLowerCase()) &&
+          !blacklistedIds.has(currentChannel.id)
+        ) {
           channels.push(currentChannel as Channel);
         }
         currentChannel = null;

@@ -23,13 +23,13 @@ import { Channel, EpgProgram, AppSettings } from '../types';
 import { VideoPlayer } from './VideoPlayer';
 
 function normalizeEpgName(value: string): string {
-  return value.normalize('NFKD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+  return value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
 
 // XMLTV timestamps commonly look like YYYYMMDDHHmmss +0000 or YYYYMMDDHHmmss.
 function parseXmltvDate(value: string): Date {
   const raw = String(value || '').trim();
-  const match = raw.match(/^(\\d{4})(\\d{2})(\\d{2})(\\d{2})(\\d{2})(\\d{2})(?:\\s*([+-]\\d{4}))?$/);
+  const match = raw.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(?:\s*([+-]\d{4}))?$/);
   if (!match) return new Date(raw);
   const [, year, month, day, hour, minute, second, zone] = match;
   const iso = `${year}-${month}-${day}T${hour}:${minute}:${second}${zone ? `${zone.slice(0, 3)}:${zone.slice(3)}` : 'Z'}`;
@@ -115,7 +115,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       const matches = xmltvProgrammes.filter((p) => {
         const channelId = (p.channelId || '').trim().toLowerCase();
         const aliases = xmltvChannelAliases[channelId] || [];
-        return ids.includes(channelId) || aliases.some((alias) => ids.includes(normalizeEpgName(alias)));
+        return ids.includes(normalizeEpgName(channelId)) || aliases.some((alias) => ids.includes(normalizeEpgName(alias)));
       });
       map.set(ch.id, matches);
     });

@@ -559,7 +559,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
             style={{ width: `${(typeof window !== "undefined" && window.innerWidth < 640 ? 150 : 260) + (timeSlots.length - 1) * 30 * minuteWidthPx}px` }}
           >
             {/* 1. Sticky Time Ruler Header */}
-            <div className="sticky top-0 z-30 flex bg-slate-950/95 backdrop-blur-md border-b border-slate-800 shadow-md">
+            <div className="relative z-10 flex bg-slate-950/95 border-b border-slate-800 shadow-md">
               {/* Corner Channel Header */}
               <div className="w-[150px] sm:w-[260px] flex-shrink-0 px-2 sm:px-4 py-2 border-r border-slate-800 bg-slate-950 text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between gap-1">
                 <span>Channels ({filteredChannels.length})</span>

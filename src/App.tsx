@@ -40,7 +40,7 @@ import { ShortcutsModal } from './components/ShortcutsModal';
 // metadata row, which can be empty or non-playable and leave the EPG visible
 // with no video on startup.
 function getFirstStreamChannel(channels: Channel[]): Channel | null {
-  return channels.find((channel) => /^https?:\\/\\//i.test(String(channel.url || '').trim())) || null;
+  return channels.find((channel) => /^https?:\/\//i.test(String(channel.url || '').trim())) || null;
 }
 
 export default function App() {

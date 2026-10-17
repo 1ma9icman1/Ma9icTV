@@ -524,29 +524,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             }}
           />
 
-          {!isPlaying && !isLoading && !errorMsg && channel && (
-            <button
-              type="button"
-              onClick={() => {
-                const video = videoRef.current;
-                if (!video) return;
-                video.muted = false;
-                video.volume = Math.max(0.01, volumeRef.current);
-                setIsMuted(false);
-                setErrorMsg(null);
-                void video.play().then(() => setIsPlaying(true)).catch((error) => {
-                  console.warn('Manual playback could not start:', error);
-                  setErrorMsg('Playback could not start. The stream may be offline or blocked by the browser.');
-                });
-              }}
-              className="absolute inset-0 z-10 flex items-center justify-center bg-black/25 hover:bg-black/40 transition-colors"
-              aria-label="Play selected channel"
-            >
-              <span className="flex items-center gap-2 rounded-full bg-indigo-600/95 px-5 py-3 text-sm font-bold text-white shadow-xl">
-                <Play className="h-5 w-5 fill-current" /> Play Channel
-              </span>
-            </button>
-          )}
+
 
           {/* Radio Audio Visualizer */}
           {channel.isRadio && (

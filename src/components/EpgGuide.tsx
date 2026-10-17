@@ -71,6 +71,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   const [selectedProgram, setSelectedProgram] = useState<EpgProgram | null>(null);
   const [epgUrlInput, setEpgUrlInput] = useState(() => localStorage.getItem('ma9ictv-epg-url') || '');
   const [isLoadingEpg, setIsLoadingEpg] = useState(false);
+  const [streamConnectedForBatchLoad, setStreamConnectedForBatchLoad] = useState(false);
   const [epgLoadError, setEpgLoadError] = useState('');
   const [xmltvProgrammes, setXmltvProgrammes] = useState<EpgProgram[]>([]);
   const [xmltvChannelAliases, setXmltvChannelAliases] = useState<Record<string, string[]>>({});
@@ -123,11 +124,15 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   }, [channels, selectedCategory, searchQuery]);
 
   useEffect(() => {
-    if (!selectedChannel || epgPageLimit >= filteredChannels.length) return;
+    setStreamConnectedForBatchLoad(false);
+  }, [selectedChannel?.id]);
+
+  useEffect(() => {
+    if (!streamConnectedForBatchLoad || !selectedChannel || epgPageLimit >= filteredChannels.length) return;
     let cancelled = false;
-    // Give the first selected stream a few seconds to start before rendering
-    // more rows. Subsequent batches are paced to keep the UI responsive.
-    const delayMs = epgPageLimit <= 100 ? 3500 : 1200;
+    // Wait until the video reports playback, then render more rows in paced
+    // batches so the guide never delays starting the stream.
+    const delayMs = epgPageLimit <= 100 ? 1200 : 900;
     const timer = window.setTimeout(() => {
       if (!cancelled) {
         setEpgPageLimit((limit) => Math.min(limit + 100, filteredChannels.length));
@@ -137,7 +142,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [selectedChannel?.id, epgPageLimit, filteredChannels.length]);
+  }, [streamConnectedForBatchLoad, selectedChannel?.id, epgPageLimit, filteredChannels.length]);
 
   // Build schedules only for the rows currently on screen. Scanning and
   // indexing every channel/programme combination made opening large guides freeze.
@@ -455,6 +460,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
             onToggleFavorite={() => selectedChannel && onToggleFavorite(selectedChannel.id)}
             mode="epg-preview"
             onExpandPlayer={onExpandPlayer}
+            onStreamConnected={() => setStreamConnectedForBatchLoad(true)}
           />
         </div>
 

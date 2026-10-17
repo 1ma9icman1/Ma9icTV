@@ -236,7 +236,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
   },
   {
     name: 'Tubi TV (Live TV)',
-    url: 'https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/tubi_all.m3u',
+    url: 'https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/refs/heads/main/playlists/tubi_all.m3u',
     category: 'Streaming Services',
     description: 'Tubi free ad-supported streaming television live channels.',
     flag: '🍿',

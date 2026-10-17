@@ -118,40 +118,54 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     setEpgPageLimit(100);
   }, [channels, selectedCategory, searchQuery]);
 
-  // Index XMLTV once. The old implementation scanned every programme for every
-  // visible channel (channels × programmes), which froze the UI on large guides.
+  // Build schedules only for the rows currently on screen. Scanning and
+  // indexing every channel/programme combination made opening large guides freeze.
   const channelSchedules = useMemo(() => {
+    const scheduleChannels = filteredChannels.slice(0, epgPageLimit);
+    if (selectedChannel && !scheduleChannels.some((channel) => channel.id === selectedChannel.id)) {
+      scheduleChannels.push(selectedChannel);
+    }
+
+    const relevantKeys = new Set<string>();
+    const channelKeys = new Map<string, string[]>();
+    for (const channel of scheduleChannels) {
+      const keys = [channel.tvgId, channel.tvgName, channel.name]
+        .filter(Boolean)
+        .map((value) => normalizeEpgName(String(value)))
+        .filter(Boolean);
+      channelKeys.set(channel.id, keys);
+      keys.forEach((key) => relevantKeys.add(key));
+    }
+
     const programmesByName = new Map<string, EpgProgram[]>();
     const addProgramme = (key: string, programme: EpgProgram) => {
       const normalized = normalizeEpgName(key);
-      if (!normalized) return;
+      if (!normalized || !relevantKeys.has(normalized)) return;
       const existing = programmesByName.get(normalized);
       if (existing) existing.push(programme);
       else programmesByName.set(normalized, [programme]);
     };
 
+    const now = Date.now();
+    const windowStart = now - 2 * 60 * 60 * 1000;
+    const windowEnd = now + 8 * 60 * 60 * 1000;
     for (const programme of xmltvProgrammes) {
       const channelId = (programme.channelId || '').trim().toLowerCase();
       if (!channelId) continue;
+      const startsAt = programme.startTime.getTime();
+      const stopsAt = programme.stopTime.getTime();
+      if (stopsAt < windowStart || startsAt > windowEnd) continue;
       addProgramme(channelId, programme);
       for (const alias of xmltvChannelAliases[channelId] || []) addProgramme(alias, programme);
     }
 
     const map = new Map<string, EpgProgram[]>();
-    for (const channel of filteredChannels) {
-      const keys = [channel.tvgId, channel.tvgName, channel.name]
-        .filter(Boolean)
-        .map((value) => normalizeEpgName(String(value)));
-      const seen = new Set<string>();
+    for (const channel of scheduleChannels) {
       const matches: EpgProgram[] = [];
-      const now = Date.now();
-      const windowStart = now - 2 * 60 * 60 * 1000;
-      const windowEnd = now + 8 * 60 * 60 * 1000;
-      for (const key of keys) {
+      const seen = new Set<string>();
+      for (const key of channelKeys.get(channel.id) || []) {
         for (const programme of programmesByName.get(key) || []) {
-          const startsAt = programme.startTime.getTime();
-          const stopsAt = programme.stopTime.getTime();
-          if (!seen.has(programme.id) && stopsAt >= windowStart && startsAt <= windowEnd) {
+          if (!seen.has(programme.id)) {
             seen.add(programme.id);
             matches.push(programme);
           }
@@ -161,7 +175,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       map.set(channel.id, matches);
     }
     return map;
-  }, [filteredChannels, xmltvProgrammes, xmltvChannelAliases]);
+  }, [filteredChannels, epgPageLimit, selectedChannel, xmltvProgrammes, xmltvChannelAliases]);
 
   // Active channel programs
   const activeChannelPrograms = useMemo(() => {
@@ -592,7 +606,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                 No real programme guide loaded. Enter your provider's XMLTV EPG URL above and select Load EPG. Generic episode titles are intentionally disabled.
               </div>
             )}
-            {xmltvProgrammes.length > 0 && filteredChannels.every((ch) => !(channelSchedules.get(ch.id)?.length)) && (
+            {xmltvProgrammes.length > 0 && filteredChannels.slice(0, epgPageLimit).every((ch) => !(channelSchedules.get(ch.id)?.length)) && (
               <div className="sticky left-0 p-4 text-sm text-amber-200 bg-slate-950 border-b border-slate-800">
                 EPG data loaded, but none of these channels matched. Check the playlist's tvg-id values and the XMLTV channel IDs.
               </div>

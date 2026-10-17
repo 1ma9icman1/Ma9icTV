@@ -81,6 +81,8 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   const dragStateRef = useRef<{ pointerId: number; startX: number; startY: number; scrollLeft: number; scrollTop: number; active: boolean; suppressClick: boolean } | null>(null);
   const legacySavedEpgUrl = useRef(localStorage.getItem('ma9ictv-epg-url') || '');
   const legacyEpgResolved = useRef(false);
+  // Defer the initial EPG request until the first stream starts successfully.
+  const initialStreamHasConnected = useRef(false);
   const [currentTimeMs, setCurrentTimeMs] = useState(Date.now());
 
   // Update clock every 30 seconds
@@ -415,10 +417,11 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     }
   };
 
-  // Load the guide independently of stream playback. Movie and cinema playlists
-  // often contain slow or unavailable hosts; those must not prevent the EPG loading.
+  // On initial page load, start the stream before requesting EPG data.
+  // Once the first stream connects, later playlist changes load EPG normally.
   const playlistEpgSource = activePlaylistEpgUrl?.trim() || '';
   useEffect(() => {
+    if (!initialStreamHasConnected.current) return;
     let manualUrl = localStorage.getItem('ma9ictv-manual-epg-url')?.trim() || '';
     if (!legacyEpgResolved.current) {
       if (!manualUrl && legacySavedEpgUrl.current && legacySavedEpgUrl.current !== playlistEpgSource) {
@@ -441,7 +444,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       setEpgLoadError('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePlaylistEpgUrl]);
+  }, [activePlaylistEpgUrl, streamConnectedForBatchLoad]);
 
   return (
     <div className="flex-1 min-h-0 min-w-0 flex flex-col h-full bg-[#0a0e17] text-slate-100 overflow-hidden select-none">
@@ -460,7 +463,10 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
             onToggleFavorite={() => selectedChannel && onToggleFavorite(selectedChannel.id)}
             mode="epg-preview"
             onExpandPlayer={onExpandPlayer}
-            onStreamConnected={() => setStreamConnectedForBatchLoad(true)}
+            onStreamConnected={() => {
+              initialStreamHasConnected.current = true;
+              setStreamConnectedForBatchLoad(true);
+            }}
           />
         </div>
 

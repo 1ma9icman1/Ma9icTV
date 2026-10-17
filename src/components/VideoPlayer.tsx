@@ -361,6 +361,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         let mediaRetries = 0;
 
         hls.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
+          // Ignore late events from a channel that has already been replaced.
+          if (hlsRef.current !== hls) return;
           // Keep the loading indicator visible until the video actually starts playing.
           const levels = data.levels.map((lvl, index) => ({
             id: index,
@@ -407,6 +409,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         });
 
         hls.on(Hls.Events.LEVEL_SWITCHED, (_event, data) => {
+          if (hlsRef.current !== hls) return;
           const level = hls.levels[data.level];
           if (level) {
             setStats((prev) => ({
@@ -418,6 +421,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         });
 
         hls.on(Hls.Events.ERROR, (_event, data) => {
+          if (hlsRef.current !== hls) return;
           console.warn('HLS Event Error:', data.type, data.details);
           if (data.fatal) {
             switch (data.type) {

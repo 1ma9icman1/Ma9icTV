@@ -48,7 +48,7 @@ export default function App() {
   const [settings, setSettings] = useState<AppSettings>(() => getSettings());
 
   // Start directly in the live player. The channel sidebar stays hidden until requested.
-  const [currentView, setCurrentView] = useState<'player' | 'epg'>('player');
+  const [currentView, setCurrentView] = useState<'player' | 'epg'>('epg');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(true);
   const [isRefreshingPlaylist, setIsRefreshingPlaylist] = useState<boolean>(false);
 
@@ -117,7 +117,7 @@ export default function App() {
         setActivePlaylistIdState(plutoId);
         setActivePlaylistId(plutoId);
         setSelectedChannel(channels[0]);
-        setCurrentView('player');
+        setCurrentView('epg');
         setIsSidebarCollapsed(true);
       } catch (error) {
         // Keep the built-in fallback stream playable if the Pluto playlist endpoint is unavailable.

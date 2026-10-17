@@ -144,8 +144,9 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
         .map((value) => normalizeEpgName(String(value)));
       const seen = new Set<string>();
       const matches: EpgProgram[] = [];
-      const windowStart = currentTimeMs - 2 * 60 * 60 * 1000;
-      const windowEnd = currentTimeMs + 8 * 60 * 60 * 1000;
+      const now = Date.now();
+      const windowStart = now - 2 * 60 * 60 * 1000;
+      const windowEnd = now + 8 * 60 * 60 * 1000;
       for (const key of keys) {
         for (const programme of programmesByName.get(key) || []) {
           const startsAt = programme.startTime.getTime();
@@ -160,7 +161,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       map.set(channel.id, matches);
     }
     return map;
-  }, [filteredChannels, xmltvProgrammes, xmltvChannelAliases, currentTimeMs]);
+  }, [filteredChannels, xmltvProgrammes, xmltvChannelAliases]);
 
   // Active channel programs
   const activeChannelPrograms = useMemo(() => {
@@ -296,7 +297,13 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     setEpgUrlInput(sourceUrl);
     if (sourceUrl) {
       localStorage.setItem('ma9ictv-epg-url', sourceUrl);
-      void handleLoadXmltv(false, sourceUrl);
+      // Let the guide and video player paint/start first; EPG network and parsing
+      // work should never delay the navigation response to opening the guide.
+      const loadTimer = window.setTimeout(() => {
+        void handleLoadXmltv(false, sourceUrl);
+      }, 300);
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      return () => window.clearTimeout(loadTimer);
     } else {
       localStorage.removeItem('ma9ictv-epg-url');
     }

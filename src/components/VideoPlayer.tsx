@@ -346,7 +346,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         let mediaRetries = 0;
 
         hls.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
-          setIsLoading(false);
+          // Keep the loading indicator visible until the video actually starts playing.
           const levels = data.levels.map((lvl, index) => ({
             id: index,
             height: lvl.height,
@@ -454,7 +454,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         setIsMuted(false);
 
         video.onloadedmetadata = () => {
-          setIsLoading(false);
+          // Metadata only means the stream was found; wait for the playing event.
           const playPromise = video.play();
           if (playPromise !== undefined) {
             playPromise.then(() => setIsPlaying(true)).catch(async () => {
@@ -707,6 +707,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             preload="auto"
             onPlaying={() => {
               setIsPlaying(true);
+              setIsLoading(false);
+              setErrorMsg(null);
               onStreamConnected?.();
             }}
             onPause={() => setIsPlaying(false)}
@@ -734,11 +736,22 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             </div>
           )}
 
-          {/* Loading Spinner */}
-          {isLoading && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm z-20 pointer-events-none">
-              <RefreshCw className="w-10 h-10 text-indigo-400 animate-spin mb-3" />
-              <p className="text-xs font-semibold tracking-wide text-slate-200 uppercase">Connecting to Stream...</p>
+          {/* Bottom loading bar stays visible until the selected stream actually starts playing. */}
+          {isLoading && !errorMsg && (
+            <div className="absolute bottom-0 inset-x-0 z-30 px-3 pb-2 pointer-events-none" role="status" aria-live="polite">
+              <div className="mx-auto max-w-full rounded-lg border border-white/10 bg-slate-950/90 px-3 py-2 shadow-xl backdrop-blur-md">
+                <div className="mb-1.5 flex items-center justify-between gap-3">
+                  <span className="flex min-w-0 items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-white">
+                    <RefreshCw className="h-3.5 w-3.5 shrink-0 animate-spin text-indigo-400" />
+                    <span className="truncate">Loading stream</span>
+                  </span>
+                  <span className="shrink-0 text-[10px] text-slate-400">{channel.name}</span>
+                </div>
+                <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-700/80">
+                  <div className="h-full w-[38%] rounded-full bg-gradient-to-r from-indigo-500 via-violet-400 to-indigo-300 animate-[stream-loading_1.35s_ease-in-out_infinite]" />
+                </div>
+              </div>
+              <style>{`@keyframes stream-loading { 0% { transform: translateX(-110%); } 100% { transform: translateX(280%); } }`}</style>
             </div>
           )}
 

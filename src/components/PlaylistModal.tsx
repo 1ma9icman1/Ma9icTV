@@ -134,7 +134,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
         addedAt: Date.now(),
         lastUpdated: Date.now(),
         userAgent: customUA?.trim() || undefined,
-        epgUrl: targetEpgUrl || data.header?.urlTvg || undefined,
+        epgUrl: data.header?.urlTvg || targetEpgUrl || undefined,
         channels,
       };
 

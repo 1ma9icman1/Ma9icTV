@@ -279,10 +279,7 @@ async function startServer() {
       const urls: string[] = typeof url === 'string'
         ? url.split(/,\s*(?=https?:\/\/)/i).map((item: string) => item.trim()).filter(Boolean)
         : [];
-      const allSources = content ? [{ url: 'inline XMLTV', content: String(content) }] : urls.map((sourceUrl) => ({ url: sourceUrl }));
-      const requestedOffset = Number.isFinite(Number(req.body?.offset)) ? Math.max(0, Math.floor(Number(req.body.offset))) : 0;
-      const requestedLimit = Number.isFinite(Number(req.body?.limit)) ? Math.max(1, Math.floor(Number(req.body.limit))) : allSources.length;
-      const sources = allSources.slice(requestedOffset, requestedOffset + requestedLimit);
+      const sources = content ? [{ url: 'inline XMLTV', content: String(content) }] : urls.map((sourceUrl) => ({ url: sourceUrl }));
       if (sources.length === 0) {
         res.status(400).json({ error: 'No valid EPG URLs were found' });
         return;
@@ -364,14 +361,10 @@ async function startServer() {
 
       const channels = Array.from(channelsById.values());
       const programmes = Array.from(programmeByKey.values());
-      if ((loadedSources === 0 || programmes.length === 0) && requestedOffset + sources.length >= allSources.length) {
+      if (loadedSources === 0 || programmes.length === 0) {
         res.status(502).json({
           error: 'No valid XMLTV programme data could be loaded',
-          sourceCount: allSources.length,
-          loadedSourceCount: loadedSources,
-          offset: requestedOffset,
-          nextOffset: requestedOffset + sources.length,
-          hasMore: requestedOffset + sources.length < allSources.length,
+          sourceCount: sources.length,
           failedSourceCount: failedSources.length,
           failedSources: failedSources.slice(0, 10),
         });
@@ -383,10 +376,7 @@ async function startServer() {
         programmes,
         channelCount: channels.length,
         programmeCount: programmes.length,
-        sourceCount: allSources.length,
-        offset: requestedOffset,
-        nextOffset: requestedOffset + sources.length,
-        hasMore: requestedOffset + sources.length < allSources.length,
+        sourceCount: sources.length,
         loadedSourceCount: loadedSources,
         failedSourceCount: failedSources.length,
         failedSources: failedSources.slice(0, 10),

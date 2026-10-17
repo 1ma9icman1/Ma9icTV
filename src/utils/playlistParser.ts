@@ -1,4 +1,27 @@
 import { Channel } from '../types';
+import { isChannelBlacklisted } from './storage';
+
+/**
+ * Sanitizes channel names and removes unwanted junk text,
+ * including variations of "Discovery & Wildlife Explorer" and "Evening Specials Features".
+ */
+export function sanitizeChannelName(name: string): string {
+  if (!name) return 'Unnamed Channel';
+  let cleaned = name;
+
+  // Remove "Discovery&wildlife explorer" and variations/typos
+  cleaned = cleaned.replace(/discovery\s*&?\s*wildlife\s*explore?r(e|er)?/gi, '');
+  // Remove "Evening Specials Features" and variations
+  cleaned = cleaned.replace(/evening\s*specials?\s*features?/gi, '');
+  // Remove simulated suffixes/prefixes
+  cleaned = cleaned.replace(/simulated\s*(program|stream|channel)?/gi, '');
+  
+  // Clean up dangling delimiters like " - ", " : ", " | "
+  cleaned = cleaned.replace(/^\s*[-:–—|/]\s*|\s*[-:–—|/]\s*$/g, '');
+  cleaned = cleaned.replace(/\s{2,}/g, ' ').trim();
+
+  return cleaned || name.trim() || 'Channel';
+}
 
 export function parseM3uString(content: string, playlistId: string): Channel[] {
   const lines = content.split(/\r?\n/);
@@ -29,9 +52,9 @@ export function parseM3uString(content: string, playlistId: string): Channel[] {
       const tvgChnoMatch = infoPart.match(/tvg-chno="([^"]*)"/i);
       const isRadioMatch = infoPart.match(/radio="(true|1)"/i);
 
-      currentChannel.name = titlePart || 'Unnamed Channel';
+      currentChannel.name = sanitizeChannelName(titlePart);
       currentChannel.tvgId = tvgIdMatch ? tvgIdMatch[1] : undefined;
-      currentChannel.tvgName = tvgNameMatch ? tvgNameMatch[1] : undefined;
+      currentChannel.tvgName = tvgNameMatch ? sanitizeChannelName(tvgNameMatch[1]) : undefined;
       currentChannel.logo = tvgLogoMatch ? tvgLogoMatch[1] : undefined;
       currentChannel.group = groupTitleMatch ? groupTitleMatch[1] : 'General';
       currentChannel.tvgChno = tvgChnoMatch ? tvgChnoMatch[1] : undefined;
@@ -57,7 +80,10 @@ export function parseM3uString(content: string, playlistId: string): Channel[] {
           currentChannel.isRadio = true;
         }
 
-        channels.push(currentChannel as Channel);
+        // Filter out if user previously blacklisted this channel URL
+        if (!isChannelBlacklisted({ url: currentChannel.url, id: currentChannel.id })) {
+          channels.push(currentChannel as Channel);
+        }
         currentChannel = null;
       }
     }

@@ -9,7 +9,8 @@ const STORAGE_KEYS = {
   SETTINGS: 'iptvnator_settings',
   XTREAM_ACCOUNTS: 'iptvnator_xtream_accounts',
   EPG_URLS: 'iptvnator_epg_urls',
-  PRESET_VERSION: 'iptvnator_preset_v2',
+  PRESET_VERSION: 'iptvnator_preset_v3',
+  BLACKLISTED_CHANNELS: 'iptvnator_blacklisted_channels',
 };
 
 const DEFAULT_SETTINGS: AppSettings = {
@@ -23,25 +24,105 @@ const DEFAULT_SETTINGS: AppSettings = {
   muted: false,
 };
 
+// ==========================================
+// Blacklist Management
+// ==========================================
+export interface BlacklistedEntry {
+  url: string;
+  id?: string;
+  name?: string;
+  addedAt: number;
+}
+
+export function getBlacklistedChannels(): BlacklistedEntry[] {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEYS.BLACKLISTED_CHANNELS);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function isChannelBlacklisted(channel: { url?: string; id?: string; name?: string }): boolean {
+  if (!channel) return false;
+  const list = getBlacklistedChannels();
+  return list.some((b) => {
+    if (channel.url && b.url && channel.url.toLowerCase() === b.url.toLowerCase()) return true;
+    if (channel.id && b.id && channel.id === b.id) return true;
+    return false;
+  });
+}
+
+export function addBlacklistedChannel(channel: { url: string; id?: string; name?: string }): BlacklistedEntry[] {
+  try {
+    const current = getBlacklistedChannels();
+    const normalizedUrl = channel.url.toLowerCase().trim();
+    if (!current.some((b) => b.url.toLowerCase() === normalizedUrl)) {
+      const updated = [
+        ...current,
+        {
+          url: channel.url,
+          id: channel.id,
+          name: channel.name,
+          addedAt: Date.now(),
+        },
+      ];
+      localStorage.setItem(STORAGE_KEYS.BLACKLISTED_CHANNELS, JSON.stringify(updated));
+      return updated;
+    }
+    return current;
+  } catch (err) {
+    console.error('Failed to blacklist channel:', err);
+    return [];
+  }
+}
+
+export function removeBlacklistedChannel(url: string): BlacklistedEntry[] {
+  try {
+    const current = getBlacklistedChannels();
+    const updated = current.filter((b) => b.url.toLowerCase() !== url.toLowerCase());
+    localStorage.setItem(STORAGE_KEYS.BLACKLISTED_CHANNELS, JSON.stringify(updated));
+    return updated;
+  } catch {
+    return [];
+  }
+}
+
+// ==========================================
+// Playlist Storage & Retrieval
+// ==========================================
 export function getSavedPlaylists(): Playlist[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.PLAYLISTS);
     const version = localStorage.getItem(STORAGE_KEYS.PRESET_VERSION);
+    const blacklist = getBlacklistedChannels();
+    const blacklistedUrls = new Set(blacklist.map((b) => b.url.toLowerCase()));
 
-    if (!raw || version !== 'v2') {
-      // Upgrade / migrate to verified active streams
+    const filterBlacklist = (pls: Playlist[]): Playlist[] => {
+      return pls.map((pl) => {
+        const cleanChannels = pl.channels.filter((c) => !blacklistedUrls.has(c.url.toLowerCase()));
+        return {
+          ...pl,
+          channelCount: cleanChannels.length,
+          channels: cleanChannels,
+        };
+      });
+    };
+
+    if (!raw || version !== 'v3') {
       const existing = raw ? JSON.parse(raw) : [];
       const userCustomPlaylists = Array.isArray(existing)
         ? existing.filter((p: Playlist) => p.type !== 'preset')
         : [];
-      const updated = [INITIAL_PRESETS[0], ...userCustomPlaylists];
+      const updated = filterBlacklist([INITIAL_PRESETS[0], ...userCustomPlaylists]);
       savePlaylists(updated);
-      localStorage.setItem(STORAGE_KEYS.PRESET_VERSION, 'v2');
+      localStorage.setItem(STORAGE_KEYS.PRESET_VERSION, 'v3');
       return updated;
     }
 
     const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_PRESETS;
+    const finalPlaylists = Array.isArray(parsed) && parsed.length > 0 ? parsed : INITIAL_PRESETS;
+    return filterBlacklist(finalPlaylists);
   } catch (err) {
     console.error('Failed to load playlists:', err);
     return INITIAL_PRESETS;
@@ -125,6 +206,7 @@ export function exportAppState(): string {
     playlists: getSavedPlaylists(),
     favorites: getFavorites(),
     recentlyPlayed: getRecentlyPlayed(),
+    blacklisted: getBlacklistedChannels(),
     settings: getSettings(),
   };
   return JSON.stringify(state, null, 2);
@@ -138,6 +220,9 @@ export function importAppState(jsonStr: string): boolean {
     }
     if (data.favorites && Array.isArray(data.favorites)) {
       localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(data.favorites));
+    }
+    if (data.blacklisted && Array.isArray(data.blacklisted)) {
+      localStorage.setItem(STORAGE_KEYS.BLACKLISTED_CHANNELS, JSON.stringify(data.blacklisted));
     }
     if (data.settings && typeof data.settings === 'object') {
       saveSettings({ ...DEFAULT_SETTINGS, ...data.settings });

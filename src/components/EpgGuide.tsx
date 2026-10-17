@@ -635,9 +635,22 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
         {/* Scrollable Container */}
         <div ref={gridScrollRef} onPointerDown={handleDragPointerDown} onPointerMove={handleDragPointerMove} onPointerUp={handleDragPointerUp} onPointerCancel={handleDragPointerUp} onClickCapture={handleDragClickCapture} className="flex-1 min-h-0 min-w-0 relative overscroll-contain cursor-grab active:cursor-grabbing" style={{ height: 0, overflowX: "auto", overflowY: "scroll", WebkitOverflowScrolling: "touch", touchAction: "pan-x pan-y", overscrollBehavior: "contain", scrollbarWidth: "auto", scrollbarColor: "#6366f1 #0f172a", userSelect: "none" }} aria-label="Scrollable TV guide. Click and drag horizontally for times and vertically for channels, or use TV remote arrows." tabIndex={0}>
           <div
-            className="min-w-max flex flex-col"
+            className="min-w-max flex flex-col relative"
             style={{ width: `${(typeof window !== "undefined" && window.innerWidth < 640 ? 150 : 260) + (timeSlots.length - 1) * 30 * minuteWidthPx}px` }}
           >
+            {/* Current-time marker spans the complete EPG schedule, not just the time ruler. */}
+            {currentTimeMs >= timelineStartMs && (
+              <div
+                className="absolute top-0 bottom-0 z-20 pointer-events-none"
+                style={{
+                  left: `${(typeof window !== "undefined" && window.innerWidth < 640 ? 150 : 260) + ((currentTimeMs - timelineStartMs) / 60000) * minuteWidthPx}px`,
+                }}
+                aria-hidden="true"
+              >
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-rose-500 shadow-md shadow-rose-500/50" />
+                <div className="absolute top-2 bottom-0 left-1/2 -translate-x-1/2 w-[2px] bg-rose-500/90 shadow-sm" />
+              </div>
+            )}
             {/* 1. Sticky Time Ruler Header */}
             <div className="relative z-10 flex bg-slate-950/95 border-b border-slate-800 shadow-md">
               {/* Corner Channel Header */}
@@ -661,18 +674,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                   );
                 })}
 
-                {/* Glowing Vertical Needle for Current Time */}
-                {currentTimeMs >= timelineStartMs && (
-                  <div
-                    className="absolute top-0 bottom-0 z-40 pointer-events-none flex flex-col items-center"
-                    style={{
-                      left: `${((currentTimeMs - timelineStartMs) / 60000) * minuteWidthPx}px`,
-                    }}
-                  >
-                    <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-md shadow-rose-500/50 -mt-1"></div>
-                    <div className="w-[2px] h-[5000px] bg-gradient-to-b from-rose-500 via-rose-500/80 to-transparent shadow-sm"></div>
-                  </div>
-                )}
+
               </div>
             </div>
 

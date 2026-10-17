@@ -36,100 +36,6 @@ interface EpgGuideProps {
   activePlaylistTitle: string;
 }
 
-// Generate rich, contextual 24h schedule for any channel based on category & name
-function generateChannelSchedule(channel: Channel, baseDate: Date): EpgProgram[] {
-  const schedule: EpgProgram[] = [];
-  const startOfDay = new Date(baseDate);
-  startOfDay.setHours(0, 0, 0, 0);
-
-  const group = (channel.group || 'General').toLowerCase();
-  const name = channel.name;
-  const isNews = group.includes('news');
-  const isSports = group.includes('sport');
-  const isMovie = group.includes('movie') || group.includes('cinema');
-  const isMusic = group.includes('music') || channel.isRadio;
-  const isKids = group.includes('kid') || group.includes('anim');
-
-  // 12 to 18 program blocks across 24 hours
-  const templates = isNews
-    ? [
-        { title: `${name}: Morning News Brief`, durMin: 60, desc: 'Overnight headlines, markets report, world weather, and early commentary.' },
-        { title: `${name}: World Today Live`, durMin: 90, desc: 'In-depth international news reporting, field correspondents, and interviews.' },
-        { title: `${name}: Global Business Pulse`, durMin: 60, desc: 'Stock market updates, commodities, tech trends, and executive interviews.' },
-        { title: `${name}: Live Midday Bulletin`, durMin: 60, desc: 'Breaking news from around the world as it happens, updated continuously.' },
-        { title: `${name}: Focus World Investigation`, durMin: 90, desc: 'Special investigative reports on geopolitical affairs, climate, and society.' },
-        { title: `${name}: The Afternoon Roundtable`, durMin: 60, desc: 'Analysis and debates on top international stories with global policy experts.' },
-        { title: `${name}: Prime Time News Hour`, durMin: 60, desc: 'The flagship evening broadcast covering major stories of the day in depth.' },
-        { title: `${name}: Panorama Documentary`, durMin: 90, desc: 'Compelling short documentary exploring cultural shifts, science, and nature.' },
-        { title: `${name}: Late Night Roundup`, durMin: 60, desc: 'Recap of the biggest headlines from all continents before the day closes.' },
-        { title: `${name}: Overnight Global Feed`, durMin: 180, desc: 'Automated 24/7 global wire reports and continuous live coverage.' },
-      ]
-    : isSports
-    ? [
-        { title: `${name}: Sports Morning Highlights`, durMin: 60, desc: 'All the goals, match points, and high-octane highlights from overnight.' },
-        { title: `${name}: Championship Preview`, durMin: 90, desc: 'Tactical analysis, team lineups, and predictions for upcoming tournaments.' },
-        { title: `${name}: Live Match Arena`, durMin: 120, desc: 'Exclusive live broadcast and commentary on today’s top sporting events.' },
-        { title: `${name}: Extreme Sports & Action`, durMin: 60, desc: 'Freestyle stunts, adrenaline-fueled adventures, and athlete profiles.' },
-        { title: `${name}: Post-Match Studio Debrief`, durMin: 60, desc: 'Manager press conferences, key replay breakdowns, and player interviews.' },
-        { title: `${name}: Golden Classics & Archives`, durMin: 90, desc: 'Reliving legendary championship moments and historic rivalries.' },
-        { title: `${name}: Late Night Sports Zone`, durMin: 120, desc: 'Global motorsport, boxing, basketball, and football news roundup.' },
-      ]
-    : isMovie
-    ? [
-        { title: 'Matinee Showcase: Cinema Spotlight', durMin: 105, desc: 'Classic and modern cinema feature film with full remastered audio.' },
-        { title: 'Behind the Scenes: Film Masters', durMin: 45, desc: 'Directors, visual effects artists, and actors discussing their craft.' },
-        { title: 'Feature Film: Hollywood Premiere', durMin: 120, desc: 'Acclaimed blockbuster drama full feature presentation in high definition.' },
-        { title: 'Sci-Fi Universe: Galactic Odyssey', durMin: 110, desc: 'Epic space exploration and speculative fiction cinematic adventure.' },
-        { title: 'Midnight Thriller: Edge of Suspense', durMin: 100, desc: 'Gripping psychological mystery and neo-noir crime thriller.' },
-      ]
-    : isMusic
-    ? [
-        { title: `${name}: Morning Acoustic & Lounge`, durMin: 90, desc: 'Mellow melodies and uplifting rhythms to kickstart your morning.' },
-        { title: `${name}: Top 40 Global Hits`, durMin: 120, desc: 'The hottest tracks trending across international streaming charts.' },
-        { title: `${name}: Live Concert Session`, durMin: 90, desc: 'High-energy live festival performance and acoustic studio showcase.' },
-        { title: `${name}: Club Beats & Electronic Mix`, durMin: 120, desc: 'Non-stop DJ sets, synthesized grooves, and deep house vibes.' },
-      ]
-    : [
-        { title: `${name}: Sunrise Daily Magazine`, durMin: 90, desc: 'Lifestyle, cooking, technology, and morning entertainment features.' },
-        { title: `${name}: Discovery & Wildlife Explorer`, durMin: 60, desc: 'Journeying across diverse ecosystems and discovering planet Earth.' },
-        { title: `${name}: Prime Time Entertainment Show`, durMin: 90, desc: 'Popular television entertainment, guest talks, and comedy.' },
-        { title: `${name}: Evening Special Feature`, durMin: 120, desc: 'Spotlight on inspiring personalities, culinary journeys, and culture.' },
-        { title: `${name}: Night Owl Cinema`, durMin: 100, desc: 'Late night movies, music retrospectives, and relaxation programming.' },
-      ];
-
-  const nowMs = Date.now();
-  let currentStart = startOfDay.getTime();
-
-  // Loop through templates to fill 24+ hours
-  let idx = 0;
-  while (currentStart < startOfDay.getTime() + 26 * 60 * 60 * 1000) {
-    const tmpl = templates[idx % templates.length];
-    const durMs = tmpl.durMin * 60 * 1000;
-    const endMs = currentStart + durMs;
-    const isLive = nowMs >= currentStart && nowMs < endMs;
-    const prog = isLive ? Math.min(100, Math.max(0, ((nowMs - currentStart) / durMs) * 100)) : 0;
-
-    schedule.push({
-      id: `prog-${channel.id}-${currentStart}`,
-      channelId: channel.tvgId || channel.name,
-      title: tmpl.title,
-      desc: tmpl.desc,
-      category: channel.group || 'General',
-      start: new Date(currentStart).toISOString(),
-      stop: new Date(endMs).toISOString(),
-      startTime: new Date(currentStart),
-      stopTime: new Date(endMs),
-      isLive,
-      progress: Math.round(prog),
-    });
-
-    currentStart = endMs;
-    idx++;
-  }
-
-  return schedule;
-}
-
 export const EpgGuide: React.FC<EpgGuideProps> = ({
   channels,
   selectedChannel,
@@ -146,7 +52,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedProgram, setSelectedProgram] = useState<EpgProgram | null>(null);
-  const [epgUrlInput, setEpgUrlInput] = useState('');
+  const [epgUrlInput, setEpgUrlInput] = useState(() => localStorage.getItem('ma9ictv-epg-url') || '');
   const [isLoadingEpg, setIsLoadingEpg] = useState(false);
   const [xmltvProgrammes, setXmltvProgrammes] = useState<EpgProgram[]>([]);
 
@@ -161,8 +67,6 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     return () => clearInterval(timer);
   }, []);
 
-  // The guide follows today's schedule; date shortcuts were removed for a cleaner mobile layout.
-  const targetDate = useMemo(() => new Date(), []);
 
   // Extract all channel groups for categories
   const categories = useMemo(() => {
@@ -188,31 +92,21 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     });
   }, [channels, selectedCategory, searchQuery]);
 
-  // Generate or retrieve schedules for displayed channels
+  // Use actual XMLTV listings only. Never invent generic programme or episode titles.
   const channelSchedules = useMemo(() => {
     const map = new Map<string, EpgProgram[]>();
     filteredChannels.forEach((ch) => {
-      // Check if real XMLTV programmes match this channel
-      const realMatches = xmltvProgrammes.filter(
-        (p) =>
-          p.channelId === ch.tvgId ||
-          p.channelId === ch.name ||
-          p.channelId?.toLowerCase() === ch.name.toLowerCase()
-      );
-
-      if (realMatches.length > 0) {
-        map.set(ch.id, realMatches);
-      } else {
-        map.set(ch.id, generateChannelSchedule(ch, targetDate));
-      }
+      const ids = [ch.tvgId, ch.tvgName, ch.name].filter(Boolean).map((v) => String(v).trim().toLowerCase());
+      const matches = xmltvProgrammes.filter((p) => ids.includes((p.channelId || '').trim().toLowerCase()));
+      map.set(ch.id, matches);
     });
     return map;
-  }, [filteredChannels, xmltvProgrammes, targetDate]);
+  }, [filteredChannels, xmltvProgrammes]);
 
   // Active channel programs
   const activeChannelPrograms = useMemo(() => {
     if (!selectedChannel) return [];
-    return channelSchedules.get(selectedChannel.id) || generateChannelSchedule(selectedChannel, new Date());
+    return channelSchedules.get(selectedChannel.id) || [];
   }, [selectedChannel, channelSchedules]);
 
   // Active current and next program
@@ -220,7 +114,6 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     const now = currentTimeMs;
     return (
       activeChannelPrograms.find((p) => now >= p.startTime.getTime() && now < p.stopTime.getTime()) ||
-      activeChannelPrograms[0] ||
       null
     );
   }, [activeChannelPrograms, currentTimeMs]);
@@ -277,8 +170,8 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       const data = await res.json();
       if (data.programmes && Array.isArray(data.programmes)) {
         const parsed: EpgProgram[] = data.programmes.map((p: any, idx: number) => {
-          let startMs = Date.parse(p.start);
-          let stopMs = Date.parse(p.stop);
+          let startMs = parseXmltvDate(p.start).getTime();
+          let stopMs = parseXmltvDate(p.stop).getTime();
           const now = Date.now();
           if (isNaN(startMs)) startMs = now - 15 * 60000;
           if (isNaN(stopMs)) stopMs = now + 45 * 60000;
@@ -290,8 +183,8 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
             title: p.title || 'Broadcast Program',
             desc: p.desc || 'Live TV Schedule',
             category: p.category || 'General',
-            start: p.start,
-            stop: p.stop,
+            start: new Date(startMs).toISOString(),
+            stop: new Date(stopMs).toISOString(),
             startTime: new Date(startMs),
             stopTime: new Date(stopMs),
             isLive,
@@ -299,6 +192,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
           };
         });
         setXmltvProgrammes(parsed);
+        localStorage.setItem('ma9ictv-epg-url', epgUrlInput.trim());
       }
     } catch (err: any) {
       console.error(err);
@@ -394,7 +288,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                 <div className="flex items-center gap-2 mb-1">
                   <span className="flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-                    NOW PLAYING
+                    {currentProgram ? 'NOW PLAYING' : 'NO CURRENT LISTING'}
                   </span>
                   {currentProgram && (
                     <span className="text-xs text-slate-300 font-medium">
@@ -405,21 +299,21 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                 </div>
 
                 <h3 className="text-sm sm:text-base font-bold text-slate-100 truncate">
-                  {currentProgram?.title || `${selectedChannel.name} Live Broadcast`}
+                  {currentProgram?.title || 'No programme information available'}
                 </h3>
 
                 {/* Progress bar */}
                 <div className="w-full bg-slate-950 h-1.5 rounded-full mt-2 overflow-hidden border border-slate-800/80">
                   <div
                     className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full transition-all duration-500"
-                    style={{ width: `${currentProgram?.progress || 40}%` }}
+                    style={{ width: `${currentProgram?.progress || 0}%` }}
                   ></div>
                 </div>
 
                 {/* Description */}
                 <p className="text-xs text-slate-400 line-clamp-2 mt-2 leading-relaxed">
                   {currentProgram?.desc ||
-                    'Continuous live broadcast coverage, breaking headlines, special features, and international commentary.'}
+                    'Load a real XMLTV guide to see the actual episode, movie, and programme titles for this channel.'}
                 </p>
               </div>
 
@@ -474,7 +368,29 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
           />
         </div>
 
-        {/* Right: Switch Playlist & XMLTV Sync */}
+        {/* XMLTV source: real episode and movie titles come from this guide URL. */}
+        <form
+          onSubmit={(e) => { e.preventDefault(); void handleLoadXmltv(); }}
+          className="flex w-full sm:w-auto min-w-0 flex-1 sm:flex-none items-center gap-2"
+        >
+          <input
+            type="url"
+            value={epgUrlInput}
+            onChange={(e) => setEpgUrlInput(e.target.value)}
+            placeholder="XMLTV EPG URL (.xml / .xml.gz)"
+            aria-label="XMLTV EPG URL"
+            className="min-w-0 flex-1 sm:w-64 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+          />
+          <button
+            type="submit"
+            disabled={isLoadingEpg || !epgUrlInput.trim()}
+            className="min-h-10 px-3 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-sm font-semibold whitespace-nowrap"
+          >
+            {isLoadingEpg ? 'Loading…' : 'Load EPG'}
+          </button>
+        </form>
+
+        {/* Right: Switch Playlist */}
         <div className="flex items-center gap-2">
           <button
             onClick={onOpenPlaylistModal}
@@ -552,6 +468,16 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
             </div>
 
             {/* 2. Channel Rows with Horizontal Program Blocks */}
+            {xmltvProgrammes.length === 0 && (
+              <div className="sticky left-0 p-4 text-sm text-amber-200 bg-slate-950 border-b border-slate-800">
+                No real programme guide loaded. Enter your provider's XMLTV EPG URL above and select Load EPG. Generic episode titles are intentionally disabled.
+              </div>
+            )}
+            {xmltvProgrammes.length > 0 && filteredChannels.every((ch) => !(channelSchedules.get(ch.id)?.length)) && (
+              <div className="sticky left-0 p-4 text-sm text-amber-200 bg-slate-950 border-b border-slate-800">
+                EPG data loaded, but none of these channels matched. Check the playlist's tvg-id values and the XMLTV channel IDs.
+              </div>
+            )}
             <div className="flex flex-col divide-y divide-slate-800/50">
               {filteredChannels.map((channel, cIdx) => {
                 const isSelected = selectedChannel?.id === channel.id;

@@ -1,0 +1,6 @@
+{
+  "name": "IPTVnator",
+  "description": "Cross-platform IPTV player with M3U/M3U8 support, live HLS streaming, EPG TV guide timeline, Xtream Codes integration, favorites, and channel categorization.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -115,10 +115,29 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     });
   }, [channels, selectedCategory, searchQuery]);
 
-  // Keep the guide responsive on very large playlists; show more rows on demand.
+  // Start with 100 rows for a fast first render, then expand the guide in
+  // background batches after a channel has been selected. This avoids making
+  // playlist import or initial video startup wait for a huge guide render.
   useEffect(() => {
     setEpgPageLimit(100);
   }, [channels, selectedCategory, searchQuery]);
+
+  useEffect(() => {
+    if (!selectedChannel || epgPageLimit >= filteredChannels.length) return;
+    let cancelled = false;
+    // Give the first selected stream a few seconds to start before rendering
+    // more rows. Subsequent batches are paced to keep the UI responsive.
+    const delayMs = epgPageLimit <= 100 ? 3500 : 1200;
+    const timer = window.setTimeout(() => {
+      if (!cancelled) {
+        setEpgPageLimit((limit) => Math.min(limit + 100, filteredChannels.length));
+      }
+    }, delayMs);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [selectedChannel?.id, epgPageLimit, filteredChannels.length]);
 
   // Build schedules only for the rows currently on screen. Scanning and
   // indexing every channel/programme combination made opening large guides freeze.

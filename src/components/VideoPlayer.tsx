@@ -887,7 +887,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               >
                 <Sliders className="w-3 h-3" />
                 <span>
-                  {currentQuality === -1 ? 'AUTO' : qualities[currentQuality]?.name || 'HD'}
+                  {currentQuality === -1 ? '' : qualities[currentQuality]?.name || ''}
                 </span>
               </button>
 
@@ -899,7 +899,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                       currentQuality === -1 ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800'
                     }`}
                   >
-                    <span>Auto (up to 720p)</span>
+                    <span>Adaptive</span>
                     {currentQuality === -1 && <Check className="w-3.5 h-3.5" />}
                   </button>
                   {qualities.map((q) => (

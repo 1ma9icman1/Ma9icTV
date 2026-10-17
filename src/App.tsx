@@ -372,14 +372,13 @@ export default function App() {
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsPlaylistModalOpen(true)}
-              className="px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm"
+              className="hidden sm:flex px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 text-xs font-semibold items-center gap-1.5 transition-all shadow-sm"
             >
               <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span className="hidden sm:inline">Browse Catalog (40+ Playlists)</span>
-              <span className="sm:hidden">Catalog</span>
+              <span>Browse Catalog (40+ Playlists)</span>
             </button>
 
-            <div className="flex items-center bg-slate-900 rounded-lg border border-slate-800 p-0.5">
+            <div className="hidden sm:flex items-center bg-slate-900 rounded-lg border border-slate-800 p-0.5">
               <button
                 onClick={() => setCurrentView('player')}
                 className={`px-2.5 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors ${

@@ -251,7 +251,6 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       const firstBatchSize = Math.max(1, Math.ceil(sourceCount * 0.25));
       const firstBatch = await requestBatch(0, firstBatchSize);
       mergeResponse(firstBatch);
-      if (!loadedAny) throw new Error('The XMLTV source contained no valid programme listings.');
       setEpgProgress(Math.min(100, Math.round((firstBatch.nextOffset / Math.max(1, firstBatch.sourceCount)) * 100)));
       localStorage.setItem('ma9ictv-epg-url', sourceUrl);
       if (showAlert) localStorage.setItem('ma9ictv-manual-epg-url', sourceUrl);
@@ -279,6 +278,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
           }
         }
       }
+      if (!loadedAny) throw new Error('The XMLTV sources contained no valid programme listings.');
       if (firstError) setEpgLoadError('Some guide sources failed; available listings are still shown.');
     } catch (err: any) {
       console.error('Could not load XMLTV guide:', err);

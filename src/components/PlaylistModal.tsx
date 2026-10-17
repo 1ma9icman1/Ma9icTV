@@ -16,6 +16,7 @@ import {
   Tv,
   Film,
   Zap,
+  Play,
 } from 'lucide-react';
 import { Playlist, Channel } from '../types';
 import { parseM3uString } from '../utils/playlistParser';
@@ -383,6 +384,44 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
           {/* 1. Catalog Explorer Tab */}
           {activeTab === 'catalog' && (
             <div className="space-y-4">
+              {/* Quick Picks Banner */}
+              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-indigo-950/90 via-slate-900 to-purple-950/80 border border-indigo-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-lg">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-indigo-600 flex items-center justify-center text-white shadow-md flex-shrink-0">
+                    <Sparkles className="w-5 h-5 text-amber-300" />
+                  </div>
+                  <div>
+                    <h4 className="text-xs font-bold text-white">Choose a Playlist to Start Watching</h4>
+                    <p className="text-[11px] text-slate-400">Select any collection to immediately load the live TV guide & player</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap items-center gap-1.5 flex-shrink-0">
+                  <button
+                    onClick={() => {
+                      const instant = playlists.find((p) => p.id === 'preset-world-live') || playlists[0];
+                      if (instant) {
+                        onSelectPlaylist(instant.id);
+                        onClose();
+                      }
+                    }}
+                    className="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md flex items-center gap-1.5 transition-all active:scale-95"
+                  >
+                    <Zap className="w-3.5 h-3.5 text-amber-300 fill-current" />
+                    <span>⚡ Instant Live Channels</span>
+                  </button>
+                  <button
+                    disabled={isLoading}
+                    onClick={() => {
+                      const freeTv = CATALOG_PLAYLISTS.find((p) => p.name.includes('Free-TV'));
+                      if (freeTv) handleLoadCatalogItem(freeTv);
+                    }}
+                    className="px-3 py-1.5 rounded-xl text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+                  >
+                    <span>⭐ Free-TV Curated</span>
+                  </button>
+                </div>
+              </div>
+
               {/* Category Pills & Search */}
               <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-0.5">
@@ -444,32 +483,51 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
                           {item.url.replace('https://', '')}
                         </span>
 
-                        <button
-                          disabled={isLoading}
-                          onClick={() => handleLoadCatalogItem(item)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm active:scale-95 flex-shrink-0 ${
-                            alreadyLoaded
-                              ? 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                              : 'bg-indigo-600 hover:bg-indigo-500 text-white'
-                          }`}
-                        >
-                          {isCurrentItemLoading ? (
-                            <>
-                              <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                              <span>Loading...</span>
-                            </>
-                          ) : alreadyLoaded ? (
-                            <>
-                              <Check className="w-3.5 h-3.5 text-emerald-400" />
-                              <span>Re-sync</span>
-                            </>
-                          ) : (
-                            <>
-                              <Plus className="w-3.5 h-3.5" />
-                              <span>Load Playlist</span>
-                            </>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {alreadyLoaded && (
+                            <button
+                              onClick={() => {
+                                const match = playlists.find((p) => p.url === item.url);
+                                if (match) {
+                                  onSelectPlaylist(match.id);
+                                  onClose();
+                                }
+                              }}
+                              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+                              title="Switch to this playlist and open EPG guide"
+                            >
+                              <Play className="w-3.5 h-3.5 fill-current" />
+                              <span>Open Guide</span>
+                            </button>
                           )}
-                        </button>
+
+                          <button
+                            disabled={isLoading}
+                            onClick={() => handleLoadCatalogItem(item)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm active:scale-95 ${
+                              alreadyLoaded
+                                ? 'bg-slate-800 text-slate-300 hover:bg-slate-700'
+                                : 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                            }`}
+                          >
+                            {isCurrentItemLoading ? (
+                              <>
+                                <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                <span>Loading...</span>
+                              </>
+                            ) : alreadyLoaded ? (
+                              <>
+                                <RefreshCw className="w-3.5 h-3.5 text-slate-400" />
+                                <span>Update</span>
+                              </>
+                            ) : (
+                              <>
+                                <Plus className="w-3.5 h-3.5" />
+                                <span>Load Playlist</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
                       </div>
                     </div>
                   );

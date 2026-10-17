@@ -47,13 +47,13 @@ export default function App() {
   // Settings
   const [settings, setSettings] = useState<AppSettings>(() => getSettings());
 
-  // Navigation / Views
-  const [currentView, setCurrentView] = useState<'player' | 'epg'>('player');
+  // Navigation / Views - Default to EPG guide with live TV player
+  const [currentView, setCurrentView] = useState<'player' | 'epg'>('epg');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [isRefreshingPlaylist, setIsRefreshingPlaylist] = useState<boolean>(false);
 
-  // Modals
-  const [isPlaylistModalOpen, setIsPlaylistModalOpen] = useState<boolean>(false);
+  // Modals - Start with Choose Playlist modal open first as requested
+  const [isPlaylistModalOpen, setIsPlaylistModalOpen] = useState<boolean>(true);
   const [isSettingsModalOpen, setIsSettingsModalOpen] = useState<boolean>(false);
   const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState<boolean>(false);
 
@@ -116,6 +116,7 @@ export default function App() {
     if (target && target.channels.length > 0) {
       setSelectedChannel(target.channels[0]);
     }
+    setCurrentView('epg');
   }, [playlists]);
 
   const handleAddPlaylist = useCallback((newPlaylist: Playlist) => {
@@ -422,17 +423,24 @@ export default function App() {
                 onPrevChannel={handlePrevChannel}
                 isFavorite={selectedChannel ? favorites.includes(selectedChannel.id) : false}
                 onToggleFavorite={() => selectedChannel && handleToggleFavorite(selectedChannel.id)}
+                mode="full"
+                onExpandPlayer={() => setCurrentView('epg')}
               />
             </>
           ) : (
-            /* EPG Guide View */
+            /* EPG Guide View with Live Player embedded at top stage */
             <EpgGuide
               channels={activePlaylist.channels}
               selectedChannel={selectedChannel}
-              onTuneChannel={(channel) => {
-                handleSelectChannel(channel);
-                setCurrentView('player');
-              }}
+              onSelectChannel={handleSelectChannel}
+              settings={settings}
+              favorites={favorites}
+              onToggleFavorite={handleToggleFavorite}
+              onNextChannel={handleNextChannel}
+              onPrevChannel={handlePrevChannel}
+              onOpenPlaylistModal={() => setIsPlaylistModalOpen(true)}
+              onExpandPlayer={() => setCurrentView('player')}
+              activePlaylistTitle={activePlaylist.title}
             />
           )}
         </main>

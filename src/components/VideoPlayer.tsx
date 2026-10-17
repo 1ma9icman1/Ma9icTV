@@ -16,8 +16,9 @@ import {
   AlertCircle,
   SkipBack,
   SkipForward,
-  Compass,
   Zap,
+  Info,
+  Maximize2,
 } from 'lucide-react';
 import { Channel, AppSettings } from '../types';
 
@@ -28,6 +29,60 @@ interface VideoPlayerProps {
   onPrevChannel?: () => void;
   isFavorite?: boolean;
   onToggleFavorite?: () => void;
+  mode?: 'full' | 'compact' | 'epg-preview';
+  onExpandPlayer?: () => void;
+}
+
+// Detect YouTube or Twitch embeds for channels in public IPTV playlists
+function getThirdPartyEmbed(url: string): { type: 'youtube' | 'twitch' | null; embedUrl: string } {
+  if (!url) return { type: null, embedUrl: '' };
+
+  // YouTube Live or Watch
+  if (url.includes('youtube.com') || url.includes('youtu.be')) {
+    const watchMatch = url.match(/[?&]v=([^&]+)/);
+    if (watchMatch) {
+      return {
+        type: 'youtube',
+        embedUrl: `https://www.youtube-nocookie.com/embed/${watchMatch[1]}?autoplay=1&mute=0`,
+      };
+    }
+    const shortMatch = url.match(/youtu\.be\/([^?&/]+)/);
+    if (shortMatch) {
+      return {
+        type: 'youtube',
+        embedUrl: `https://www.youtube-nocookie.com/embed/${shortMatch[1]}?autoplay=1&mute=0`,
+      };
+    }
+    const liveMatch = url.match(/youtube\.com\/live\/([^?&/]+)/);
+    if (liveMatch) {
+      return {
+        type: 'youtube',
+        embedUrl: `https://www.youtube-nocookie.com/embed/${liveMatch[1]}?autoplay=1&mute=0`,
+      };
+    }
+    // Channel live handle, e.g. @EuronewsAlbania/live
+    const handleMatch = url.match(/youtube\.com\/@([^/?&]+)/);
+    if (handleMatch) {
+      return {
+        type: 'youtube',
+        embedUrl: `https://www.youtube.com/embed/live_stream?channel=${handleMatch[1]}&autoplay=1`,
+      };
+    }
+  }
+
+  // Twitch Stream
+  if (url.includes('twitch.tv/')) {
+    const channelName = url.split('twitch.tv/')[1]?.split(/[/?#]/)[0];
+    if (channelName) {
+      const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+      return {
+        type: 'twitch',
+        embedUrl: `https://player.twitch.tv/?channel=${channelName}&parent=${hostname}&autoplay=true&muted=false`,
+      };
+    }
+  }
+
+  return { type: null, embedUrl: '' };
 }
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({
@@ -37,6 +92,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   onPrevChannel,
   isFavorite,
   onToggleFavorite,
+  mode = 'full',
+  onExpandPlayer,
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -47,7 +104,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [volume, setVolume] = useState<number>(settings.volume);
   const [isMuted, setIsMuted] = useState<boolean>(settings.muted);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
-  const [isUsingProxy, setIsUsingProxy] = useState<boolean>(false);
+  const [isUsingProxy, setIsUsingProxy] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [aspectRatio, setAspectRatio] = useState<'contain' | 'cover' | '16/9' | '4/3'>('contain');
@@ -55,32 +112,53 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [currentQuality, setCurrentQuality] = useState<number>(-1); // -1 = auto
   const [showQualityMenu, setShowQualityMenu] = useState<boolean>(false);
   const [showStats, setShowStats] = useState<boolean>(false);
+  const [autoSkipCountdown, setAutoSkipCountdown] = useState<number | null>(null);
+
   const [stats, setStats] = useState<{ resolution: string; bitrate: string; buffer: string }>({
     resolution: 'Unknown',
     bitrate: 'Auto',
     buffer: '0s',
   });
 
-  // Calculate stream URL according to proxy settings
-  const getStreamUrl = useCallback(
-    (originalUrl: string, forceProxy: boolean = false) => {
-      if (settings.proxyMode === 'always' || forceProxy) {
-        return `/api/proxy?url=${encodeURIComponent(originalUrl)}&userAgent=${encodeURIComponent(settings.customUserAgent)}`;
+  const embedInfo = channel ? getThirdPartyEmbed(channel.url) : { type: null, embedUrl: '' };
+
+  // Countdown timer for automatic advance on error
+  useEffect(() => {
+    if (autoSkipCountdown === null) return;
+    if (autoSkipCountdown <= 0) {
+      setAutoSkipCountdown(null);
+      if (onNextChannel) {
+        onNextChannel();
       }
-      return originalUrl;
-    },
-    [settings.proxyMode, settings.customUserAgent]
-  );
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setAutoSkipCountdown((prev) => (prev !== null ? prev - 1 : null));
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [autoSkipCountdown, onNextChannel]);
 
   // Initialize playback
   const initPlayer = useCallback(
-    (useProxy: boolean = false) => {
-      if (!channel || !videoRef.current) return;
+    (forceProxy?: boolean) => {
+      if (!channel) return;
+      setAutoSkipCountdown(null);
 
+      // Check if YouTube or Twitch embed
+      const thirdParty = getThirdPartyEmbed(channel.url);
+      if (thirdParty.type !== null) {
+        setErrorMsg(null);
+        setIsLoading(false);
+        setIsPlaying(true);
+        return;
+      }
+
+      if (!videoRef.current) return;
       const video = videoRef.current;
       setErrorMsg(null);
       setIsLoading(true);
-      setIsUsingProxy(useProxy);
       setQualities([]);
       setCurrentQuality(-1);
 
@@ -90,13 +168,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         hlsRef.current = null;
       }
 
-      // Determine if proxy should be used (always proxy unless user explicitly configured direct)
-      const shouldProxy = settings.proxyMode !== 'direct' || useProxy;
+      // In web browsers, CORS proxy is required for 95% of IPTV streams unless explicitly forced direct
+      const shouldProxy = forceProxy !== undefined ? forceProxy : settings.proxyMode !== 'direct';
+      setIsUsingProxy(shouldProxy);
+
       const streamUrl = shouldProxy
         ? `/api/proxy?url=${encodeURIComponent(channel.url)}&userAgent=${encodeURIComponent(settings.customUserAgent)}`
         : channel.url;
-
-      setIsUsingProxy(shouldProxy);
 
       const isHlsStream = streamUrl.includes('.m3u8') || !channel.isRadio;
 
@@ -126,15 +204,22 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             name: lvl.height ? `${lvl.height}p` : `${Math.round(lvl.bitrate / 1000)}k`,
           }));
           setQualities(levels);
+
+          video.volume = volume;
+          video.muted = isMuted;
+
           const playPromise = video.play();
           if (playPromise !== undefined) {
             playPromise
               .then(() => setIsPlaying(true))
               .catch(() => {
-                // Autoplay with sound may be blocked by browser; retry muted
+                // If browser autoplay policy blocks unmuted audio, retry muted
                 video.muted = true;
                 setIsMuted(true);
-                video.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+                video
+                  .play()
+                  .then(() => setIsPlaying(true))
+                  .catch(() => setIsPlaying(false));
               });
           }
         });
@@ -151,45 +236,55 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         });
 
         hls.on(Hls.Events.ERROR, (_event, data) => {
-          console.warn('HLS Event Error:', data);
+          console.warn('HLS Event Error:', data.type, data.details);
           if (data.fatal) {
             switch (data.type) {
               case Hls.ErrorTypes.NETWORK_ERROR:
                 networkRetries++;
                 if (networkRetries <= 2) {
-                  console.log(`Network glitch, reloading stream (attempt ${networkRetries}/2)...`);
                   hls.startLoad();
                 } else if (!shouldProxy) {
-                  console.log('Retrying through internal CORS proxy...');
+                  // Direct connection blocked by CORS or host firewall; retry via internal proxy
                   initPlayer(true);
                 } else {
-                  setErrorMsg('Network stream error. Host may be offline or stream source expired.');
                   hls.destroy();
+                  setErrorMsg('Stream host may be offline, geo-restricted, or blocking direct access.');
                   setIsLoading(false);
+                  if (settings.autoPlayNext && onNextChannel) {
+                    setAutoSkipCountdown(4);
+                  }
                 }
                 break;
               case Hls.ErrorTypes.MEDIA_ERROR:
                 mediaRetries++;
                 if (mediaRetries <= 2) {
-                  console.log(`Media error, recovering (attempt ${mediaRetries}/2)...`);
                   hls.recoverMediaError();
                 } else {
                   hls.destroy();
-                  setErrorMsg(`Playback media format error (${data.details})`);
+                  setErrorMsg(`Media format incompatibility (${data.details})`);
                   setIsLoading(false);
+                  if (settings.autoPlayNext && onNextChannel) {
+                    setAutoSkipCountdown(4);
+                  }
                 }
                 break;
               default:
                 hls.destroy();
-                setErrorMsg(`Playback failed (${data.details || 'Unknown error'})`);
+                setErrorMsg(`Stream playback encountered an error (${data.details || 'Unknown'})`);
                 setIsLoading(false);
+                if (settings.autoPlayNext && onNextChannel) {
+                  setAutoSkipCountdown(4);
+                }
                 break;
             }
           }
         });
       } else if (video.canPlayType('application/vnd.apple.mpegurl') || !isHlsStream) {
-        // Native HLS (Safari/iOS) or standard MP4/audio
+        // Native Safari HLS or direct audio/mp4 stream
         video.src = streamUrl;
+        video.volume = volume;
+        video.muted = isMuted;
+
         video.addEventListener('loadedmetadata', () => {
           setIsLoading(false);
           const playPromise = video.play();
@@ -197,13 +292,16 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             playPromise.then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
           }
         });
+
         video.onerror = () => {
           if (!shouldProxy) {
-            console.log('Native error, retrying via proxy...');
             initPlayer(true);
           } else {
-            setErrorMsg('Unable to play stream format.');
+            setErrorMsg('Host may be blocking direct access or stream link has expired.');
             setIsLoading(false);
+            if (settings.autoPlayNext && onNextChannel) {
+              setAutoSkipCountdown(4);
+            }
           }
         };
       } else {
@@ -211,18 +309,18 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         setIsLoading(false);
       }
     },
-    [channel, settings.bufferLengthSeconds, settings.proxyMode, settings.customUserAgent]
+    [channel, settings.bufferLengthSeconds, settings.proxyMode, settings.customUserAgent, settings.autoPlayNext, onNextChannel, volume, isMuted]
   );
 
   useEffect(() => {
-    initPlayer(settings.proxyMode === 'always');
+    initPlayer();
     return () => {
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
     };
-  }, [channel, initPlayer, settings.proxyMode]);
+  }, [channel, initPlayer]);
 
   // Audio visualizer for radio mode
   useEffect(() => {
@@ -237,12 +335,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const draw = () => {
       tick++;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
-      const bars = 36;
+      const bars = 28;
       const barWidth = canvas.width / bars;
 
       for (let i = 0; i < bars; i++) {
         const heightMultiplier = isPlaying ? Math.sin(tick * 0.08 + i * 0.4) * 0.4 + 0.6 : 0.1;
-        const barHeight = (canvas.height * 0.7) * heightMultiplier;
+        const barHeight = canvas.height * 0.7 * heightMultiplier;
         const x = i * barWidth;
         const y = canvas.height - barHeight;
 
@@ -260,7 +358,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     return () => cancelAnimationFrame(animId);
   }, [channel?.isRadio, isPlaying]);
 
-  // Keyboard shortcuts
+  // Keyboard controls
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
@@ -303,21 +401,20 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   };
 
-  const toggleMute = () => {
-    if (!videoRef.current) return;
-    const nextMuted = !isMuted;
-    videoRef.current.muted = nextMuted;
-    setIsMuted(nextMuted);
+  const handleVolumeChange = (newVol: number) => {
+    setVolume(newVol);
+    setIsMuted(newVol === 0);
+    if (videoRef.current) {
+      videoRef.current.volume = newVol;
+      videoRef.current.muted = newVol === 0;
+    }
   };
 
-  const handleVolumeChange = (newVal: number) => {
+  const toggleMute = () => {
     if (!videoRef.current) return;
-    videoRef.current.volume = newVal;
-    setVolume(newVal);
-    if (newVal > 0 && isMuted) {
-      videoRef.current.muted = false;
-      setIsMuted(false);
-    }
+    const nextMute = !isMuted;
+    setIsMuted(nextMute);
+    videoRef.current.muted = nextMute;
   };
 
   const toggleFullscreen = () => {
@@ -329,265 +426,246 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   };
 
-  const selectQuality = (levelIndex: number) => {
+  const handleSelectQuality = (qualityId: number) => {
     if (!hlsRef.current) return;
-    hlsRef.current.currentLevel = levelIndex;
-    setCurrentQuality(levelIndex);
+    hlsRef.current.currentLevel = qualityId;
+    setCurrentQuality(qualityId);
     setShowQualityMenu(false);
   };
 
   if (!channel) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center bg-slate-950 p-8 text-center text-slate-400">
-        <div className="w-20 h-20 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-500 mb-4 shadow-xl">
-          <Tv className="w-10 h-10 stroke-[1.5]" />
+      <div className="flex-1 flex flex-col items-center justify-center bg-slate-950 text-slate-500 p-8 select-none">
+        <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center mb-4 text-slate-600">
+          <Tv className="w-8 h-8 stroke-[1.5]" />
         </div>
-        <h3 className="text-xl font-semibold text-slate-200 mb-2">No Channel Selected</h3>
-        <p className="max-w-md text-sm text-slate-400 mb-6">
-          Pick a live channel from the channel list, search by name, or import an M3U / Xtream playlist.
+        <h3 className="text-base font-semibold text-slate-300 mb-1">No Channel Selected</h3>
+        <p className="text-xs text-slate-500 max-w-sm text-center">
+          Choose a channel from the guide or playlist catalog to start watching live TV.
         </p>
       </div>
     );
   }
 
+  const isEpgPreview = mode === 'epg-preview';
+
   return (
     <div
       ref={containerRef}
-      className="relative flex-1 flex flex-col bg-black overflow-hidden group select-none"
+      className={`relative bg-black flex items-center justify-center overflow-hidden select-none group ${
+        isEpgPreview
+          ? 'w-full h-full rounded-2xl border border-slate-800 shadow-2xl'
+          : 'flex-1 w-full h-full'
+      }`}
     >
-      {/* Video Element */}
-      <div className="relative flex-1 flex items-center justify-center bg-black overflow-hidden">
-        {channel.isRadio ? (
-          <div className="flex flex-col items-center justify-center p-8 z-10 w-full max-w-lg">
-            <div className="relative w-44 h-44 rounded-2xl overflow-hidden bg-slate-900 border-2 border-indigo-500/30 shadow-2xl flex items-center justify-center mb-6">
-              {channel.logo ? (
-                <img
-                  src={channel.logo}
-                  alt={channel.name}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLElement).style.display = 'none';
-                  }}
-                />
-              ) : (
-                <Radio className="w-20 h-20 text-indigo-400 animate-pulse" />
-              )}
-              <div className="absolute top-2 right-2 px-2 py-0.5 rounded-full bg-indigo-600/90 text-[10px] font-bold text-white uppercase tracking-wider">
-                Radio Live
-              </div>
-            </div>
-            <h2 className="text-2xl font-bold text-white text-center mb-1">{channel.name}</h2>
-            <p className="text-xs text-indigo-400 font-medium mb-6 uppercase tracking-wider">{channel.group || 'Online Audio Station'}</p>
-            <canvas ref={canvasRef} width={360} height={70} className="w-full max-w-sm rounded-lg opacity-90" />
-          </div>
-        ) : null}
-
-        <video
-          ref={videoRef}
-          className={`w-full h-full object-contain ${
-            channel.isRadio ? 'hidden' : ''
-          } ${
-            aspectRatio === 'cover'
-              ? 'object-cover'
-              : aspectRatio === '16/9'
-              ? 'aspect-video object-contain'
-              : aspectRatio === '4/3'
-              ? 'aspect-[4/3] object-contain'
-              : 'object-contain'
-          }`}
-          playsInline
-          onTimeUpdate={() => {
-            if (videoRef.current && videoRef.current.buffered.length > 0) {
-              const buf = videoRef.current.buffered.end(videoRef.current.buffered.length - 1) - videoRef.current.currentTime;
-              setStats((prev) => ({ ...prev, buffer: `${Math.max(0, Math.round(buf))}s` }));
-            }
-          }}
-        />
-
-        {/* Loading Spinner */}
-        {isLoading && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm z-20">
-            <RefreshCw className="w-10 h-10 text-indigo-400 animate-spin mb-3" />
-            <p className="text-sm font-medium text-slate-200">Buffering stream...</p>
-          </div>
-        )}
-
-        {/* Error Overlay with Proxy Retry & Skip to Next */}
-        {errorMsg && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/95 backdrop-blur-md p-6 text-center z-30 select-none">
-            <div className="w-16 h-16 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 mb-4 shadow-lg">
-              <AlertCircle className="w-8 h-8" />
-            </div>
-            <h4 className="text-lg font-bold text-white mb-1.5">Stream Unavailable</h4>
-            <p className="max-w-md text-xs text-slate-300 mb-2 leading-relaxed">
-              {errorMsg}
-            </p>
-            <p className="max-w-md text-[11px] text-slate-500 mb-6">
-              Public IPTV broadcast streams frequently change or experience downtime. Use the Anti-CORS proxy or switch to verified channels like <span className="text-indigo-400 font-medium">DW News, Red Bull TV, A2 CNN, News 24, or Pluto TV</span>.
-            </p>
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              {onNextChannel && (
-                <button
-                  onClick={onNextChannel}
-                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-2 transition-all shadow-md active:scale-95"
-                >
-                  <SkipForward className="w-4 h-4" />
-                  Skip to Next Channel
-                </button>
-              )}
-              <button
-                onClick={() => initPlayer(true)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-2 transition-all border border-slate-700"
-              >
-                <Zap className="w-3.5 h-3.5 text-amber-400" />
-                Retry with CORS Proxy
-              </button>
-              <button
-                onClick={() => initPlayer(false)}
-                className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-medium flex items-center gap-1.5 transition-colors border border-slate-800"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-                Reload
-              </button>
-              <a
-                href={channel.url}
-                target="_blank"
-                rel="noreferrer"
-                className="px-3.5 py-2 rounded-xl border border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-medium flex items-center gap-1.5 transition-colors"
-              >
-                <ExternalLink className="w-3.5 h-3.5" />
-                Open Source
-              </a>
-            </div>
-          </div>
-        )}
-
-        {/* Top Channel Info Bar (fades on hover) */}
-        <div className="absolute top-0 inset-x-0 p-4 bg-gradient-to-b from-black/80 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-between z-20">
-          <div className="flex items-center gap-3">
-            {channel.logo ? (
-              <img
-                src={channel.logo}
-                alt=""
-                className="w-8 h-8 object-contain rounded bg-slate-900 p-0.5 border border-slate-700"
-                onError={(e) => {
-                  (e.target as HTMLElement).style.display = 'none';
-                }}
-              />
-            ) : null}
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-white text-sm tracking-tight">{channel.name}</span>
-                <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase">
-                  {channel.group || 'Live'}
-                </span>
-                {isUsingProxy && (
-                  <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 flex items-center gap-1">
-                    <Zap className="w-2.5 h-2.5" /> Proxy Active
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-slate-400 font-mono truncate max-w-md">{channel.url}</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {onToggleFavorite && (
-              <button
-                onClick={onToggleFavorite}
-                className={`p-2 rounded-lg backdrop-blur-md transition-all ${
-                  isFavorite
-                    ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
-                    : 'bg-black/50 text-slate-300 hover:text-white border border-white/10'
-                }`}
-                title="Toggle Favorite"
-              >
-                ★
-              </button>
-            )}
-            <button
-              onClick={() => setShowStats(!showStats)}
-              className="p-2 rounded-lg bg-black/50 text-slate-300 hover:text-white border border-white/10 backdrop-blur-md text-xs font-mono"
-              title="Stream Diagnostics"
-            >
-              Info
-            </button>
+      {/* 1. Third Party Embed (YouTube Live / Twitch) */}
+      {embedInfo.type !== null ? (
+        <div className="w-full h-full flex items-center justify-center bg-black relative">
+          <iframe
+            src={embedInfo.embedUrl}
+            title={channel.name}
+            className="w-full h-full border-0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+          />
+          {/* Header Tag */}
+          <div className="absolute top-2 left-2 z-10 pointer-events-none">
+            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-red-600 text-white flex items-center gap-1 shadow-md">
+              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+              {embedInfo.type.toUpperCase()} LIVE
+            </span>
           </div>
         </div>
+      ) : (
+        /* 2. HTML5 HLS Video Element */
+        <>
+          <video
+            ref={videoRef}
+            className={`w-full h-full ${
+              aspectRatio === 'contain'
+                ? 'object-contain'
+                : aspectRatio === 'cover'
+                ? 'object-cover'
+                : aspectRatio === '16/9'
+                ? 'aspect-video object-fill'
+                : 'aspect-[4/3] object-fill'
+            }`}
+            playsInline
+            onTimeUpdate={() => {
+              if (videoRef.current && videoRef.current.buffered.length > 0) {
+                const buf =
+                  videoRef.current.buffered.end(videoRef.current.buffered.length - 1) -
+                  videoRef.current.currentTime;
+                setStats((prev) => ({ ...prev, buffer: `${Math.max(0, Math.round(buf))}s` }));
+              }
+            }}
+          />
 
-        {/* Stats diagnostics popover */}
-        {showStats && (
-          <div className="absolute top-16 right-4 p-4 rounded-xl bg-slate-900/95 border border-slate-800 text-xs font-mono text-slate-300 z-30 shadow-2xl backdrop-blur-md w-64 space-y-2">
-            <div className="font-bold text-white border-b border-slate-800 pb-1 flex items-center justify-between">
-              <span>Stream Diagnostics</span>
-              <button onClick={() => setShowStats(false)} className="text-slate-400 hover:text-white">✕</button>
+          {/* Radio Audio Visualizer */}
+          {channel.isRadio && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-indigo-950/60 to-slate-950 z-10 p-6 pointer-events-none">
+              <div className="w-20 h-20 rounded-2xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400 mb-4 shadow-xl">
+                <Radio className="w-10 h-10 animate-pulse" />
+              </div>
+              <h3 className="text-lg font-bold text-white mb-1">{channel.name}</h3>
+              <p className="text-xs text-indigo-300 font-medium mb-6">Live Digital Radio Broadcast</p>
+              <canvas ref={canvasRef} width={340} height={70} className="w-80 h-16" />
             </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Resolution:</span>
-              <span className="text-white font-medium">{stats.resolution}</span>
+          )}
+
+          {/* Loading Spinner */}
+          {isLoading && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/60 backdrop-blur-sm z-20 pointer-events-none">
+              <RefreshCw className="w-10 h-10 text-indigo-400 animate-spin mb-3" />
+              <p className="text-xs font-semibold tracking-wide text-slate-200 uppercase">Connecting to Stream...</p>
             </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Current Bitrate:</span>
-              <span className="text-white font-medium">{stats.bitrate}</span>
+          )}
+
+          {/* Error Overlay with Auto-Skip and Diagnostics */}
+          {errorMsg && (
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950/95 backdrop-blur-md p-6 text-center z-30 select-none">
+              <div className="w-14 h-14 rounded-2xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 mb-3 shadow-lg">
+                <AlertCircle className="w-7 h-7" />
+              </div>
+              <h4 className="text-base font-bold text-white mb-1">Stream Host Unavailable</h4>
+              <p className="max-w-md text-xs text-slate-300 mb-2 leading-relaxed">
+                {errorMsg}
+              </p>
+              <p className="max-w-md text-[11px] text-slate-400 mb-4">
+                Public IPTV streams may change CDN endpoints or restrict direct access.
+              </p>
+
+              {/* Auto Skip Countdown banner */}
+              {autoSkipCountdown !== null && (
+                <div className="mb-4 px-3 py-1.5 rounded-lg bg-indigo-950/60 border border-indigo-500/40 text-xs text-indigo-200 flex items-center gap-2">
+                  <span>Auto-advancing to next channel in <strong className="text-white font-mono">{autoSkipCountdown}s</strong></span>
+                  <button
+                    onClick={() => setAutoSkipCountdown(null)}
+                    className="px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-[10px] text-slate-300 ml-2"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {onNextChannel && (
+                  <button
+                    onClick={onNextChannel}
+                    className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-2 transition-all shadow-md active:scale-95"
+                  >
+                    <SkipForward className="w-4 h-4" />
+                    Skip to Next Channel
+                  </button>
+                )}
+                <button
+                  onClick={() => initPlayer(!isUsingProxy)}
+                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-all border border-slate-700"
+                >
+                  <Zap className="w-3.5 h-3.5 text-amber-400" />
+                  {isUsingProxy ? 'Try Direct Connection' : 'Retry via Proxy'}
+                </button>
+                <button
+                  onClick={() => initPlayer(true)}
+                  className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-medium flex items-center gap-1.5 transition-colors border border-slate-800"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Reload
+                </button>
+                <a
+                  href={channel.url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3 py-2 rounded-xl border border-slate-800 hover:bg-slate-800 text-slate-400 hover:text-white text-xs font-medium flex items-center gap-1.5 transition-colors"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                  Source
+                </a>
+              </div>
             </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Buffer Size:</span>
-              <span className="text-emerald-400 font-medium">{stats.buffer}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Mode:</span>
-              <span className="text-indigo-400 font-medium">{isUsingProxy ? 'Proxied (Anti-CORS)' : 'Direct'}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-slate-400">Engine:</span>
-              <span className="text-slate-300">Hls.js {Hls.version}</span>
-            </div>
-          </div>
+          )}
+        </>
+      )}
+
+      {/* Top Overlay Badge for EPG Preview Mode */}
+      <div className="absolute top-2 left-2 z-20 flex items-center gap-2 pointer-events-none">
+        <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-black/70 backdrop-blur-md text-emerald-400 border border-emerald-500/30 flex items-center gap-1 shadow-md">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+          LIVE TV
+        </span>
+        {stats.resolution !== 'Unknown' && (
+          <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-black/70 backdrop-blur-md text-indigo-300 border border-indigo-500/30 shadow-md">
+            {stats.resolution}
+          </span>
         )}
       </div>
 
-      {/* Bottom Controls Bar */}
-      <div className="bg-slate-950/95 border-t border-slate-800 px-4 py-3 flex items-center justify-between gap-4 z-20">
+      {/* Top Right Quick Controls */}
+      <div className="absolute top-2 right-2 z-20 flex items-center gap-1.5">
+        {onExpandPlayer && isEpgPreview && (
+          <button
+            onClick={onExpandPlayer}
+            className="p-1.5 rounded-lg bg-black/60 hover:bg-indigo-600 text-white/80 hover:text-white backdrop-blur-md border border-white/10 transition-colors shadow-md"
+            title="Expand to Full Player"
+          >
+            <Maximize2 className="w-3.5 h-3.5" />
+          </button>
+        )}
+        <button
+          onClick={toggleFullscreen}
+          className="p-1.5 rounded-lg bg-black/60 hover:bg-indigo-600 text-white/80 hover:text-white backdrop-blur-md border border-white/10 transition-colors shadow-md"
+          title="Fullscreen (F)"
+        >
+          {isFullscreen ? <Minimize className="w-3.5 h-3.5" /> : <Maximize className="w-3.5 h-3.5" />}
+        </button>
+      </div>
+
+      {/* Floating Bottom Control Bar (Shown on hover or in preview) */}
+      <div
+        className={`absolute bottom-0 inset-x-0 p-3 bg-gradient-to-t from-black/90 via-black/50 to-transparent transition-opacity duration-300 z-20 flex items-center justify-between ${
+          isEpgPreview ? 'opacity-90 group-hover:opacity-100' : 'opacity-0 group-hover:opacity-100'
+        }`}
+      >
         <div className="flex items-center gap-2">
-          {/* Prev channel */}
+          {/* Play / Pause */}
+          <button
+            onClick={togglePlay}
+            className="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors backdrop-blur-md"
+            title={isPlaying ? 'Pause (Space)' : 'Play (Space)'}
+          >
+            {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
+          </button>
+
+          {/* Prev Channel */}
           {onPrevChannel && (
             <button
               onClick={onPrevChannel}
-              className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
               title="Previous Channel ([)"
             >
               <SkipBack className="w-4 h-4" />
             </button>
           )}
 
-          {/* Play / Pause */}
-          <button
-            onClick={togglePlay}
-            className="p-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-md active:scale-95"
-            title="Play / Pause (Space)"
-          >
-            {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
-          </button>
-
-          {/* Next channel */}
+          {/* Next Channel */}
           {onNextChannel && (
             <button
               onClick={onNextChannel}
-              className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
               title="Next Channel (])"
             >
               <SkipForward className="w-4 h-4" />
             </button>
           )}
 
-          {/* Volume */}
-          <div className="flex items-center gap-2 ml-2">
+          {/* Mute & Volume Slider */}
+          <div className="flex items-center gap-1.5 ml-1">
             <button
               onClick={toggleMute}
-              className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+              className="p-1.5 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition-colors"
               title="Mute / Unmute (M)"
             >
-              {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              {isMuted || volume === 0 ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4" />}
             </button>
             <input
               type="range"
@@ -596,49 +674,63 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               step="0.05"
               value={isMuted ? 0 : volume}
               onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-              className="w-20 accent-indigo-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+              className="w-16 h-1 accent-indigo-500 bg-slate-700 rounded-lg cursor-pointer hidden sm:block"
             />
-          </div>
-
-          <div className="hidden sm:flex items-center gap-2 ml-3 pl-3 border-l border-slate-800">
-            <span className="flex h-2 w-2 relative">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <span className="text-[11px] font-bold tracking-wider text-slate-300 uppercase">LIVE</span>
           </div>
         </div>
 
-        {/* Right side controls */}
-        <div className="flex items-center gap-2 relative">
-          {/* Quality selector */}
+        {/* Channel Name Label */}
+        <div className="hidden md:flex items-center gap-2 truncate max-w-xs">
+          {channel.logo && (
+            <img
+              src={channel.logo}
+              alt=""
+              className="w-4 h-4 object-contain rounded"
+              onError={(e) => {
+                (e.target as HTMLElement).style.display = 'none';
+              }}
+            />
+          )}
+          <span className="text-xs font-semibold text-white truncate">{channel.name}</span>
+        </div>
+
+        {/* Right tools */}
+        <div className="flex items-center gap-1">
+          {/* Quality menu */}
           {qualities.length > 0 && (
             <div className="relative">
               <button
                 onClick={() => setShowQualityMenu(!showQualityMenu)}
-                className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-900 border border-slate-800 text-slate-300 hover:text-white hover:bg-slate-800 flex items-center gap-1.5 transition-colors"
+                className="px-2 py-1 rounded bg-white/10 hover:bg-white/20 text-white text-[10px] font-bold backdrop-blur-md flex items-center gap-1"
+                title="Select Stream Quality"
               >
-                <Sliders className="w-3.5 h-3.5 text-indigo-400" />
-                <span>{currentQuality === -1 ? 'Auto' : qualities[currentQuality]?.name || 'HD'}</span>
+                <Sliders className="w-3 h-3" />
+                <span>
+                  {currentQuality === -1 ? 'AUTO' : qualities[currentQuality]?.name || 'HD'}
+                </span>
               </button>
 
               {showQualityMenu && (
-                <div className="absolute bottom-full right-0 mb-2 w-36 rounded-xl bg-slate-900 border border-slate-800 shadow-2xl py-1 z-50 text-xs">
+                <div className="absolute bottom-full right-0 mb-2 w-32 bg-slate-900 border border-slate-700 rounded-xl p-1.5 shadow-2xl z-40 text-xs">
                   <button
-                    onClick={() => selectQuality(-1)}
-                    className="w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-slate-800 text-slate-200"
+                    onClick={() => handleSelectQuality(-1)}
+                    className={`w-full px-2.5 py-1.5 rounded-lg text-left flex items-center justify-between text-xs ${
+                      currentQuality === -1 ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800'
+                    }`}
                   >
-                    <span>Auto (Adaptive)</span>
-                    {currentQuality === -1 && <Check className="w-3.5 h-3.5 text-indigo-400" />}
+                    <span>Auto</span>
+                    {currentQuality === -1 && <Check className="w-3.5 h-3.5" />}
                   </button>
-                  {qualities.map((lvl) => (
+                  {qualities.map((q) => (
                     <button
-                      key={lvl.id}
-                      onClick={() => selectQuality(lvl.id)}
-                      className="w-full px-3 py-1.5 text-left flex items-center justify-between hover:bg-slate-800 text-slate-200"
+                      key={q.id}
+                      onClick={() => handleSelectQuality(q.id)}
+                      className={`w-full px-2.5 py-1.5 rounded-lg text-left flex items-center justify-between text-xs ${
+                        currentQuality === q.id ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:bg-slate-800'
+                      }`}
                     >
-                      <span>{lvl.name}</span>
-                      {currentQuality === lvl.id && <Check className="w-3.5 h-3.5 text-indigo-400" />}
+                      <span>{q.name}</span>
+                      {currentQuality === q.id && <Check className="w-3.5 h-3.5" />}
                     </button>
                   ))}
                 </div>
@@ -646,39 +738,27 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             </div>
           )}
 
-          {/* Aspect Ratio */}
+          {/* Stats toggle */}
           <button
-            onClick={() => {
-              const modes: ('contain' | 'cover' | '16/9' | '4/3')[] = ['contain', 'cover', '16/9', '4/3'];
-              const nextIdx = (modes.indexOf(aspectRatio) + 1) % modes.length;
-              setAspectRatio(modes[nextIdx]);
-            }}
-            className="px-2 py-1.5 rounded-lg text-xs font-medium text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors flex items-center gap-1"
-            title="Cycle Aspect Ratio"
+            onClick={() => setShowStats(!showStats)}
+            className="p-1.5 rounded text-slate-400 hover:text-white hover:bg-white/10 text-xs"
+            title="Stream Diagnostics"
           >
-            <Compass className="w-3.5 h-3.5" />
-            <span className="uppercase text-[10px]">{aspectRatio}</span>
-          </button>
-
-          {/* Reload / Re-sync */}
-          <button
-            onClick={() => initPlayer(isUsingProxy)}
-            className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-            title="Reload Stream"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
-
-          {/* Fullscreen */}
-          <button
-            onClick={toggleFullscreen}
-            className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
-            title="Fullscreen (F)"
-          >
-            {isFullscreen ? <Minimize className="w-4 h-4" /> : <Maximize className="w-4 h-4" />}
+            <Info className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>
+
+      {/* Diagnostics HUD */}
+      {showStats && (
+        <div className="absolute top-10 right-2 bg-slate-950/90 border border-slate-700/80 rounded-xl p-3 text-[10px] font-mono text-slate-300 shadow-xl backdrop-blur-md z-30 space-y-1">
+          <p><span className="text-slate-500">Res:</span> {stats.resolution}</p>
+          <p><span className="text-slate-500">Bitrate:</span> {stats.bitrate}</p>
+          <p><span className="text-slate-500">Buffer:</span> {stats.buffer}</p>
+          <p><span className="text-slate-500">Mode:</span> {isUsingProxy ? 'CORS Proxy' : 'Direct'}</p>
+          <p className="max-w-[180px] truncate"><span className="text-slate-500">Host:</span> {channel.url}</p>
+        </div>
+      )}
     </div>
   );
 };

@@ -7,6 +7,8 @@ import { Readable } from 'stream';
 import parser from 'iptv-playlist-parser';
 import { XMLParser } from 'fast-xml-parser';
 
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -39,7 +41,9 @@ async function startServer() {
   // Proxy endpoint to bypass CORS and stream content / playlists
   app.get('/api/proxy', async (req: Request, res: Response) => {
     const targetUrl = req.query.url as string;
-    const customUserAgent = (req.query.userAgent as string) || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36 IPTVnator/0.25.0';
+    const customUserAgent =
+      (req.query.userAgent as string) ||
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36';
     const customReferer = req.query.referer as string;
 
     if (!targetUrl) {
@@ -55,10 +59,9 @@ async function startServer() {
         'Connection': 'keep-alive',
       };
 
+      // Only pass Referer if specifically provided; sending fake origin triggers 403 on many CDNs
       if (customReferer) {
         headers['Referer'] = customReferer;
-      } else {
-        headers['Referer'] = parsedUrl.origin;
       }
 
       // Forward Range header if seeking or chunk streaming
@@ -105,8 +108,8 @@ async function startServer() {
           const rewrittenLines = text.split('\n').map((line) => {
             const trimmed = line.trim();
             if (!trimmed || trimmed.startsWith('#')) {
-              // Check for URI inside #EXT-X-KEY or #EXT-X-MAP
-              if (trimmed.startsWith('#EXT-X-KEY:') || trimmed.startsWith('#EXT-X-MAP:')) {
+              // Check for URI inside #EXT-X-KEY, #EXT-X-MAP, or #EXT-X-MEDIA
+              if (trimmed.startsWith('#EXT-X-KEY:') || trimmed.startsWith('#EXT-X-MAP:') || trimmed.startsWith('#EXT-X-MEDIA:')) {
                 return line.replace(/URI="([^"]+)"/, (_match, uri) => {
                   try {
                     const resolvedUri = new URL(uri, finalUrl).toString();

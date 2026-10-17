@@ -1,226 +1,349 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   Calendar,
   Clock,
   Search,
   Upload,
-  Link,
+  Link as LinkIcon,
   Play,
   RefreshCw,
   Info,
   Tv,
+  Heart,
+  ChevronLeft,
+  ChevronRight,
+  Maximize2,
+  FolderOpen,
+  Sliders,
+  Check,
+  Radio,
+  Zap,
 } from 'lucide-react';
-import { Channel, EpgProgram } from '../types';
+import { Channel, EpgProgram, AppSettings } from '../types';
+import { VideoPlayer } from './VideoPlayer';
 
 interface EpgGuideProps {
   channels: Channel[];
-  onTuneChannel: (channel: Channel) => void;
   selectedChannel: Channel | null;
+  onSelectChannel: (channel: Channel) => void;
+  settings: AppSettings;
+  favorites: string[];
+  onToggleFavorite: (channelId: string) => void;
+  onNextChannel: () => void;
+  onPrevChannel: () => void;
+  onOpenPlaylistModal: () => void;
+  onExpandPlayer?: () => void;
+  activePlaylistTitle: string;
+}
+
+// Generate rich, contextual 24h schedule for any channel based on category & name
+function generateChannelSchedule(channel: Channel, baseDate: Date): EpgProgram[] {
+  const schedule: EpgProgram[] = [];
+  const startOfDay = new Date(baseDate);
+  startOfDay.setHours(0, 0, 0, 0);
+
+  const group = (channel.group || 'General').toLowerCase();
+  const name = channel.name;
+  const isNews = group.includes('news');
+  const isSports = group.includes('sport');
+  const isMovie = group.includes('movie') || group.includes('cinema');
+  const isMusic = group.includes('music') || channel.isRadio;
+  const isKids = group.includes('kid') || group.includes('anim');
+
+  // 12 to 18 program blocks across 24 hours
+  const templates = isNews
+    ? [
+        { title: `${name}: Morning News Brief`, durMin: 60, desc: 'Overnight headlines, markets report, world weather, and early commentary.' },
+        { title: `${name}: World Today Live`, durMin: 90, desc: 'In-depth international news reporting, field correspondents, and interviews.' },
+        { title: `${name}: Global Business Pulse`, durMin: 60, desc: 'Stock market updates, commodities, tech trends, and executive interviews.' },
+        { title: `${name}: Live Midday Bulletin`, durMin: 60, desc: 'Breaking news from around the world as it happens, updated continuously.' },
+        { title: `${name}: Focus World Investigation`, durMin: 90, desc: 'Special investigative reports on geopolitical affairs, climate, and society.' },
+        { title: `${name}: The Afternoon Roundtable`, durMin: 60, desc: 'Analysis and debates on top international stories with global policy experts.' },
+        { title: `${name}: Prime Time News Hour`, durMin: 60, desc: 'The flagship evening broadcast covering major stories of the day in depth.' },
+        { title: `${name}: Panorama Documentary`, durMin: 90, desc: 'Compelling short documentary exploring cultural shifts, science, and nature.' },
+        { title: `${name}: Late Night Roundup`, durMin: 60, desc: 'Recap of the biggest headlines from all continents before the day closes.' },
+        { title: `${name}: Overnight Global Feed`, durMin: 180, desc: 'Automated 24/7 global wire reports and continuous live coverage.' },
+      ]
+    : isSports
+    ? [
+        { title: `${name}: Sports Morning Highlights`, durMin: 60, desc: 'All the goals, match points, and high-octane highlights from overnight.' },
+        { title: `${name}: Championship Preview`, durMin: 90, desc: 'Tactical analysis, team lineups, and predictions for upcoming tournaments.' },
+        { title: `${name}: Live Match Arena`, durMin: 120, desc: 'Exclusive live broadcast and commentary on today’s top sporting events.' },
+        { title: `${name}: Extreme Sports & Action`, durMin: 60, desc: 'Freestyle stunts, adrenaline-fueled adventures, and athlete profiles.' },
+        { title: `${name}: Post-Match Studio Debrief`, durMin: 60, desc: 'Manager press conferences, key replay breakdowns, and player interviews.' },
+        { title: `${name}: Golden Classics & Archives`, durMin: 90, desc: 'Reliving legendary championship moments and historic rivalries.' },
+        { title: `${name}: Late Night Sports Zone`, durMin: 120, desc: 'Global motorsport, boxing, basketball, and football news roundup.' },
+      ]
+    : isMovie
+    ? [
+        { title: 'Matinee Showcase: Cinema Spotlight', durMin: 105, desc: 'Classic and modern cinema feature film with full remastered audio.' },
+        { title: 'Behind the Scenes: Film Masters', durMin: 45, desc: 'Directors, visual effects artists, and actors discussing their craft.' },
+        { title: 'Feature Film: Hollywood Premiere', durMin: 120, desc: 'Acclaimed blockbuster drama full feature presentation in high definition.' },
+        { title: 'Sci-Fi Universe: Galactic Odyssey', durMin: 110, desc: 'Epic space exploration and speculative fiction cinematic adventure.' },
+        { title: 'Midnight Thriller: Edge of Suspense', durMin: 100, desc: 'Gripping psychological mystery and neo-noir crime thriller.' },
+      ]
+    : isMusic
+    ? [
+        { title: `${name}: Morning Acoustic & Lounge`, durMin: 90, desc: 'Mellow melodies and uplifting rhythms to kickstart your morning.' },
+        { title: `${name}: Top 40 Global Hits`, durMin: 120, desc: 'The hottest tracks trending across international streaming charts.' },
+        { title: `${name}: Live Concert Session`, durMin: 90, desc: 'High-energy live festival performance and acoustic studio showcase.' },
+        { title: `${name}: Club Beats & Electronic Mix`, durMin: 120, desc: 'Non-stop DJ sets, synthesized grooves, and deep house vibes.' },
+      ]
+    : [
+        { title: `${name}: Sunrise Daily Magazine`, durMin: 90, desc: 'Lifestyle, cooking, technology, and morning entertainment features.' },
+        { title: `${name}: Discovery & Wildlife Explorer`, durMin: 60, desc: 'Journeying across diverse ecosystems and discovering planet Earth.' },
+        { title: `${name}: Prime Time Entertainment Show`, durMin: 90, desc: 'Popular television entertainment, guest talks, and comedy.' },
+        { title: `${name}: Evening Special Feature`, durMin: 120, desc: 'Spotlight on inspiring personalities, culinary journeys, and culture.' },
+        { title: `${name}: Night Owl Cinema`, durMin: 100, desc: 'Late night movies, music retrospectives, and relaxation programming.' },
+      ];
+
+  const nowMs = Date.now();
+  let currentStart = startOfDay.getTime();
+
+  // Loop through templates to fill 24+ hours
+  let idx = 0;
+  while (currentStart < startOfDay.getTime() + 26 * 60 * 60 * 1000) {
+    const tmpl = templates[idx % templates.length];
+    const durMs = tmpl.durMin * 60 * 1000;
+    const endMs = currentStart + durMs;
+    const isLive = nowMs >= currentStart && nowMs < endMs;
+    const prog = isLive ? Math.min(100, Math.max(0, ((nowMs - currentStart) / durMs) * 100)) : 0;
+
+    schedule.push({
+      id: `prog-${channel.id}-${currentStart}`,
+      channelId: channel.tvgId || channel.name,
+      title: tmpl.title,
+      desc: tmpl.desc,
+      category: channel.group || 'General',
+      start: new Date(currentStart).toISOString(),
+      stop: new Date(endMs).toISOString(),
+      startTime: new Date(currentStart),
+      stopTime: new Date(endMs),
+      isLive,
+      progress: Math.round(prog),
+    });
+
+    currentStart = endMs;
+    idx++;
+  }
+
+  return schedule;
 }
 
 export const EpgGuide: React.FC<EpgGuideProps> = ({
   channels,
-  onTuneChannel,
   selectedChannel,
+  onSelectChannel,
+  settings,
+  favorites,
+  onToggleFavorite,
+  onNextChannel,
+  onPrevChannel,
+  onOpenPlaylistModal,
+  onExpandPlayer,
+  activePlaylistTitle,
 }) => {
-  const [epgUrl, setEpgUrl] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [selectedDateOffset, setSelectedDateOffset] = useState<number>(0); // 0 = today, 1 = tomorrow
   const [selectedProgram, setSelectedProgram] = useState<EpgProgram | null>(null);
+  const [epgUrlInput, setEpgUrlInput] = useState('');
+  const [isLoadingEpg, setIsLoadingEpg] = useState(false);
+  const [xmltvProgrammes, setXmltvProgrammes] = useState<EpgProgram[]>([]);
 
-  // In-memory sample / fetched EPG programs
-  const [programmes, setProgrammes] = useState<EpgProgram[]>(() => {
-    // Generate realistic live demo schedules for preset channels
-    const now = Date.now();
-    const demoItems: EpgProgram[] = [];
+  const gridScrollRef = useRef<HTMLDivElement | null>(null);
+  const [currentTimeMs, setCurrentTimeMs] = useState(Date.now());
 
-    channels.forEach((ch, idx) => {
-      const channelId = ch.tvgId || ch.name;
-      // Current program
-      const startMs = now - ((idx * 7) % 35) * 60 * 1000;
-      const endMs = startMs + 45 * 60 * 1000;
-      const progress = Math.min(100, Math.max(5, ((now - startMs) / (endMs - startMs)) * 100));
+  // Update clock every 30 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTimeMs(Date.now());
+    }, 30000);
+    return () => clearInterval(timer);
+  }, []);
 
-      demoItems.push({
-        id: `prog-${ch.id}-now`,
-        channelId,
-        title: `${ch.name}: Live Broadcast & In-Depth Coverage`,
-        desc: `Comprehensive continuous coverage from the newsroom, feature interviews, international roundups, and special analysis for ${ch.group || 'general'} viewers.`,
-        start: new Date(startMs).toISOString(),
-        stop: new Date(endMs).toISOString(),
-        category: ch.group || 'Live News',
-        startTime: new Date(startMs),
-        stopTime: new Date(endMs),
-        isLive: true,
-        progress: Math.round(progress),
-      });
+  // Compute selected target date
+  const targetDate = useMemo(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + selectedDateOffset);
+    return d;
+  }, [selectedDateOffset]);
 
-      // Next program
-      const nextEndMs = endMs + 60 * 60 * 1000;
-      demoItems.push({
-        id: `prog-${ch.id}-next`,
-        channelId,
-        title: `${ch.name} Prime: World Perspectives`,
-        desc: 'Special documentary feature looking at global innovation, environmental changes, and frontline stories from around the globe.',
-        start: new Date(endMs).toISOString(),
-        stop: new Date(nextEndMs).toISOString(),
-        category: 'Documentary',
-        startTime: new Date(endMs),
-        stopTime: new Date(nextEndMs),
-        isLive: false,
-        progress: 0,
-      });
+  // Extract all channel groups for categories
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    channels.forEach((c) => {
+      if (c.group && c.group.trim()) set.add(c.group.trim());
     });
+    return ['All', ...Array.from(set).slice(0, 15)];
+  }, [channels]);
 
-    return demoItems;
-  });
+  // Filter channels by category and search
+  const filteredChannels = useMemo(() => {
+    return channels.filter((c) => {
+      const matchCat = selectedCategory === 'All' || c.group?.toLowerCase() === selectedCategory.toLowerCase();
+      if (!matchCat) return false;
+      if (!searchQuery.trim()) return true;
+      const q = searchQuery.toLowerCase();
+      return (
+        c.name.toLowerCase().includes(q) ||
+        c.group?.toLowerCase().includes(q) ||
+        c.tvgName?.toLowerCase().includes(q)
+      );
+    });
+  }, [channels, selectedCategory, searchQuery]);
 
-  // Handle loading real XMLTV from URL
+  // Generate or retrieve schedules for displayed channels
+  const channelSchedules = useMemo(() => {
+    const map = new Map<string, EpgProgram[]>();
+    filteredChannels.forEach((ch) => {
+      // Check if real XMLTV programmes match this channel
+      const realMatches = xmltvProgrammes.filter(
+        (p) =>
+          p.channelId === ch.tvgId ||
+          p.channelId === ch.name ||
+          p.channelId?.toLowerCase() === ch.name.toLowerCase()
+      );
+
+      if (realMatches.length > 0) {
+        map.set(ch.id, realMatches);
+      } else {
+        map.set(ch.id, generateChannelSchedule(ch, targetDate));
+      }
+    });
+    return map;
+  }, [filteredChannels, xmltvProgrammes, targetDate]);
+
+  // Active channel programs
+  const activeChannelPrograms = useMemo(() => {
+    if (!selectedChannel) return [];
+    return channelSchedules.get(selectedChannel.id) || generateChannelSchedule(selectedChannel, new Date());
+  }, [selectedChannel, channelSchedules]);
+
+  // Active current and next program
+  const currentProgram = useMemo(() => {
+    const now = currentTimeMs;
+    return (
+      activeChannelPrograms.find((p) => now >= p.startTime.getTime() && now < p.stopTime.getTime()) ||
+      activeChannelPrograms[0] ||
+      null
+    );
+  }, [activeChannelPrograms, currentTimeMs]);
+
+  const nextProgram = useMemo(() => {
+    if (!currentProgram) return null;
+    const curEnd = currentProgram.stopTime.getTime();
+    return activeChannelPrograms.find((p) => p.startTime.getTime() >= curEnd) || null;
+  }, [activeChannelPrograms, currentProgram]);
+
+  // Time ruler slots (30-minute intervals from 4 hours ago to 20 hours ahead)
+  const timeSlots = useMemo(() => {
+    const slots: Date[] = [];
+    const base = new Date(currentTimeMs);
+    base.setMinutes(base.getMinutes() < 30 ? 0 : 30, 0, 0);
+    // start 2 hours before now
+    const startMs = base.getTime() - 2 * 60 * 60 * 1000;
+    // 16 slots (8 hours window)
+    for (let i = 0; i < 20; i++) {
+      slots.push(new Date(startMs + i * 30 * 60 * 1000));
+    }
+    return slots;
+  }, [currentTimeMs]);
+
+  const timelineStartMs = timeSlots[0]?.getTime() || currentTimeMs - 2 * 3600000;
+  const timelineTotalMs = (timeSlots.length - 1) * 30 * 60000;
+  const minuteWidthPx = 4; // 4px per minute (120px per 30m slot)
+
+  // Scroll timeline to "Now"
+  const scrollToNow = () => {
+    if (!gridScrollRef.current) return;
+    const nowOffsetMin = (currentTimeMs - timelineStartMs) / 60000;
+    const targetScroll = Math.max(0, nowOffsetMin * minuteWidthPx - 200);
+    gridScrollRef.current.scrollTo({ left: targetScroll, behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    // Scroll to now on initial mount
+    const timer = setTimeout(scrollToNow, 400);
+    return () => clearTimeout(timer);
+  }, []);
+
+  // Handle loading XMLTV URL
   const handleLoadXmltv = async () => {
-    if (!epgUrl.trim()) return;
-    setIsLoading(true);
-
+    if (!epgUrlInput.trim()) return;
+    setIsLoadingEpg(true);
     try {
       const res = await fetch('/api/parse-epg', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: epgUrl.trim() }),
+        body: JSON.stringify({ url: epgUrlInput.trim() }),
       });
-
-      if (!res.ok) {
-        throw new Error('Failed to load XMLTV file');
-      }
-
+      if (!res.ok) throw new Error('Failed to load XMLTV file');
       const data = await res.json();
       if (data.programmes && Array.isArray(data.programmes)) {
         const parsed: EpgProgram[] = data.programmes.map((p: any, idx: number) => {
-          const now = Date.now();
-          // parse XMLTV format YYYYMMDDHHmmss +0000 or ISO
           let startMs = Date.parse(p.start);
           let stopMs = Date.parse(p.stop);
-          if (isNaN(startMs)) startMs = now - 10 * 60 * 1000;
-          if (isNaN(stopMs)) stopMs = now + 40 * 60 * 1000;
-
-          const isLive = now >= startMs && now <= stopMs;
-          const prog = isLive ? Math.round(((now - startMs) / (stopMs - startMs)) * 100) : 0;
-
+          const now = Date.now();
+          if (isNaN(startMs)) startMs = now - 15 * 60000;
+          if (isNaN(stopMs)) stopMs = now + 45 * 60000;
+          const isLive = now >= startMs && now < stopMs;
+          const progress = isLive ? Math.round(((now - startMs) / (stopMs - startMs)) * 100) : 0;
           return {
             id: `xmltv-${idx}`,
             channelId: p.channel,
-            title: p.title || 'Untitled Program',
-            desc: p.desc || 'No description provided.',
+            title: p.title || 'Broadcast Program',
+            desc: p.desc || 'Live TV Schedule',
             category: p.category || 'General',
             start: p.start,
             stop: p.stop,
             startTime: new Date(startMs),
             stopTime: new Date(stopMs),
             isLive,
-            progress: prog,
+            progress,
           };
         });
-
-        setProgrammes(parsed);
+        setXmltvProgrammes(parsed);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
       alert('Could not parse XMLTV file from the provided URL.');
     } finally {
-      setIsLoading(false);
+      setIsLoadingEpg(false);
     }
   };
 
-  const filteredChannels = useMemo(() => {
-    if (!searchQuery.trim()) return channels;
-    const q = searchQuery.toLowerCase();
-    return channels.filter((c) => c.name.toLowerCase().includes(q) || c.group?.toLowerCase().includes(q));
-  }, [channels, searchQuery]);
-
   return (
-    <div className="flex-1 flex flex-col h-full bg-slate-950 text-slate-100 overflow-hidden">
-      {/* EPG Toolbar */}
-      <div className="p-4 border-b border-slate-800 bg-slate-900/60 flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-indigo-600/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-            <Calendar className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="text-base font-semibold text-white">Electronic Program Guide (EPG)</h3>
-            <p className="text-xs text-slate-400">Real-time TV schedule, now playing, and upcoming lineups</p>
-          </div>
-        </div>
-
-        {/* XMLTV URL Import */}
-        <div className="flex items-center gap-2 max-w-md w-full sm:w-auto">
-          <div className="relative flex-1">
-            <Link className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="url"
-              placeholder="Load XMLTV URL (.xml / .xml.gz)..."
-              value={epgUrl}
-              onChange={(e) => setEpgUrl(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-            />
-          </div>
-          <button
-            onClick={handleLoadXmltv}
-            disabled={isLoading || !epgUrl.trim()}
-            className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors flex-shrink-0"
-          >
-            {isLoading ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
-            <span>Sync</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Filter and Search */}
-      <div className="px-4 py-2 border-b border-slate-800/80 bg-slate-900/30 flex items-center justify-between">
-        <div className="relative w-72">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search TV Guide..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-800 rounded-lg pl-8 pr-3 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+    <div className="flex-1 flex flex-col h-full bg-[#0a0e17] text-slate-100 overflow-hidden select-none">
+      {/* =========================================================================
+          STAGE 1: TOP HERO SECTION (LIVE VIDEO PLAYER + PROGRAM INFO PANE)
+          ========================================================================= */}
+      <section className="h-[270px] sm:h-[310px] md:h-[340px] flex-shrink-0 bg-gradient-to-b from-slate-950 via-[#0e1424] to-[#0a0e17] border-b border-slate-800/80 p-3 sm:p-4 flex flex-col md:flex-row gap-4 items-stretch z-20 shadow-lg">
+        {/* Left: Live Video Player Preview Stage */}
+        <div className="w-full md:w-[46%] lg:w-[42%] h-[180px] sm:h-[220px] md:h-full flex-shrink-0 relative">
+          <VideoPlayer
+            channel={selectedChannel}
+            settings={settings}
+            onNextChannel={onNextChannel}
+            onPrevChannel={onPrevChannel}
+            isFavorite={selectedChannel ? favorites.includes(selectedChannel.id) : false}
+            onToggleFavorite={() => selectedChannel && onToggleFavorite(selectedChannel.id)}
+            mode="epg-preview"
+            onExpandPlayer={onExpandPlayer}
           />
         </div>
 
-        <div className="flex items-center gap-2 text-xs text-slate-400">
-          <Clock className="w-3.5 h-3.5 text-indigo-400" />
-          <span>Current Time: {new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-        </div>
-      </div>
-
-      {/* Main EPG Timeline / Channel Grid */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {filteredChannels.map((channel) => {
-          const isSelected = selectedChannel?.id === channel.id;
-          const channelProgs = programmes.filter(
-            (p) =>
-              p.channelId === channel.tvgId ||
-              p.channelId === channel.name ||
-              p.channelId?.toLowerCase() === channel.name.toLowerCase()
-          );
-
-          const liveProg = channelProgs.find((p) => p.isLive) || channelProgs[0];
-          const nextProg = channelProgs.find((p) => !p.isLive);
-
-          return (
-            <div
-              key={channel.id}
-              className={`p-3.5 rounded-xl border transition-all ${
-                isSelected
-                  ? 'bg-indigo-950/30 border-indigo-500/80 ring-1 ring-indigo-500/30'
-                  : 'bg-slate-900/50 border-slate-800/80 hover:bg-slate-900 hover:border-slate-700'
-              }`}
-            >
-              <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                {/* Channel Header */}
-                <div className="flex items-center gap-3 w-64 flex-shrink-0">
-                  <div className="w-10 h-10 rounded-lg bg-slate-900 border border-slate-800 p-1 flex items-center justify-center overflow-hidden flex-shrink-0">
-                    {channel.logo ? (
+        {/* Right: Rich Channel & Current Program Synopsis */}
+        <div className="flex-1 flex flex-col justify-between overflow-hidden bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 shadow-xl backdrop-blur-md">
+          {selectedChannel ? (
+            <>
+              {/* Top Row: Channel Badge & Live Tags */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-12 h-12 rounded-xl bg-slate-950 border border-slate-800 p-1.5 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-md">
+                    {selectedChannel.logo ? (
                       <img
-                        src={channel.logo}
+                        src={selectedChannel.logo}
                         alt=""
                         className="w-full h-full object-contain"
                         onError={(e) => {
@@ -228,97 +351,373 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                         }}
                       />
                     ) : (
-                      <Tv className="w-5 h-5 text-slate-500" />
+                      <Tv className="w-6 h-6 text-indigo-400" />
                     )}
                   </div>
                   <div className="min-w-0">
-                    <h4 className="text-xs font-semibold text-white truncate">{channel.name}</h4>
-                    <span className="px-1.5 py-0.2 rounded text-[9px] font-bold bg-slate-800 text-slate-400 border border-slate-700 uppercase">
-                      {channel.group || 'Live'}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-base sm:text-lg font-bold text-white truncate tracking-tight">
+                        {selectedChannel.name}
+                      </h2>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 uppercase tracking-wider">
+                        {selectedChannel.group || 'Live'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 font-mono truncate max-w-sm">
+                      {selectedChannel.tvgId || activePlaylistTitle}
+                    </p>
                   </div>
                 </div>
 
-                {/* Programs: Now Playing & Next */}
-                <div className="flex-1 grid grid-cols-1 lg:grid-cols-2 gap-3">
-                  {/* Now Playing */}
-                  {liveProg ? (
-                    <div
-                      onClick={() => setSelectedProgram(liveProg)}
-                      className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800/70 hover:border-indigo-500/50 cursor-pointer transition-colors"
-                    >
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <div className="flex items-center gap-1.5">
-                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                          <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">NOW</span>
-                        </div>
-                        <span className="text-[10px] text-slate-400 font-mono">
-                          {liveProg.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -{' '}
-                          {liveProg.stopTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                      <h5 className="text-xs font-semibold text-slate-100 truncate">{liveProg.title}</h5>
-                      <p className="text-[11px] text-slate-400 line-clamp-1 mt-0.5">{liveProg.desc}</p>
-
-                      {/* Progress Bar */}
-                      <div className="w-full bg-slate-800 h-1 rounded-full mt-2 overflow-hidden">
-                        <div
-                          className="bg-indigo-500 h-full rounded-full transition-all"
-                          style={{ width: `${liveProg.progress}%` }}
-                        ></div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="p-2.5 rounded-lg bg-slate-950/30 border border-dashed border-slate-800 text-center text-xs text-slate-500">
-                      No current guide data
-                    </div>
-                  )}
-
-                  {/* Next Up */}
-                  {nextProg ? (
-                    <div
-                      onClick={() => setSelectedProgram(nextProg)}
-                      className="p-2.5 rounded-lg bg-slate-950/40 border border-slate-800/50 hover:border-slate-700 cursor-pointer transition-colors"
-                    >
-                      <div className="flex items-center justify-between gap-2 mb-1">
-                        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">NEXT</span>
-                        <span className="text-[10px] text-slate-400 font-mono">
-                          {nextProg.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -{' '}
-                          {nextProg.stopTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                        </span>
-                      </div>
-                      <h5 className="text-xs font-medium text-slate-300 truncate">{nextProg.title}</h5>
-                      <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">{nextProg.desc}</p>
-                    </div>
-                  ) : null}
-                </div>
-
-                {/* Tune Channel Button */}
-                <div className="flex items-center gap-2 flex-shrink-0">
+                <div className="flex items-center gap-1.5 flex-shrink-0">
                   <button
-                    onClick={() => onTuneChannel(channel)}
-                    className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 transition-all shadow-sm active:scale-95"
+                    onClick={() => onToggleFavorite(selectedChannel.id)}
+                    className={`p-2 rounded-xl border transition-all ${
+                      favorites.includes(selectedChannel.id)
+                        ? 'bg-rose-500/20 text-rose-400 border-rose-500/40 shadow-sm'
+                        : 'bg-slate-950/80 text-slate-400 hover:text-white border-slate-800'
+                    }`}
+                    title={favorites.includes(selectedChannel.id) ? 'Remove Favorite' : 'Add Favorite'}
                   >
-                    <Play className="w-3.5 h-3.5 fill-current" />
-                    <span>Watch</span>
+                    <Heart className={`w-4 h-4 ${favorites.includes(selectedChannel.id) ? 'fill-current' : ''}`} />
                   </button>
+                  {onExpandPlayer && (
+                    <button
+                      onClick={onExpandPlayer}
+                      className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md transition-all active:scale-95"
+                      title="Switch to Full Player Mode"
+                    >
+                      <Maximize2 className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Full Player</span>
+                    </button>
+                  )}
                 </div>
               </div>
+
+              {/* Middle: Current Show Title & Progress */}
+              <div className="my-2 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    NOW PLAYING
+                  </span>
+                  {currentProgram && (
+                    <span className="text-xs text-slate-300 font-medium">
+                      {currentProgram.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -{' '}
+                      {currentProgram.stopTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  )}
+                </div>
+
+                <h3 className="text-sm sm:text-base font-bold text-slate-100 truncate">
+                  {currentProgram?.title || `${selectedChannel.name} Live Broadcast`}
+                </h3>
+
+                {/* Progress bar */}
+                <div className="w-full bg-slate-950 h-1.5 rounded-full mt-2 overflow-hidden border border-slate-800/80">
+                  <div
+                    className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full transition-all duration-500"
+                    style={{ width: `${currentProgram?.progress || 40}%` }}
+                  ></div>
+                </div>
+
+                {/* Description */}
+                <p className="text-xs text-slate-400 line-clamp-2 mt-2 leading-relaxed">
+                  {currentProgram?.desc ||
+                    'Continuous live broadcast coverage, breaking headlines, special features, and international commentary.'}
+                </p>
+              </div>
+
+              {/* Bottom: Next Up preview */}
+              <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+                <div className="flex items-center gap-2 truncate">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">UP NEXT:</span>
+                  <span className="text-slate-300 font-medium truncate">
+                    {nextProgram
+                      ? `${nextProgram.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} — ${nextProgram.title}`
+                      : 'Upcoming TV Feature & Schedule'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-[11px] text-indigo-400 flex-shrink-0">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>{new Date(currentTimeMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-500">
+              <Tv className="w-8 h-8 mb-2 stroke-[1.5]" />
+              <p className="text-xs">Select any channel below to start watching</p>
             </div>
-          );
-        })}
+          )}
+        </div>
+      </section>
+
+      {/* =========================================================================
+          STAGE 2: FILTER & CONTROLS TOOLBAR
+          ========================================================================= */}
+      <div className="bg-slate-950 border-b border-slate-800/80 px-4 py-2 flex flex-wrap items-center justify-between gap-3 z-10">
+        {/* Left: Date Buttons & Jump to Now */}
+        <div className="flex items-center gap-2">
+          <div className="flex items-center bg-slate-900 rounded-xl p-0.5 border border-slate-800">
+            <button
+              onClick={() => setSelectedDateOffset(0)}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                selectedDateOffset === 0 ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Today
+            </button>
+            <button
+              onClick={() => setSelectedDateOffset(1)}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                selectedDateOffset === 1 ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Tomorrow
+            </button>
+            <button
+              onClick={() => setSelectedDateOffset(2)}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all ${
+                selectedDateOffset === 2 ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
+              }`}
+            >
+              Day +2
+            </button>
+          </div>
+
+          <button
+            onClick={scrollToNow}
+            className="px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-indigo-400 hover:text-indigo-300 border border-slate-800 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-sm"
+          >
+            <Clock className="w-3.5 h-3.5 text-indigo-400" />
+            <span>Jump to Now</span>
+          </button>
+        </div>
+
+        {/* Center: Search */}
+        <div className="relative w-64">
+          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search channels & shows..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-3 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+          />
+        </div>
+
+        {/* Right: Switch Playlist & XMLTV Sync */}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onOpenPlaylistModal}
+            className="px-3 py-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs font-medium flex items-center gap-1.5 transition-colors"
+          >
+            <FolderOpen className="w-3.5 h-3.5 text-amber-400" />
+            <span>Choose Playlist</span>
+          </button>
+        </div>
+      </div>
+
+      {/* Category Pills Bar */}
+      <div className="bg-slate-950/60 border-b border-slate-800/60 px-4 py-1.5 overflow-x-auto flex items-center gap-1.5 no-scrollbar">
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setSelectedCategory(cat)}
+            className={`px-3 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-all ${
+              selectedCategory === cat
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
+      {/* =========================================================================
+          STAGE 3: THE EPG MULTI-CHANNEL HORIZONTAL GRID
+          ========================================================================= */}
+      <div className="flex-1 overflow-hidden flex flex-col relative bg-[#070b12]">
+        {/* Scrollable Container */}
+        <div ref={gridScrollRef} className="flex-1 overflow-auto relative">
+          <div
+            className="min-w-max flex flex-col"
+            style={{ width: `${260 + (timeSlots.length - 1) * 30 * minuteWidthPx}px` }}
+          >
+            {/* 1. Sticky Time Ruler Header */}
+            <div className="sticky top-0 z-30 flex bg-slate-950/95 backdrop-blur-md border-b border-slate-800 shadow-md">
+              {/* Corner Channel Header */}
+              <div className="w-[260px] flex-shrink-0 px-4 py-2 border-r border-slate-800 bg-slate-950 text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                <span>Channels ({filteredChannels.length})</span>
+                <span className="text-[10px] text-indigo-400 font-mono">LIVE TV</span>
+              </div>
+
+              {/* Time Interval Slots */}
+              <div className="flex relative">
+                {timeSlots.map((slot, index) => {
+                  const timeLabel = slot.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  return (
+                    <div
+                      key={index}
+                      className="flex-shrink-0 border-r border-slate-800/80 px-2 py-2 text-xs font-mono font-semibold text-slate-400 flex items-center"
+                      style={{ width: `${30 * minuteWidthPx}px` }}
+                    >
+                      <span>{timeLabel}</span>
+                    </div>
+                  );
+                })}
+
+                {/* Glowing Vertical Needle for Current Time */}
+                {currentTimeMs >= timelineStartMs && (
+                  <div
+                    className="absolute top-0 bottom-0 z-40 pointer-events-none flex flex-col items-center"
+                    style={{
+                      left: `${((currentTimeMs - timelineStartMs) / 60000) * minuteWidthPx}px`,
+                    }}
+                  >
+                    <div className="w-2.5 h-2.5 rounded-full bg-rose-500 shadow-md shadow-rose-500/50 -mt-1"></div>
+                    <div className="w-[2px] h-[5000px] bg-gradient-to-b from-rose-500 via-rose-500/80 to-transparent shadow-sm"></div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* 2. Channel Rows with Horizontal Program Blocks */}
+            <div className="flex flex-col divide-y divide-slate-800/50">
+              {filteredChannels.map((channel, cIdx) => {
+                const isSelected = selectedChannel?.id === channel.id;
+                const programs = channelSchedules.get(channel.id) || [];
+
+                return (
+                  <div
+                    key={channel.id}
+                    className={`flex items-stretch transition-colors ${
+                      isSelected
+                        ? 'bg-indigo-950/25 ring-1 ring-inset ring-indigo-500/40'
+                        : 'hover:bg-slate-900/40'
+                    }`}
+                  >
+                    {/* Sticky Left Channel Card */}
+                    <div
+                      onClick={() => onSelectChannel(channel)}
+                      className={`sticky left-0 z-20 w-[260px] flex-shrink-0 px-3 py-2.5 border-r border-slate-800 flex items-center justify-between gap-3 cursor-pointer select-none transition-colors ${
+                        isSelected ? 'bg-indigo-950/80 text-white' : 'bg-slate-950/90 text-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        {/* Channel Number / Index */}
+                        <span className="text-[11px] font-mono font-bold text-slate-500 w-5 text-right flex-shrink-0">
+                          {cIdx + 1}
+                        </span>
+
+                        {/* Logo */}
+                        <div className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 p-0.5 flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {channel.logo ? (
+                            <img
+                              src={channel.logo}
+                              alt=""
+                              className="w-full h-full object-contain"
+                              onError={(e) => {
+                                (e.target as HTMLElement).style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <Tv className="w-4 h-4 text-slate-500" />
+                          )}
+                        </div>
+
+                        {/* Name and Group */}
+                        <div className="min-w-0">
+                          <h4 className="text-xs font-semibold truncate leading-tight">{channel.name}</h4>
+                          <span className="text-[10px] text-slate-500 truncate block">
+                            {channel.group || 'General'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Play Button Indicator */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onSelectChannel(channel);
+                        }}
+                        className={`p-1.5 rounded-lg transition-colors flex-shrink-0 ${
+                          isSelected
+                            ? 'bg-indigo-600 text-white shadow-sm'
+                            : 'text-slate-500 hover:text-white hover:bg-slate-800'
+                        }`}
+                        title="Tune Channel"
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                      </button>
+                    </div>
+
+                    {/* Timeline Program Blocks */}
+                    <div className="flex items-center relative py-1.5">
+                      {programs.map((prog) => {
+                        const startMin = (prog.startTime.getTime() - timelineStartMs) / 60000;
+                        const durationMin = (prog.stopTime.getTime() - prog.startTime.getTime()) / 60000;
+                        const widthPx = Math.max(60, durationMin * minuteWidthPx);
+
+                        // If program is before or after timeline window, skip or clamp
+                        if (startMin + durationMin < 0 || startMin > (timeSlots.length - 1) * 30) {
+                          return null;
+                        }
+
+                        const isNowPlayingThis =
+                          currentTimeMs >= prog.startTime.getTime() && currentTimeMs < prog.stopTime.getTime();
+
+                        return (
+                          <div
+                            key={prog.id}
+                            onClick={() => {
+                              onSelectChannel(channel);
+                              setSelectedProgram(prog);
+                            }}
+                            className={`h-12 rounded-xl p-2 mr-1.5 flex flex-col justify-between overflow-hidden cursor-pointer transition-all border ${
+                              isNowPlayingThis && isSelected
+                                ? 'bg-indigo-600 text-white border-indigo-400 shadow-md shadow-indigo-600/30'
+                                : isNowPlayingThis
+                                ? 'bg-indigo-950/70 border-indigo-500/60 text-slate-100 hover:border-indigo-400'
+                                : isSelected
+                                ? 'bg-slate-900 border-indigo-900/60 text-slate-300 hover:bg-slate-800 hover:text-white'
+                                : 'bg-slate-900/60 border-slate-800/80 text-slate-300 hover:bg-slate-800 hover:text-white hover:border-slate-700'
+                            }`}
+                            style={{ width: `${widthPx - 6}px` }}
+                          >
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="text-[10px] font-mono opacity-80 truncate">
+                                {prog.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              {isNowPlayingThis && (
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse flex-shrink-0"></span>
+                              )}
+                            </div>
+                            <h5 className="text-xs font-semibold truncate leading-tight">{prog.title}</h5>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Program Details Modal */}
       {selectedProgram && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
           <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase">
-                  {selectedProgram.category || 'Program'}
+                  {selectedProgram.category || 'Program Details'}
                 </span>
-                <h3 className="text-lg font-bold text-white mt-1.5">{selectedProgram.title}</h3>
+                <h3 className="text-lg font-bold text-white mt-1.5 leading-snug">{selectedProgram.title}</h3>
               </div>
               <button
                 onClick={() => setSelectedProgram(null)}
@@ -328,8 +727,8 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
               </button>
             </div>
 
-            <div className="flex items-center gap-2 text-xs text-slate-400 font-mono">
-              <Clock className="w-4 h-4 text-indigo-400" />
+            <div className="flex items-center gap-2 text-xs text-slate-300 font-mono bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+              <Clock className="w-4 h-4 text-indigo-400 flex-shrink-0" />
               <span>
                 {selectedProgram.startTime.toLocaleString()} — {selectedProgram.stopTime.toLocaleTimeString()}
               </span>
@@ -339,7 +738,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
               {selectedProgram.desc}
             </div>
 
-            <div className="flex justify-end pt-2">
+            <div className="flex justify-end gap-2 pt-2">
               <button
                 onClick={() => setSelectedProgram(null)}
                 className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition-colors"

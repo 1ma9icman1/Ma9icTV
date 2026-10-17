@@ -105,6 +105,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // require a user click, but we never silently switch the player into muted mode.
   const [volume, setVolume] = useState<number>(settings.volume > 0 ? settings.volume : 0.8);
   const [isMuted, setIsMuted] = useState<boolean>(false);
+  const volumeRef = useRef<number>(settings.volume > 0 ? settings.volume : 0.8);
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [isUsingProxy, setIsUsingProxy] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -207,7 +208,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           }));
           setQualities(levels);
 
-          video.volume = Math.max(0.01, volume);
+          video.volume = Math.max(0.01, volumeRef.current);
           video.muted = false;
           setIsMuted(false);
 
@@ -310,7 +311,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         setIsLoading(false);
       }
     },
-    [channel, settings.bufferLengthSeconds, settings.proxyMode, settings.customUserAgent, settings.autoPlayNext, onNextChannel, volume, isMuted]
+    [channel, settings.bufferLengthSeconds, settings.proxyMode, settings.customUserAgent, settings.autoPlayNext, onNextChannel]
   );
 
   useEffect(() => {
@@ -405,6 +406,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const handleVolumeChange = (newVol: number) => {
     const safeVolume = Math.max(0, Math.min(1, newVol));
     setVolume(safeVolume);
+    volumeRef.current = safeVolume;
     setIsMuted(false);
     if (videoRef.current) {
       videoRef.current.volume = safeVolume;

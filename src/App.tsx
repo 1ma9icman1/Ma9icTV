@@ -248,11 +248,11 @@ export default function App() {
   }, [settings.theme]);
 
   return (
-    <div className={`flex h-screen w-screen overflow-hidden ${themeClasses} font-sans`}>
+    <div className={`flex h-[100dvh] w-full overflow-hidden ${themeClasses} font-sans`}>
       {/* 1. Slim Left App Navigation Bar */}
-      <aside className="w-16 flex-shrink-0 bg-slate-950/80 border-r border-slate-800/80 flex flex-col items-center justify-between py-4 select-none z-30">
+      <aside className="fixed bottom-0 left-0 right-0 z-40 h-14 w-full flex-shrink-0 bg-slate-950/95 border-t border-slate-800/80 flex flex-row items-center justify-around px-2 py-1 select-none md:static md:h-auto md:w-16 md:flex-col md:justify-between md:border-t-0 md:border-r md:px-0 md:py-4">
         {/* Top: Logo & Main Navigation */}
-        <div className="flex flex-col items-center gap-6 w-full">
+        <div className="flex flex-row items-center gap-2 h-full md:h-auto md:flex-col md:gap-6 w-full md:w-full">
           {/* IPTVnator Logo */}
           <div
             onClick={() => setCurrentView('player')}
@@ -262,10 +262,10 @@ export default function App() {
             <Tv className="w-5 h-5 stroke-[2.2]" />
           </div>
 
-          <div className="w-8 h-[1px] bg-slate-800"></div>
+          <div className="hidden md:block w-8 h-[1px] bg-slate-800"></div>
 
           {/* Nav Buttons */}
-          <nav className="flex flex-col items-center gap-2 w-full px-2">
+          <nav className="flex flex-row items-center gap-1 h-full md:h-auto md:flex-col md:gap-2 w-auto md:w-full px-0 md:px-2">
             {/* TV / Channels Mode */}
             <button
               onClick={() => setCurrentView('player')}
@@ -327,9 +327,9 @@ export default function App() {
       </aside>
 
       {/* 2. Main Content Layout with Top Status Header */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden pb-14 md:pb-0">
         {/* Top Header Bar */}
-        <header className="h-11 bg-slate-950/90 border-b border-slate-800/80 px-4 flex items-center justify-between text-xs select-none z-20">
+        <header className="min-h-11 bg-slate-950/90 border-b border-slate-800/80 px-2 sm:px-4 py-1.5 flex flex-wrap gap-2 items-center justify-between text-xs select-none z-20">
           <div className="flex items-center gap-3 min-w-0">
             <button
               onClick={() => setIsPlaylistModalOpen(true)}
@@ -389,7 +389,7 @@ export default function App() {
         </header>
 
         {/* Main Body */}
-        <main className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
+        <main className="flex-1 min-h-0 min-w-0 flex flex-col md:flex-row overflow-hidden relative">
           {currentView === 'player' ? (
             <>
               {/* Sidebar toggle button for mobile/compact */}

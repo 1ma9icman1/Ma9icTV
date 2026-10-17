@@ -71,7 +71,6 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   const [selectedProgram, setSelectedProgram] = useState<EpgProgram | null>(null);
   const [epgUrlInput, setEpgUrlInput] = useState(() => localStorage.getItem('ma9ictv-epg-url') || '');
   const [isLoadingEpg, setIsLoadingEpg] = useState(false);
-  const [streamReadyForEpgUrl, setStreamReadyForEpgUrl] = useState('');
   const [epgLoadError, setEpgLoadError] = useState('');
   const [xmltvProgrammes, setXmltvProgrammes] = useState<EpgProgram[]>([]);
   const [xmltvChannelAliases, setXmltvChannelAliases] = useState<Record<string, string[]>>({});
@@ -392,8 +391,8 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     }
   };
 
-  // Give the first stream priority. Start EPG after playback is underway,
-  // with an 8-second fallback for blocked or unavailable streams.
+  // Load the guide independently of stream playback. Movie and cinema playlists
+  // often contain slow or unavailable hosts; those must not prevent the EPG loading.
   const playlistEpgSource = activePlaylistEpgUrl?.trim() || '';
   useEffect(() => {
     let manualUrl = localStorage.getItem('ma9ictv-manual-epg-url')?.trim() || '';
@@ -404,27 +403,21 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       }
       legacyEpgResolved.current = true;
     }
+
     const sourceUrl = playlistEpgSource || manualUrl;
     setXmltvProgrammes([]);
     setXmltvChannelAliases({});
     setEpgUrlInput(sourceUrl);
+
     if (sourceUrl) {
       localStorage.setItem('ma9ictv-epg-url', sourceUrl);
-      const fallbackTimer = window.setTimeout(() => setStreamReadyForEpgUrl(sourceUrl), 8000);
-      return () => window.clearTimeout(fallbackTimer);
+      void handleLoadXmltv(false, sourceUrl);
+    } else {
+      localStorage.removeItem('ma9ictv-epg-url');
+      setEpgLoadError('');
     }
-    localStorage.removeItem('ma9ictv-epg-url');
-    setStreamReadyForEpgUrl('');
-  }, [activePlaylistEpgUrl]);
-
-  useEffect(() => {
-    const playlistUrl = activePlaylistEpgUrl?.trim() || '';
-    const manualUrl = localStorage.getItem('ma9ictv-manual-epg-url')?.trim() || '';
-    const sourceUrl = playlistUrl || manualUrl;
-    if (!sourceUrl || streamReadyForEpgUrl !== sourceUrl) return;
-    void handleLoadXmltv(false, sourceUrl);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [streamReadyForEpgUrl, activePlaylistEpgUrl]);
+  }, [activePlaylistEpgUrl]);
 
   return (
     <div className="flex-1 min-h-0 min-w-0 flex flex-col h-full bg-[#0a0e17] text-slate-100 overflow-hidden select-none">
@@ -443,10 +436,6 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
             onToggleFavorite={() => selectedChannel && onToggleFavorite(selectedChannel.id)}
             mode="epg-preview"
             onExpandPlayer={onExpandPlayer}
-            onStreamConnected={() => {
-              const sourceUrl = activePlaylistEpgUrl?.trim() || localStorage.getItem('ma9ictv-manual-epg-url')?.trim() || '';
-              if (sourceUrl) setStreamReadyForEpgUrl(sourceUrl);
-            }}
           />
         </div>
 

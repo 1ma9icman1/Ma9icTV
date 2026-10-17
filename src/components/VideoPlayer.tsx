@@ -325,7 +325,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
         if (!preventFallback && !shouldProxy) {
           initPlayer(true, true);
-        } else if (!preventFallback && shouldProxy && settings.proxyMode === 'auto') {
+        } else if (!preventFallback && shouldProxy) {
+          // If the server-side proxy cannot reach this host, try the stream directly once.
+          // This is a last-resort recovery even when the user's normal mode is Always Proxy.
           initPlayer(false, true);
         } else {
           setErrorMsg('Stream did not start in time. The channel may be offline or this browser may not support its stream format. Try another channel.');
@@ -454,8 +456,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 } else if (!shouldProxy && !preventFallback) {
                   // Direct mode failed: make one final attempt through the proxy.
                   initPlayer(true, true);
-                } else if (shouldProxy && settings.proxyMode === 'auto' && !preventFallback) {
-                  // Auto mode tries both routes once, without looping between them.
+                } else if (shouldProxy && !preventFallback) {
+                  // A failed proxy connection can be host-specific. Try direct once before giving up.
                   initPlayer(false, true);
                 } else {
                   hls.destroy();
@@ -519,7 +521,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         video.onerror = () => {
           if (!shouldProxy && !preventFallback) {
             initPlayer(true, true);
-          } else if (shouldProxy && settings.proxyMode === 'auto' && !preventFallback) {
+          } else if (shouldProxy && !preventFallback) {
             initPlayer(false, true);
           } else {
             setErrorMsg('Host may be blocking access or the stream link has expired.');

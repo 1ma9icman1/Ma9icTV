@@ -22,6 +22,12 @@ import { Playlist, Channel } from '../types';
 import { parseM3uString } from '../utils/playlistParser';
 import { CATALOG_PLAYLISTS, CatalogPlaylist } from '../data/presetPlaylists';
 
+function extractM3uEpgUrl(text: string): string | undefined {
+  const header = text.split(/\r?\n/).find((line) => line.trim().startsWith('#EXTM3U')) || '';
+  const match = header.match(/(?:url-tvg|x-tvg-url|tvg-url)=[\"']([^\"']+)[\"']/i);
+  return match?.[1]?.trim() || undefined;
+}
+
 interface PlaylistModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -82,7 +88,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
   if (!isOpen) return null;
 
   // Import a playlist by URL helper
-  const importPlaylistByUrl = async (targetUrl: string, targetTitle?: string, customUA?: string) => {
+  const importPlaylistByUrl = async (targetUrl: string, targetTitle?: string, customUA?: string, targetEpgUrl?: string) => {
     setIsLoading(true);
     setLoadingItemUrl(targetUrl);
     setErrorMsg(null);
@@ -128,6 +134,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
         addedAt: Date.now(),
         lastUpdated: Date.now(),
         userAgent: customUA?.trim() || undefined,
+        epgUrl: targetEpgUrl || data.header?.urlTvg || undefined,
         channels,
       };
 
@@ -151,7 +158,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
 
   // Handle 1-click catalog import
   const handleLoadCatalogItem = async (item: CatalogPlaylist) => {
-    await importPlaylistByUrl(item.url, item.name);
+    await importPlaylistByUrl(item.url, item.name, undefined, item.epgUrl);
   };
 
   // Handle local file upload
@@ -162,6 +169,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
 
     try {
       const text = await file.text();
+      const playlistEpgUrl = extractM3uEpgUrl(text);
       const playlistId = `pl-file-${Date.now()}`;
       const channels = parseM3uString(text, playlistId);
 
@@ -176,6 +184,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
         channelCount: channels.length,
         addedAt: Date.now(),
         lastUpdated: Date.now(),
+        epgUrl: playlistEpgUrl,
         channels,
       };
 
@@ -198,6 +207,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
 
     try {
       const playlistId = `pl-paste-${Date.now()}`;
+      const playlistEpgUrl = extractM3uEpgUrl(pastedText);
       const channels = parseM3uString(pastedText, playlistId);
 
       if (channels.length === 0) {
@@ -212,6 +222,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
         addedAt: Date.now(),
         lastUpdated: Date.now(),
         channels,
+        epgUrl: playlistEpgUrl,
       };
 
       onAddPlaylist(newPlaylist);

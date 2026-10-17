@@ -67,6 +67,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [epgPageLimit, setEpgPageLimit] = useState(100);
   const [selectedProgram, setSelectedProgram] = useState<EpgProgram | null>(null);
   const [epgUrlInput, setEpgUrlInput] = useState(() => localStorage.getItem('ma9ictv-epg-url') || '');
   const [isLoadingEpg, setIsLoadingEpg] = useState(false);
@@ -112,6 +113,11 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     });
   }, [channels, selectedCategory, searchQuery]);
 
+  // Keep the guide responsive on very large playlists; show more rows on demand.
+  useEffect(() => {
+    setEpgPageLimit(100);
+  }, [channels, selectedCategory, searchQuery]);
+
   // Index XMLTV once. The old implementation scanned every programme for every
   // visible channel (channels × programmes), which froze the UI on large guides.
   const channelSchedules = useMemo(() => {
@@ -138,9 +144,13 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
         .map((value) => normalizeEpgName(String(value)));
       const seen = new Set<string>();
       const matches: EpgProgram[] = [];
+      const windowStart = currentTimeMs - 2 * 60 * 60 * 1000;
+      const windowEnd = currentTimeMs + 8 * 60 * 60 * 1000;
       for (const key of keys) {
         for (const programme of programmesByName.get(key) || []) {
-          if (!seen.has(programme.id)) {
+          const startsAt = programme.startTime.getTime();
+          const stopsAt = programme.stopTime.getTime();
+          if (!seen.has(programme.id) && stopsAt >= windowStart && startsAt <= windowEnd) {
             seen.add(programme.id);
             matches.push(programme);
           }
@@ -150,7 +160,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       map.set(channel.id, matches);
     }
     return map;
-  }, [filteredChannels, xmltvProgrammes, xmltvChannelAliases]);
+  }, [filteredChannels, xmltvProgrammes, xmltvChannelAliases, currentTimeMs]);
 
   // Active channel programs
   const activeChannelPrograms = useMemo(() => {
@@ -581,7 +591,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
               </div>
             )}
             <div className="flex flex-col divide-y divide-slate-800/50">
-              {filteredChannels.map((channel, cIdx) => {
+              {filteredChannels.slice(0, epgPageLimit).map((channel, cIdx) => {
                 const isSelected = selectedChannel?.id === channel.id;
                 const programs = channelSchedules.get(channel.id) || [];
 
@@ -698,6 +708,19 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                   </div>
                 );
               })}
+              {filteredChannels.length > epgPageLimit && (
+                <div className="sticky left-0 flex items-center justify-center gap-3 p-4 bg-slate-950 border-t border-slate-800">
+                  <span className="text-xs text-slate-400">
+                    Showing {Math.min(epgPageLimit, filteredChannels.length).toLocaleString()} of {filteredChannels.length.toLocaleString()} channels
+                  </span>
+                  <button
+                    onClick={() => setEpgPageLimit((limit) => Math.min(limit + 100, filteredChannels.length))}
+                    className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+                  >
+                    Load 100 More Channels
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>

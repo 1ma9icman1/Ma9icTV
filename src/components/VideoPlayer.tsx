@@ -321,7 +321,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       // once in Auto mode; otherwise show a useful error instead of infinite loading.
       startupTimeoutRef.current = setTimeout(() => {
         startupTimeoutRef.current = null;
-        if (videoRef.current !== video || !video.paused && video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA) return;
+        if (videoRef.current !== video) return;
 
         if (!preventFallback && !shouldProxy) {
           initPlayer(true, true);

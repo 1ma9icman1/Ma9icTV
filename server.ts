@@ -178,7 +178,7 @@ async function startServer() {
 
       if (url && !content) {
         const fetchHeaders: Record<string, string> = {
-          'User-Agent': userAgent || 'IPTVnator/0.25.0',
+          'User-Agent': userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
           'Accept-Encoding': 'gzip, deflate, br',
         };
         const response = await fetch(url, { headers: fetchHeaders, redirect: 'follow', signal: AbortSignal.timeout(20000) });

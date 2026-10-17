@@ -331,9 +331,9 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       {/* =========================================================================
           STAGE 1: TOP HERO SECTION (LIVE VIDEO PLAYER + PROGRAM INFO PANE)
           ========================================================================= */}
-      <section className="h-[170px] sm:h-[310px] md:h-[340px] flex-shrink-0 bg-gradient-to-b from-slate-950 via-[#0e1424] to-[#0a0e17] border-b border-slate-800/80 p-2 sm:p-4 flex flex-col md:flex-row gap-2 sm:gap-4 items-stretch z-20 shadow-lg">
+      <section className="h-[clamp(150px,28dvh,340px)] flex-shrink-0 bg-black border-b border-slate-800/80 p-2 sm:p-3 flex flex-col gap-2 items-stretch z-20 shadow-lg">
         {/* Left: Live Video Player Preview Stage */}
-        <div className="w-full md:w-[46%] lg:w-[42%] h-full min-h-0 md:h-full flex-shrink-0 relative">
+        <div className="w-full h-full min-h-0 flex-shrink-0 relative">
           <VideoPlayer
             channel={selectedChannel}
             settings={settings}
@@ -351,7 +351,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
         </div>
 
         {/* Right: Rich Channel & Current Program Synopsis */}
-        <div className="hidden md:flex flex-1 min-w-0 flex-col justify-between overflow-hidden bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 shadow-xl backdrop-blur-md">
+        <div className="hidden">
           {selectedChannel ? (
             <>
               {/* Top Row: Channel Badge & Live Tags */}

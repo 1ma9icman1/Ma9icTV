@@ -40,7 +40,16 @@ export default function App() {
   // Playlists and Channels state
   const [playlists, setPlaylists] = useState<Playlist[]>(() => getSavedPlaylists());
   const [activePlaylistIdState, setActivePlaylistIdState] = useState<string>(() => getActivePlaylistId());
-  const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
+  // Select a saved channel immediately so the embedded EPG player can begin
+  // loading while the default Pluto playlist is fetched in the background.
+  const [selectedChannel, setSelectedChannel] = useState<Channel | null>(() => {
+    const savedPlaylists = getSavedPlaylists();
+    const savedActiveId = getActivePlaylistId();
+    const savedActive = savedPlaylists.find((playlist) => playlist.id === savedActiveId)
+      || savedPlaylists[0]
+      || INITIAL_PRESETS[0];
+    return savedActive?.channels?.find((channel) => Boolean(channel.url)) || null;
+  });
 
   // Favorites and History
   const [favorites, setFavorites] = useState<string[]>(() => getFavorites());

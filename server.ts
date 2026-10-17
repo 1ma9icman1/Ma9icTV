@@ -329,12 +329,13 @@ async function startServer() {
       const urls: string[] = typeof url === 'string'
         ? url.split(/,\s*(?=https?:\/\/)/i).map((item: string) => item.trim()).filter(Boolean)
         : [];
-      // Load a small bundle of guide sources. Catalog genre playlists may not
-      // provide their own EPG URL, so they use a few common regional guides.
-      // Keep the cap low to avoid excessive download time and memory use.
+      // Genre playlists can span many countries. Allow a broader guide bundle,
+      // while parsing in small concurrent batches to protect Render memory/CPU.
+      // URLs are deduplicated so repeated regional feeds are not downloaded twice.
+      const uniqueUrls = Array.from(new Set(urls));
       const sources = content
         ? [{ url: 'inline XMLTV', content: String(content) }]
-        : urls.slice(0, 4).map((sourceUrl) => ({ url: sourceUrl }));
+        : uniqueUrls.slice(0, 8).map((sourceUrl) => ({ url: sourceUrl }));
       if (sources.length === 0) {
         res.status(400).json({ error: 'No valid EPG URLs were found' });
         return;
@@ -409,7 +410,7 @@ async function startServer() {
       };
 
       // Limit concurrent downloads so large multi-guide headers don't overwhelm Render.
-      const concurrency = 8;
+      const concurrency = 4;
       for (let index = 0; index < sources.length; index += concurrency) {
         await Promise.all(sources.slice(index, index + concurrency).map(parseSource));
       }

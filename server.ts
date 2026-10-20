@@ -35,6 +35,18 @@ function isTlsCertificateError(error: unknown): boolean {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+const EPG_RESPONSE_CACHE_TTL_MS = 5 * 60 * 1000;
+const epgResponseCache = new Map<string, { expiresAt: number; payload: any }>();
+
+function parseXmltvTimestampMs(value: unknown): number {
+  const raw = String(value || '').trim();
+  const match = raw.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(?:\s*([+-]\d{4}))?$/);
+  if (!match) return Date.parse(raw);
+  const [, year, month, day, hour, minute, second, zone] = match;
+  const iso = `${year}-${month}-${day}T${hour}:${minute}:${second}${zone ? `${zone.slice(0, 3)}:${zone.slice(3)}` : 'Z'}`;
+  return Date.parse(iso);
+}
+
 async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;
@@ -490,6 +502,22 @@ async function startServer() {
         return;
       }
 
+      // Genre lists reuse the same guide feeds. Cache their parsed schedules for
+      // five minutes to avoid repeatedly downloading and parsing large XMLTV files.
+      const cacheKey = content ? null : sources.map((source) => source.url).sort().join('\n');
+      if (cacheKey) {
+        const cached = epgResponseCache.get(cacheKey);
+        if (cached && cached.expiresAt > Date.now()) {
+          res.setHeader('X-Ma9icTV-EPG-Cache', 'HIT');
+          res.json(cached.payload);
+          return;
+        }
+        if (cached) epgResponseCache.delete(cacheKey);
+      }
+
+      const nowMs = Date.now();
+      const programmeWindowStartMs = nowMs - 4 * 60 * 60 * 1000;
+      const programmeWindowEndMs = nowMs + 20 * 60 * 60 * 1000;
       const channelsById = new Map<string, any>();
       const programmeByKey = new Map<string, any>();
       const failedSources: string[] = [];
@@ -540,6 +568,10 @@ async function startServer() {
             const stop = String(programme['@_stop'] || '').trim();
             const title = readXmlText(programme.title).trim();
             if (!channel || !start || !stop || !title) continue;
+            const startMs = parseXmltvTimestampMs(start);
+            const stopMs = parseXmltvTimestampMs(stop);
+            if (!Number.isFinite(startMs) || !Number.isFinite(stopMs) || stopMs <= startMs) continue;
+            if (stopMs < programmeWindowStartMs || startMs > programmeWindowEndMs) continue;
             const key = `${channel}| ${start}| ${stop}| ${title}`;
             if (!programmeByKey.has(key)) {
               programmeByKey.set(key, {
@@ -576,7 +608,7 @@ async function startServer() {
         return;
       }
 
-      res.json({
+      const payload = {
         channels,
         programmes,
         channelCount: channels.length,
@@ -585,7 +617,21 @@ async function startServer() {
         loadedSourceCount: loadedSources,
         failedSourceCount: failedSources.length,
         failedSources: failedSources.slice(0, 10),
-      });
+      };
+
+      if (cacheKey) {
+        // Bound memory if different user-supplied guide URLs are loaded.
+        if (epgResponseCache.size >= 12) {
+          const oldestKey = epgResponseCache.keys().next().value;
+          if (oldestKey) epgResponseCache.delete(oldestKey);
+        }
+        epgResponseCache.set(cacheKey, {
+          expiresAt: Date.now() + EPG_RESPONSE_CACHE_TTL_MS,
+          payload,
+        });
+        res.setHeader('X-Ma9icTV-EPG-Cache', 'MISS');
+      }
+      res.json(payload);
     } catch (err: any) {
       console.error('EPG parse error:', err);
       res.status(500).json({ error: 'Failed to parse XMLTV EPG', details: err?.message });

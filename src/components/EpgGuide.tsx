@@ -228,14 +228,29 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     for (const channel of scheduleChannels) {
       const matches: EpgProgram[] = [];
       const seen = new Set<string>();
-      for (const key of channelKeys.get(channel.id) || []) {
-        for (const programme of programmesByName.get(key) || []) {
+      const keys = channelKeys.get(channel.id) || [];
+      const addMatches = (programmes: EpgProgram[]) => {
+        for (const programme of programmes) {
           if (!seen.has(programme.id)) {
             seen.add(programme.id);
             matches.push(programme);
           }
         }
+      };
+
+      // Prefer exact ID/name matches. Many genre M3Us omit tvg-id, while XMLTV
+      // display names often include or omit suffixes such as HD, FHD, or region.
+      for (const key of keys) addMatches(programmesByName.get(key) || []);
+      if (matches.length === 0) {
+        const relatedKeys = [...programmesByName.keys()].filter((guideKey) =>
+          keys.some((channelKey) =>
+            channelKey.length >= 6 && guideKey.length >= 6 &&
+            (guideKey.startsWith(channelKey) || channelKey.startsWith(guideKey))
+          )
+        );
+        for (const key of relatedKeys) addMatches(programmesByName.get(key) || []);
       }
+
       matches.sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
       map.set(channel.id, matches);
     }
@@ -304,7 +319,13 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     // a Play/Tune button on the scrolling parent can prevent its click event
     // from reaching the button, especially in TV browsers.
     const target = event.target;
-    if (target instanceof Element && target.closest('button, a, input, textarea, select, [role="button"]')) {
+    // Category pills are part of the horizontal scroll surface, so dragging
+    // should work even when the pointer starts directly on a pill. Keep other
+    // interactive controls click-only so Tune/Favorite buttons remain reliable.
+    const element = event.currentTarget;
+    if (element !== categoryScrollRef.current &&
+      target instanceof Element &&
+      target.closest('button, a, input, textarea, select, [role="button"]')) {
       dragStateRef.current = null;
       return;
     }
@@ -458,7 +479,8 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   // restart large XMLTV downloads. Changing the playlist guide still reloads it.
   const playlistEpgSource = activePlaylistEpgUrl?.trim() || '';
   useEffect(() => {
-    if (!hasConnectedForEpg) return;
+    // Load programme data as soon as the active playlist is known. Guide
+    // availability must not depend on a stream successfully connecting.
     let manualUrl = localStorage.getItem('ma9ictv-manual-epg-url')?.trim() || '';
     if (!legacyEpgResolved.current) {
       if (!manualUrl && legacySavedEpgUrl.current && legacySavedEpgUrl.current !== playlistEpgSource) {
@@ -939,6 +961,14 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                       className="relative flex-shrink-0 py-1.5"
                       style={{ width: `${(timeSlots.length - 1) * 30 * minuteWidthPx}px`, height: '60px' }}
                     >
+                      {programs.length === 0 && (
+                        <div
+                          className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-600 italic pointer-events-none"
+                          aria-label={xmltvProgrammes.length > 0 ? 'No matching programme listing for this channel' : 'Programme guide is loading or unavailable'}
+                        >
+                          {xmltvProgrammes.length > 0 ? 'No matching show listing' : isLoadingEpg ? 'Loading show listings…' : 'No show listing available'}
+                        </div>
+                      )}
                       {programs.map((prog) => {
                         const startMin = (prog.startTime.getTime() - timelineStartMs) / 60000;
                         const durationMin = (prog.stopTime.getTime() - prog.startTime.getTime()) / 60000;

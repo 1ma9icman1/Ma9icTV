@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 @import "tailwindcss";
 
 /* Wider, higher-contrast scrollbars for TV browsers and remote pointers */
@@ -98,7 +99,6 @@ select:focus-visible, textarea:focus-visible, video:focus-visible {
 
 
 /* Ma9icTV cinematic guide theme — visual overrides only; no playback/EPG logic. */
-@import url('https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
   color-scheme: dark;

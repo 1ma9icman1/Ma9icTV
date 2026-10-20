@@ -98,6 +98,16 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   // Gate the first EPG request on playback independently of channel pagination.
   const [currentTimeMs, setCurrentTimeMs] = useState(Date.now());
 
+  useEffect(() => {
+    const clearPersonalEpg = () => {
+      setExcludedEpgChannels([]);
+      setShowExcludedEpgChannels(false);
+      saveEpgExcludedChannels([]);
+    };
+    window.addEventListener('ma9ictv-storage-reset', clearPersonalEpg);
+    return () => window.removeEventListener('ma9ictv-storage-reset', clearPersonalEpg);
+  }, []);
+
   // Update clock every 30 seconds
   useEffect(() => {
     const timer = setInterval(() => {

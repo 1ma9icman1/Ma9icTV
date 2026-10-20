@@ -53,6 +53,7 @@ interface EpgGuideProps {
   onImportFavoriteChannels: (channels: Channel[]) => void;
   onNextChannel: () => void;
   onPrevChannel: () => void;
+  onStreamFailed: (channel: Channel, reason: string) => void;
   onOpenPlaylistModal: () => void;
   onExpandPlayer?: () => void;
   activePlaylistTitle: string;
@@ -70,6 +71,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   onImportFavoriteChannels,
   onNextChannel,
   onPrevChannel,
+  onStreamFailed,
   onOpenPlaylistModal,
   onExpandPlayer,
   activePlaylistTitle,
@@ -641,6 +643,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
             settings={settings}
             onNextChannel={onNextChannel}
             onPrevChannel={onPrevChannel}
+            onStreamFailed={onStreamFailed}
             isFavorite={selectedChannel ? favorites.includes(selectedChannel.id) : false}
             onToggleFavorite={() => selectedChannel && onToggleFavorite(selectedChannel.id)}
             mode="epg-preview"

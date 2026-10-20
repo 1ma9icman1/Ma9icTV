@@ -21,6 +21,9 @@ import {
   getActivePlaylistId,
   setActivePlaylistId,
   getFavorites,
+  saveFavorites,
+  getFavoriteChannels,
+  saveFavoriteChannels,
   toggleFavorite,
   getRecentlyPlayed,
   addRecentlyPlayed,
@@ -61,6 +64,15 @@ export default function App() {
 
   // Favorites and History
   const [favorites, setFavorites] = useState<string[]>(() => getFavorites());
+  const [favoriteChannels, setFavoriteChannels] = useState<Channel[]>(() => {
+    const favoriteIds = new Set(getFavorites());
+    const stored = getFavoriteChannels().filter((channel) => favoriteIds.has(channel.id));
+    const known = getSavedPlaylists().flatMap((playlist) => playlist.channels || [])
+      .filter((channel) => favoriteIds.has(channel.id));
+    const byId = new Map<string, Channel>();
+    [...stored, ...known].forEach((channel) => byId.set(channel.id, channel));
+    return [...byId.values()];
+  });
   const [recentlyPlayed, setRecentlyPlayed] = useState<Channel[]>(() => getRecentlyPlayed());
 
   // Settings
@@ -141,63 +153,63 @@ export default function App() {
       : selected;
   }, [playlists, activePlaylistIdState]);
 
-  // Load Pluto TV by default on startup, without opening the playlist picker.
+  // Load Samsung TV Plus by default on startup, without opening the playlist picker.
   // The normal playlist menu remains available for users to switch sources.
   useEffect(() => {
     let cancelled = false;
-    const loadDefaultPluto = async () => {
-      const plutoUrl = 'https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/plutotv_us.m3u';
-      const plutoId = 'default-pluto-tv-us';
+    const loadDefaultSamsung = async () => {
+      const samsungUrl = 'https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/samsungtvplus_us.m3u';
+      const samsungId = 'default-samsung-tv-plus-us';
       try {
         const response = await fetch('/api/parse-playlist', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: plutoUrl }),
+          body: JSON.stringify({ url: samsungUrl }),
         });
-        if (!response.ok) throw new Error('Unable to load Pluto TV playlist');
+        if (!response.ok) throw new Error('Unable to load Samsung TV Plus playlist');
         const data = await response.json();
-        if (!Array.isArray(data.items) || data.items.length === 0) throw new Error('Pluto TV returned no channels');
+        if (!Array.isArray(data.items) || data.items.length === 0) throw new Error('Samsung TV Plus returned no channels');
         if (cancelled) return;
 
         const channels: Channel[] = data.items.map((item: any, idx: number) => ({
-          id: `${plutoId}-ch-${idx}`,
-          name: item.name || 'Pluto TV Channel',
+          id: `${samsungId}-ch-${idx}`,
+          name: item.name || 'Samsung TV Plus Channel',
           url: item.url,
-          group: item.group?.title || 'Pluto TV',
+          group: item.group?.title || 'Samsung TV Plus',
           logo: item.tvg?.logo || undefined,
           tvgId: item.tvg?.id || undefined,
           tvgName: item.tvg?.name || undefined,
           isRadio: item.radio === 'true' || item.url?.endsWith('.mp3'),
           raw: item.raw,
         }));
-        const plutoPlaylist: Playlist = {
-          id: plutoId,
-          title: 'Pluto TV US',
-          url: plutoUrl,
+        const samsungPlaylist: Playlist = {
+          id: samsungId,
+          title: 'Samsung TV Plus US',
+          url: samsungUrl,
           type: 'm3u-url',
           channelCount: channels.length,
           addedAt: Date.now(),
           lastUpdated: Date.now(),
-          epgUrl: 'https://i.mjh.nz/PlutoTV/us.xml.gz',
+          epgUrl: 'https://i.mjh.nz/SamsungTVPlus/us.xml.gz',
           channels,
         };
         setPlaylists((prev) => {
-          const updated = [plutoPlaylist, ...prev.filter((playlist) => playlist.id !== plutoId && playlist.url !== plutoUrl)];
+          const updated = [samsungPlaylist, ...prev.filter((playlist) => playlist.id !== samsungId && playlist.url !== samsungUrl)];
           savePlaylists(updated);
           return updated;
         });
-        setActivePlaylistIdState(plutoId);
-        setActivePlaylistId(plutoId);
+        setActivePlaylistIdState(samsungId);
+        setActivePlaylistId(samsungId);
         const firstStream = getFirstStreamChannel(channels);
         if (firstStream) setSelectedChannel(firstStream);
         setCurrentView('epg');
         setIsSidebarCollapsed(true);
       } catch (error) {
         // Keep the built-in fallback stream playable if the Pluto playlist endpoint is unavailable.
-        console.warn('Ma9icTV: Could not auto-load Pluto TV; keeping the fallback playlist.', error);
+        console.warn('Ma9icTV: Could not auto-load Samsung TV Plus; keeping the fallback playlist.', error);
       }
     };
-    void loadDefaultPluto();
+    void loadDefaultSamsung();
     return () => { cancelled = true; };
   }, []);
 
@@ -219,11 +231,36 @@ export default function App() {
     setRecentlyPlayed(updatedRecents);
   }, []);
 
-  // Favorites toggle handler
+  // Persist favorite IDs for the UI and complete channel records for text backup/restore.
   const handleToggleFavorite = useCallback((channelId: string) => {
+    const lookup = new Map<string, Channel>();
+    [...favoriteChannels, ...playlists.flatMap((playlist) => playlist.channels || []), ...recentlyPlayed,
+      ...(selectedChannel ? [selectedChannel] : [])].forEach((channel) => lookup.set(channel.id, channel));
+    const target = lookup.get(channelId);
     const updated = toggleFavorite(channelId);
     setFavorites(updated);
-  }, []);
+    setFavoriteChannels((previous) => {
+      const next = previous.filter((channel) => channel.id !== channelId);
+      if (updated.includes(channelId) && target) next.unshift(target);
+      saveFavoriteChannels(next);
+      return next;
+    });
+  }, [favoriteChannels, playlists, recentlyPlayed, selectedChannel]);
+
+  const handleImportFavoriteChannels = useCallback((imported: Channel[]) => {
+    const available = new Map<string, Channel>();
+    [...playlists.flatMap((playlist) => playlist.channels || []), ...favoriteChannels, ...recentlyPlayed,
+      ...(selectedChannel ? [selectedChannel] : [])].forEach((channel) => available.set(channel.url, channel));
+    const resolved = imported.map((channel) => available.get(channel.url) || channel);
+    const byId = new Map<string, Channel>();
+    [...favoriteChannels, ...resolved].forEach((channel) => byId.set(channel.id, channel));
+    const nextChannels = [...byId.values()];
+    const nextIds = [...new Set([...favorites, ...resolved.map((channel) => channel.id)])];
+    saveFavorites(nextIds);
+    saveFavoriteChannels(nextChannels);
+    setFavorites(nextIds);
+    setFavoriteChannels(nextChannels);
+  }, [playlists, favoriteChannels, recentlyPlayed, selectedChannel, favorites]);
 
   // Next / Previous Channel Skip
   const handleNextChannel = useCallback(() => {
@@ -597,7 +634,9 @@ export default function App() {
               onSelectChannel={handleSelectChannel}
               settings={settings}
               favorites={favorites}
+              favoriteChannels={favoriteChannels}
               onToggleFavorite={handleToggleFavorite}
+              onImportFavoriteChannels={handleImportFavoriteChannels}
               onNextChannel={handleNextChannel}
               onPrevChannel={handlePrevChannel}
               onOpenPlaylistModal={() => setIsPlaylistModalOpen(true)}

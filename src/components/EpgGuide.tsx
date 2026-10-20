@@ -502,7 +502,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       setEpgLoadError('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePlaylistEpgUrl, hasConnectedForEpg]);
+  }, [activePlaylistEpgUrl]);
 
   const updateExcludedEpgChannel = (channel: Channel, exclude: boolean) => {
     setExcludedEpgChannels((previous) => {

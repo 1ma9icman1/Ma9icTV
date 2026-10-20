@@ -1,0 +1,42 @@
+name: Build Ma9icTV Windows EXE
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - "package.json"
+      - "server.ts"
+      - "electron-main.cjs"
+      - "src/**"
+      - "index.html"
+      - "vite.config.ts"
+      - ".github/workflows/build-windows-exe.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows-exe:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Install dependencies
+        run: npm install
+      - name: Build production UI
+        run: npm run build
+      - name: Package portable Windows executable
+        run: npx electron-builder --win portable
+      - name: Upload executable
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ma9icTV-Windows-Portable-EXE
+          path: release/*.exe
+          if-no-files-found: error
+          retention-days: 14

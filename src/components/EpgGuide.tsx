@@ -85,6 +85,8 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   const [hasConnectedForEpg, setHasConnectedForEpg] = useState(false);
   const [excludedEpgChannels, setExcludedEpgChannels] = useState<Channel[]>(() => getEpgExcludedChannels());
   const [showExcludedEpgChannels, setShowExcludedEpgChannels] = useState(false);
+  const [showFavoritePlaylist, setShowFavoritePlaylist] = useState(false);
+  const guideChannels = showFavoritePlaylist ? favoriteChannels : channels;
   const favoriteFileInputRef = useRef<HTMLInputElement | null>(null);
   const [epgLoadError, setEpgLoadError] = useState('');
   const [xmltvProgrammes, setXmltvProgrammes] = useState<EpgProgram[]>([]);
@@ -120,11 +122,11 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   // Extract all channel groups for categories
   const categories = useMemo(() => {
     const set = new Set<string>();
-    channels.forEach((c) => {
+    guideChannels.forEach((c) => {
       if (c.group && c.group.trim()) set.add(c.group.trim());
     });
     return ['All', ...Array.from(set).slice(0, 15)];
-  }, [channels]);
+  }, [guideChannels]);
 
   // Filter channels by category and search
   const excludedChannelKeys = useMemo(() => {
@@ -137,10 +139,10 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   }, [excludedEpgChannels]);
 
   const filteredChannels = useMemo(() => {
-    return channels.filter((c) => {
+    return guideChannels.filter((c) => {
       const isExcluded = excludedChannelKeys.has(`id:${c.id}`) ||
         excludedChannelKeys.has(`url:${String(c.url || '').trim().toLowerCase()}`);
-      if (showExcludedEpgChannels !== isExcluded) return false;
+      if (!showFavoritePlaylist && showExcludedEpgChannels !== isExcluded) return false;
       const matchCat = selectedCategory === 'All' || c.group?.toLowerCase() === selectedCategory.toLowerCase();
       if (!matchCat) return false;
       if (!searchQuery.trim()) return true;
@@ -151,14 +153,14 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
         c.tvgName?.toLowerCase().includes(q)
       );
     });
-  }, [channels, selectedCategory, searchQuery, excludedChannelKeys, showExcludedEpgChannels]);
+  }, [guideChannels, selectedCategory, searchQuery, excludedChannelKeys, showExcludedEpgChannels, showFavoritePlaylist]);
 
   // Start with 100 rows for a fast first render, then expand the guide in
   // background batches after a channel has been selected. This avoids making
   // playlist import or initial video startup wait for a huge guide render.
   useEffect(() => {
     setEpgPageLimit(100);
-  }, [channels, selectedCategory, searchQuery]);
+  }, [guideChannels, selectedCategory, searchQuery, showFavoritePlaylist]);
 
   useEffect(() => {
     setStreamConnectedForBatchLoad(false);
@@ -709,7 +711,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
           STAGE 2: FILTER & CONTROLS TOOLBAR
           ========================================================================= */}
       <div className="bg-slate-950 border-b border-slate-800/80 px-2 sm:px-4 py-2 flex flex-wrap items-center justify-between gap-2 sm:gap-3 z-10">
-        <div className="flex items-center">
+        <div className="flex items-center gap-2">
           <button
             onClick={scrollToNow}
             className="min-h-10 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-indigo-300 border border-slate-800 text-sm font-semibold flex items-center justify-center gap-2 transition-colors shadow-sm touch-manipulation"
@@ -719,11 +721,21 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
           </button>
         </div>
 
+        {/* Favorites playlist toggle sits immediately before the EPG loading indicator. */}
+        <button type="button" onClick={() => { setShowFavoritePlaylist((value) => !value); setShowExcludedEpgChannels(false); setSelectedCategory('All'); }}
+          aria-pressed={showFavoritePlaylist}
+          title={showFavoritePlaylist ? 'Return to the active playlist EPG' : `Load favorite channels in the EPG guide (${favoriteChannels.length})`}
+          disabled={favoriteChannels.length === 0}
+          className={`min-h-9 min-w-9 rounded-lg border flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${showFavoritePlaylist ? 'border-amber-400/60 bg-amber-400/15 text-amber-300' : 'border-slate-800 bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-amber-300'}`}
+          aria-label={showFavoritePlaylist ? 'Show active playlist EPG' : 'Load favorite playlist in EPG guide'}>
+          <Star className={`h-4 w-4 ${showFavoritePlaylist ? 'fill-current' : ''}`} />
+        </button>
+
         {/* EPG loading indicator */}
         <div className="flex min-w-[110px] flex-1 flex-col justify-center gap-1 px-1 sm:px-2" role="status" aria-live="polite" aria-label={isLoadingEpg ? "Loading EPG guide" : xmltvProgrammes.length > 0 ? "EPG guide loaded" : "EPG guide waiting"}>
           <div className="flex items-center justify-between gap-2 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider">
             <span className={isLoadingEpg ? "text-indigo-300" : xmltvProgrammes.length > 0 ? "text-emerald-400" : "text-slate-500"}>
-              {isLoadingEpg ? "Loading EPG" : xmltvProgrammes.length > 0 ? "EPG Loaded" : "EPG Guide"}
+              {showFavoritePlaylist ? 'Favorite Playlist' : isLoadingEpg ? "Loading EPG" : xmltvProgrammes.length > 0 ? "EPG Loaded" : "EPG Guide"}
             </span>
             {isLoadingEpg && <RefreshCw className="h-3 w-3 animate-spin text-indigo-400" />}
           </div>

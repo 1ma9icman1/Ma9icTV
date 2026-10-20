@@ -30,6 +30,7 @@ import {
   getSettings,
   saveSettings,
   resetAppStorage,
+  addBlacklistedChannel,
 } from './utils/storage';
 import { INITIAL_PRESETS, CATALOG_PLAYLISTS } from './data/presetPlaylists';
 
@@ -200,6 +201,48 @@ export default function App() {
     const updatedRecents = addRecentlyPlayed(channel);
     setRecentlyPlayed(updatedRecents);
   }, []);
+
+  // Streams that never begin playback within four seconds are persistently
+  // blacklisted, removed from every saved playlist, and replaced by the next
+  // channel. The blacklist entry records the channel name and timestamp.
+  const handleStreamFailed = useCallback((failedChannel: Channel, reason: string) => {
+    if (!failedChannel?.url) return;
+    console.warn('[Ma9icTV] dead stream noted and removed', {
+      name: failedChannel.name,
+      url: failedChannel.url,
+      reason,
+      at: new Date().toISOString(),
+    });
+    addBlacklistedChannel(failedChannel);
+
+    const currentChannels = activePlaylist?.channels || [];
+    const failedIndex = currentChannels.findIndex(
+      (item) => item.url.toLowerCase() === failedChannel.url.toLowerCase()
+        || item.id === failedChannel.id
+    );
+    const remainingChannels = currentChannels.filter(
+      (item) => item.url.toLowerCase() !== failedChannel.url.toLowerCase()
+        && item.id !== failedChannel.id
+    );
+    const nextChannel = remainingChannels.length > 0
+      ? remainingChannels[Math.min(Math.max(failedIndex, 0), remainingChannels.length - 1)]
+      : null;
+
+    setPlaylists((previous) => {
+      const updated = previous.map((playlist) => {
+        const channels = playlist.channels.filter(
+          (item) => item.url.toLowerCase() !== failedChannel.url.toLowerCase()
+            && item.id !== failedChannel.id
+        );
+        return channels.length === playlist.channels.length
+          ? playlist
+          : { ...playlist, channels, channelCount: channels.length };
+      });
+      savePlaylists(updated);
+      return updated;
+    });
+    setSelectedChannel(nextChannel);
+  }, [activePlaylist]);
 
   // Persist favorite IDs for the UI and complete channel records for text backup/restore.
   const handleToggleFavorite = useCallback((channelId: string) => {
@@ -593,6 +636,7 @@ export default function App() {
                 settings={settings}
                 onNextChannel={handleNextChannel}
                 onPrevChannel={handlePrevChannel}
+                onStreamFailed={handleStreamFailed}
                 isFavorite={selectedChannel ? favorites.includes(selectedChannel.id) : false}
                 onToggleFavorite={() => selectedChannel && handleToggleFavorite(selectedChannel.id)}
                 mode="full"

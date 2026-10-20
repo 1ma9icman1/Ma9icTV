@@ -438,38 +438,30 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     return () => window.removeEventListener('keydown', handleGuideKeys, { capture: true });
   }, []);
 
-  // Load one or more XMLTV sources. Worldwide/catalog playlists can use a
-  // comma-separated list of regional guides; sending that entire string to the
-  // parser as one URL made those playlists appear to have no EPG.
+  // The server accepts a comma-separated bundle and limits upstream XMLTV
+  // downloads to four at a time. Keep the bundle in one request; fanning it out
+  // from the browser launches eight large XMLTV parses concurrently and can
+  // overwhelm the server, causing every EPG request to fail.
   const handleLoadXmltv = async (showAlert = true, urlOverride?: string) => {
     const sourceUrl = (urlOverride ?? epgUrlInput).trim();
     if (!sourceUrl) return;
-    const sourceUrls = Array.from(new Set(sourceUrl.split(',').map((url) => url.trim()).filter(Boolean)));
     setIsLoadingEpg(true);
     setEpgLoadError('');
     try {
-      const results = await Promise.all(sourceUrls.map(async (url) => {
-        try {
-          const res = await fetch('/api/parse-epg', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url }),
-          });
-          if (!res.ok) throw new Error(`Failed to load XMLTV source: ${url}`);
-          const data = await res.json();
-          if (!Array.isArray(data.programmes)) throw new Error(`No XMLTV programmes returned by: ${url}`);
-          return data;
-        } catch (error) {
-          console.warn('Could not load XMLTV source:', url, error);
-          return null;
-        }
-      }));
-      const successfulResults = results.filter((data): data is { programmes: any[]; channels?: any[] } => !!data && Array.isArray(data.programmes));
-      const allProgrammes = successfulResults.flatMap((data) => data.programmes);
-      const allChannels = successfulResults.flatMap((data) => Array.isArray(data.channels) ? data.channels : []);
-      if (successfulResults.length === 0 || allProgrammes.length === 0) {
-        throw new Error('No XMLTV programmes could be loaded from the selected EPG source(s).');
+      const response = await fetch('/api/parse-epg', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: sourceUrl }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error || `EPG server returned HTTP ${response.status}`);
       }
+      if (!Array.isArray(data.programmes) || data.programmes.length === 0) {
+        throw new Error('The EPG server returned no programme data for the selected source(s).');
+      }
+      const allProgrammes = data.programmes;
+      const allChannels = Array.isArray(data.channels) ? data.channels : [];
 
       const now = Date.now();
       const seenProgrammes = new Set<string>();
@@ -513,8 +505,8 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       setXmltvProgrammes(parsed);
       localStorage.setItem('ma9ictv-epg-url', sourceUrl);
       if (showAlert) localStorage.setItem('ma9ictv-manual-epg-url', sourceUrl);
-      if (successfulResults.length < sourceUrls.length) {
-        setEpgLoadError(`Loaded guide data from ${successfulResults.length} of ${sourceUrls.length} EPG sources; some regional guides were unavailable.`);
+      if (Number(data.failedSourceCount) > 0) {
+        setEpgLoadError(`Loaded guide data from ${data.loadedSourceCount || 0} of ${data.sourceCount || 0} EPG sources; some regional guides were unavailable.`);
       }
     } catch (err: any) {
       console.error('Could not load XMLTV guide:', err);

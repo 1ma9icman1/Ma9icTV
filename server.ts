@@ -152,12 +152,17 @@ async function startServer() {
 
       const contentType = response.headers.get('content-type') || '';
       const safeTarget = `${parsedUrl.protocol}//${parsedUrl.host}${parsedUrl.pathname}`;
-      // Some IPTV CDNs incorrectly label binary AES key files (.key) as
-      // application/vnd.apple.mpegurl. Exclude them from manifest handling so
-      // their binary response body remains available to the HLS player.
-      const isKeyRequest = /\.key(?:$|\/)/i.test(parsedUrl.pathname);
-      const isManifestRequest = !isKeyRequest && (
+      const finalUrl = response.url || targetUrl;
+      const urlLower = targetUrl.toLowerCase();
+      const finalUrlLower = finalUrl.toLowerCase();
+
+      // Pluto and some IPTV CDNs serve binary AES keys (.key) with an
+      // HLS playlist MIME type. Detect by URL before inspecting the MIME type.
+      const isKeyPayload = /\.key(?:$|[?#/])/i.test(urlLower)
+        || /\.key(?:$|[?#/])/i.test(finalUrlLower);
+      const isManifestRequest = !isKeyPayload && (
         /\.m3u8(?:$|\/)/i.test(parsedUrl.pathname)
+        || /\.m3u8(?:$|\/)/i.test(new URL(finalUrl).pathname)
         || /mpegurl/i.test(contentType)
       );
 
@@ -181,22 +186,54 @@ async function startServer() {
           elapsedMs: Date.now() - startedAt,
         });
       }
-      const finalUrl = response.url || targetUrl;
-      const urlLower = targetUrl.toLowerCase();
-      const finalUrlLower = finalUrl.toLowerCase();
+      // AES keys are tiny binary resources, not HLS documents. Read the key
+      // once, correct the CDN's misleading MIME type, and send exact bytes.
+      // Key contents and URL query tokens are intentionally never logged.
+      if (isKeyPayload) {
+        const keyBytes = Buffer.from(await response.arrayBuffer());
+        console.info('[Ma9icTV proxy] AES key response', {
+          source: safeTarget,
+          status: response.status,
+          bytes: keyBytes.byteLength,
+          contentType,
+          elapsedMs: Date.now() - startedAt,
+        });
+        if (keyBytes.byteLength === 0) {
+          console.warn('[Ma9icTV proxy] AES key response was empty', { source: safeTarget });
+        }
+        res.setHeader('Content-Type', 'application/octet-stream');
+        res.setHeader('Content-Length', String(keyBytes.byteLength));
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.status(response.status).end(keyBytes);
+        return;
+      }
 
-      // Treat binary AES key files as media payloads even when a CDN sends a
-      // misleading HLS playlist content-type for them.
-      const isKeyPayload = /\.key(?:$|[?#/])/i.test(urlLower) || /\.key(?:$|[?#/])/i.test(finalUrlLower);
-      // Check whether this request is a video segment (.ts / .m4s / .mp4) or an M3U8 manifest.
+      // Classify common media segment extensions without MIME-type guesses.
       const isSegment =
-        isKeyPayload ||
         urlLower.includes('.ts') ||
         finalUrlLower.includes('.ts') ||
         urlLower.includes('.m4s') ||
         finalUrlLower.includes('.m4s') ||
         urlLower.includes('.mp4') ||
         finalUrlLower.includes('.mp4');
+
+      const finalHostname = new URL(finalUrl).hostname;
+      const isPlutoHost =
+        /(^|\.)plutotv\.net$/i.test(finalHostname) ||
+        /(^|\.)pluto\.tv$/i.test(finalHostname) ||
+        /(^|\.)jmp2\.uk$/i.test(finalHostname);
+      if (isPlutoHost && !isManifestRequest) {
+        console.info('[Ma9icTV proxy] Pluto media response', {
+          source: safeTarget,
+          finalHost: finalHostname,
+          status: response.status,
+          contentType,
+          contentLength: response.headers.get('content-length'),
+          isSegment,
+          elapsedMs: Date.now() - startedAt,
+        });
+      }
 
       const isM3u8 =
         !isSegment &&
@@ -213,20 +250,23 @@ async function startServer() {
           const rewrittenLines = text.split('\n').map((line) => {
             const trimmed = line.trim();
             if (!trimmed || trimmed.startsWith('#')) {
-              // Check for URI inside #EXT-X-KEY, #EXT-X-MAP, or #EXT-X-MEDIA
-              if (trimmed.startsWith('#EXT-X-KEY:') || trimmed.startsWith('#EXT-X-MAP:') || trimmed.startsWith('#EXT-X-MEDIA:')) {
-                return line.replace(/URI="([^"]+)"/, (_match, uri) => {
+              // Proxy URI-bearing HLS tags generically, including EXT-X-SESSION-KEY.
+              // Leave DRM and other non-HTTP URI schemes untouched.
+              if (trimmed.startsWith('#EXT-X-') && /\bURI\s*=\s*(?:"[^"]+"|'[^']+')/i.test(line)) {
+                return line.replace(/\bURI\s*=\s*(?:"([^"]+)"|'([^']+)')/i, (match, doubleQuoted, singleQuoted) => {
                   try {
-                    const resolvedUri = new URL(uri, finalUrl).toString();
-                    return `URI="/api/proxy?url=${encodeURIComponent(resolvedUri)}&${proxyParams}"`;
+                    const uri = doubleQuoted ?? singleQuoted;
+                    const resolved = new URL(uri, finalUrl);
+                    if (resolved.protocol !== 'http:' && resolved.protocol !== 'https:') return match;
+                    const proxiedUri = `/api/proxy?url=${encodeURIComponent(resolved.toString())}&${proxyParams}`;
+                    return match.replace(uri, proxiedUri);
                   } catch {
-                    return line;
+                    return match;
                   }
                 });
               }
               return line;
             }
-
             // Relative or absolute stream URI
             try {
               const fullUri = new URL(trimmed, finalUrl).toString();

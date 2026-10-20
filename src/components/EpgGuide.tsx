@@ -870,7 +870,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
         </button>
 
         {/* EPG loading indicator */}
-        <div className="flex min-w-[110px] flex-1 flex-col justify-center gap-1 px-1 sm:px-2" role="status" aria-live="polite" aria-label={isLoadingEpg ? "Loading EPG guide" : xmltvProgrammes.length > 0 ? "EPG guide loaded" : "EPG guide waiting"}>
+        <div className="flex min-w-[110px] flex-1 flex-col justify-center gap-1 px-1 sm:px-2" role="status" aria-live="polite" aria-label={isLoadingEpg ? "Loading EPG guide" : xmltvProgrammes.length > 0 ? `EPG loaded: ${xmltvProgrammes.length} programmes, ${epgMatchedChannelCount} channels matched` : "EPG guide waiting"}>
           <div className="flex items-center justify-between gap-2 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider">
             <span className={isLoadingEpg ? "text-indigo-300" : xmltvProgrammes.length > 0 ? "text-emerald-400" : "text-slate-500"}>
               {showFavoritePlaylist ? 'Favorite Playlist' : isLoadingEpg ? "Loading EPG" : xmltvProgrammes.length > 0 ? "EPG Loaded" : "EPG Guide"}

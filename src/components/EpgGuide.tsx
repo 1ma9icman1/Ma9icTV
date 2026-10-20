@@ -917,7 +917,13 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                   >
                     {/* Sticky Left Channel Card */}
                     <div
-                      onClick={() => onSelectChannel(channel)}
+                      onPointerDown={(event) => event.stopPropagation()}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        onSelectChannel(channel);
+                        setSelectedProgram(null);
+                      }}
                       className={`sticky left-0 z-20 w-[150px] sm:w-[260px] flex-shrink-0 px-2 sm:px-3 py-2.5 border-r border-slate-700 flex items-center justify-between gap-1 sm:gap-3 cursor-pointer select-none transition-colors ${
                         isSelected ? 'bg-[#1b1b46] text-white' : 'bg-[#070b12] text-slate-300'
                       }`}
@@ -1008,6 +1014,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                         return (
                           <div
                             key={prog.id}
+                            onPointerDown={(event) => event.stopPropagation()}
                             onClick={(event) => {
                               // Every visible programme block is a channel-tune target,
                               // whether it is in the past, live now, or scheduled later.

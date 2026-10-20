@@ -569,7 +569,11 @@ async function startServer() {
             const channel = String(programme['@_channel'] || '').trim();
             const start = String(programme['@_start'] || '').trim();
             const stop = String(programme['@_stop'] || '').trim();
-            const title = readXmlText(programme.title).trim();
+            const showTitle = readXmlText(programme.title).trim();
+            const episodeTitle = readXmlText(programme['sub-title']).trim();
+            const title = showTitle && episodeTitle && episodeTitle.toLocaleLowerCase() !== showTitle.toLocaleLowerCase()
+              ? `${showTitle} — ${episodeTitle}`
+              : (showTitle || episodeTitle);
             if (!channel || !start || !stop || !title) continue;
             const startMs = parseXmltvTimestampMs(start);
             const stopMs = parseXmltvTimestampMs(stop);

@@ -517,6 +517,6 @@ for (const playlist of CATALOG_PLAYLISTS) {
     const code = COUNTRY_EPG_CODES[playlist.name];
     if (code) playlist.epgUrl = `https://iptv-org.github.io/epg/guides/${code}.xml.gz`;
   } else if (playlist.category === 'Worldwide' || playlist.category === 'Categories') {
-    playlist.epgUrl = WORLDWIDE_EPG_CODES.join(',');
+    playlist.epgUrl = WORLDWIDE_EPG_SOURCES.join(',');
   }
 }

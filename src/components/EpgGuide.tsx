@@ -563,17 +563,19 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       localStorage.setItem('ma9ictv-epg-url', sourceUrl);
       const sources = sourceUrl.split(',').map((url) => url.trim()).filter(Boolean);
       if (sources.length > 1) {
-        // Fast first paint: load one regional XMLTV feed first, then fetch the
-        // remaining regions after the initial guide is visible.
+        // Load one region first, then progressively merge small regional batches.
+        // This keeps the first guide visible quickly without dropping sources
+        // after the old eight-source server limit.
         void (async () => {
-          await handleLoadXmltv(false, sources[0]);
+          await handleLoadXmltv(false, sources[0], false);
           if (cancelled) return;
-          await new Promise<void>((resolve) => window.setTimeout(resolve, 150));
-          if (cancelled) return;
-          await handleLoadXmltv(false, sources.slice(1).join(','), true);
+          for (let index = 1; index < sources.length; index += 4) {
+            if (cancelled) return;
+            await handleLoadXmltv(false, sources.slice(index, index + 4).join(','), true);
+          }
         })();
       } else {
-        void handleLoadXmltv(false, sourceUrl);
+        void handleLoadXmltv(false, sourceUrl, false);
       }
     } else {
       localStorage.removeItem('ma9ictv-epg-url');

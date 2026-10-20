@@ -93,10 +93,6 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   const [epgLoadError, setEpgLoadError] = useState('');
   const [xmltvProgrammes, setXmltvProgrammes] = useState<EpgProgram[]>([]);
   const [xmltvChannelAliases, setXmltvChannelAliases] = useState<Record<string, string[]>>({});
-  const [epgLoadStats, setEpgLoadStats] = useState<{
-    sourceCount: number; loadedSourceCount: number; failedSourceCount: number;
-  } | null>(null);
-
   const epgKnownChannelKeys = useMemo(() => {
     const keys = new Set<string>();
     Object.entries(xmltvChannelAliases).forEach(([id, names]) => {
@@ -873,7 +869,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
         <div className="flex min-w-[110px] flex-1 flex-col justify-center gap-1 px-1 sm:px-2" role="status" aria-live="polite" aria-label={isLoadingEpg ? "Loading EPG guide" : xmltvProgrammes.length > 0 ? `EPG loaded: ${xmltvProgrammes.length} programmes, ${epgMatchedChannelCount} channels matched` : "EPG guide waiting"}>
           <div className="flex items-center justify-between gap-2 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider">
             <span className={isLoadingEpg ? "text-indigo-300" : xmltvProgrammes.length > 0 ? "text-emerald-400" : "text-slate-500"}>
-              {showFavoritePlaylist ? 'Favorite Playlist' : isLoadingEpg ? "Loading EPG" : xmltvProgrammes.length > 0 ? "EPG Loaded" : "EPG Guide"}
+              {showFavoritePlaylist ? 'Favorite Playlist' : isLoadingEpg ? "Loading EPG" : xmltvProgrammes.length > 0 ? `EPG Loaded · ${xmltvProgrammes.length.toLocaleString()} programmes · ${epgMatchedChannelCount.toLocaleString()}/${guideChannels.length.toLocaleString()} matched` : "EPG Guide"}
             </span>
             {isLoadingEpg && <RefreshCw className="h-3 w-3 animate-spin text-indigo-400" />}
           </div>

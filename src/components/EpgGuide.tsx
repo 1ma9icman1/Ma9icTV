@@ -330,7 +330,6 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       return;
     }
 
-    const element = event.currentTarget;
     dragStateRef.current = {
       pointerId: event.pointerId,
       startX: event.clientX,

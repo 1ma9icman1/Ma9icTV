@@ -23,6 +23,37 @@ export function sanitizeChannelName(name: string): string {
   return cleaned || name.trim() || 'Channel';
 }
 
+/**
+ * Remove duplicate stream URLs while preserving the first channel's metadata and order.
+ * URL paths and query strings remain case-sensitive; only URL host casing/default ports
+ * and fragments are normalized. Different URLs for the same channel are retained as
+ * alternate feeds so a working regional/HD variant is not accidentally discarded.
+ */
+export function dedupeChannels(channels: Channel[]): Channel[] {
+  const seen = new Set<string>();
+  const unique: Channel[] = [];
+
+  for (const channel of channels) {
+    const rawUrl = String(channel.url || '').trim();
+    if (!rawUrl) continue;
+
+    let key = rawUrl;
+    try {
+      const parsed = new URL(rawUrl);
+      parsed.hash = '';
+      key = parsed.toString();
+    } catch {
+      key = rawUrl;
+    }
+
+    if (seen.has(key)) continue;
+    seen.add(key);
+    unique.push({ ...channel, url: rawUrl });
+  }
+
+  return unique;
+}
+
 export function parseM3uString(content: string, playlistId: string): Channel[] {
   const lines = content.split(/\r?\n/);
   const channels: Channel[] = [];
@@ -98,5 +129,5 @@ export function parseM3uString(content: string, playlistId: string): Channel[] {
     }
   }
 
-  return channels;
+  return dedupeChannels(channels);
 }

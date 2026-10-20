@@ -1,0 +1,186 @@
+#EXTM3U
+#PLAYLIST:Popular Travel IPTV - CODECS.COM
+
+#EXTINF:-1 tvg-id="ArubaTV.aw@SD" tvg-logo="https://i.imgur.com/9fWY09U.png" group-title="Travel",Aruba.TV (1080p)
+https://cdn01.setar.aw/Canal49/canal49/playlist.m3u8
+
+#EXTINF:-1 tvg-id="Aunar.ar@SD" tvg-logo="https://i.imgur.com/BfaCaZF.png" group-title="Culture;Travel",Aunar (1080p)
+http://190.128.214.97:64333/play/a057/index.m3u8
+
+#EXTINF:-1 tvg-id="BamBarBiaTV.ua@SD" tvg-logo="https://i.imgur.com/zdRvy87.png" group-title="Travel",BamBarBia.TV (720p) [Not 24/7]
+http://cdn1.live-tv.od.ua:8081/bbb/bbbtv-abr/playlist.m3u8
+
+#EXTINF:-1 tvg-id="BeachTVFloridaAlabama.us@SD" tvg-logo="https://i.imgur.com/weypM9C.png" group-title="Travel",Beach TV Florida & Alabama (720p)
+http://media4.tripsmarter.com:1935/LiveTV/DTVHD/playlist.m3u8
+
+#EXTINF:-1 tvg-id="BeachTVKeyWestFloridaKeys.us@SD" tvg-logo="https://i.imgur.com/XhDBdff.png" group-title="Travel",Beach TV Key West & Florida Keys (720p)
+https://5ed325193d4e1.streamlock.net:444/LiveTV/KTVHD/playlist.m3u8
+
+#EXTINF:-1 tvg-id="BeachTVMyrtleBeachTheGrandStrand.us@SD" tvg-logo="https://i.imgur.com/aLYz7Bv.png" group-title="Travel",Beach TV Myrtle Beach & The Grand Strand (720p)
+http://media4.tripsmarter.com:1935/LiveTV/MTVHD/playlist.m3u8
+
+#EXTINF:-1 tvg-id="BeachTVPanamaCity.us@SD" tvg-logo="https://i.imgur.com/HCQDvEe.png" group-title="Travel",Beach TV Panama City (720p)
+http://media4.tripsmarter.com:1935/LiveTV/BTVHD/playlist.m3u8
+
+#EXTINF:-1 tvg-id="ChileChannel.cl@SD" tvg-logo="https://i.imgur.com/F1it6fh.png" group-title="Entertainment;Travel",Chile Channel (720p)
+https://v2.tustreaming.cl/chilechannel/index.m3u8
+
+#EXTINF:-1 tvg-id="ChinaTravel.cn@SD" tvg-logo="https://i.imgur.com/vSgY3CD.png" group-title="Culture;Documentary;Travel",China Travel (1080p)
+https://fastlive.cctvplus.com/out/v1/ca6f9297b7314a63959435028af287fc/index.m3u8
+
+#EXTINF:-1 tvg-id="CostaRicaChannel.cr@SD" tvg-logo="https://i.imgur.com/N4pFVVF.png" group-title="Culture;Travel",Costa Rica Channel (576p) [Not 24/7]
+https://video0.rogohosting.com:19360/8006/8006.m3u8
+
+#EXTINF:-1 tvg-id="DestinationAmerica.us@SD" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/5/57/Destination_America_logo.svg/960px-Destination_America_logo.svg.png" group-title="Travel",Destination America (720p)
+http://23.237.104.106:8080/USA_DESTINATION_AMERICA/index.m3u8
+
+#EXTINF:-1 tvg-id="DiscoverPakistan.pk@SD" tvg-logo="https://i.imgur.com/IJH47fJ.png" group-title="Travel",Discover Pakistan (1080p)
+https://livecdn.live247stream.com/discoverpakistan/web/playlist.m3u8
+
+#EXTINF:-1 tvg-id="DroneTV.us@SD" tvg-logo="https://i.ibb.co/S71C9RJC/dronetv.webp" group-title="Relax;Travel",DroneTV (1080p)
+https://airvuz-dronetv-1-us.ohlscdn.wurl.tv/playlist.m3u8
+
+#EXTINF:-1 tvg-id="FunRoads.us@SD" tvg-logo="https://i.imgur.com/2Q6TENm.png" group-title="Auto;Travel",Fun Roads (720p)
+https://stream-us-east-1.getpublica.com/playlist.m3u8?network_id=978
+
+#EXTINF:-1 tvg-id="GlazamiTurista.ru@SD" tvg-logo="https://i.imgur.com/GXJKWdy.png" group-title="Travel",Glazami Turista (576i)
+https://stream8.cinerama.uz/1423/tracks-v1a1/mono.m3u8
+
+#EXTINF:-1 tvg-id="GoTraveler.us@SD" tvg-logo="https://i.imgur.com/IaRcN1G.png" group-title="Travel",GoTraveler (720p) [Geo-blocked]
+https://amg09501-amg09501c1-klowdtv-us-2398.playouts.now.amagi.tv/playlist/amg09501-quester-gotraveler-klowdtvus/playlist.m3u8
+
+#EXTINF:-1 tvg-id="GuangxiVarietyTravelChannel.cn@SD" tvg-logo="https://www.tvchinese.net/uploads/tv/gxzypd.jpg" group-title="General;Travel",Guangxi Variety & Travel Channel
+http://111.59.24.227:8181/tsfile/live/1001_1.m3u8?key=txiptv&playlive=1&authid=0
+
+#EXTINF:-1 tvg-id="INTRAVEL.nl@Philippines" tvg-logo="https://jiotvimages.cdn.jio.com/dare_images/images/Intravel.png" group-title="Travel",INTRAVEL (1080p)
+https://amg00861-amg00861c10-rakuten-uk-3152.playouts.now.amagi.tv/playlist.m3u8
+
+#EXTINF:-1 tvg-id="JamaicaTravelChannel.jm@SD" tvg-logo="https://i.imgur.com/ewdPTh8.png" group-title="Travel",Jamaica Travel Channel (720p)
+https://stream-207076.castr.net/651b2d8bde8119abf5dabf19/live_2e935360c78c11eea7a2615e1a7388f3/index.m3u8
+
+#EXTINF:-1 tvg-id="Journy.us@SD" tvg-logo="https://i.imgur.com/1JNrLxq.png" group-title="Travel",Journy (720p)
+https://d3s3a5c7f101eb.cloudfront.net/playlist.m3u8
+
+#EXTINF:-1 tvg-id="KNOVCD411.us@HD" tvg-logo="https://i.imgur.com/D7Lzqyl.png" group-title="Travel",KNOV-CD 41.1 (720p)
+http://media4.tripsmarter.com:1935/LiveTV/NOTVHD/playlist.m3u8
+
+#EXTINF:-1 tvg-id="LivingAsiaChannel.ph@HD" tvg-logo="https://i.imgur.com/q3UToRM.png" group-title="Travel",Living Asia Channel (1080p)
+https://cdn.vegasplus.us/vegas/lac/playlist.m3u8
+
+#EXTINF:-1 tvg-id="MaldivesTV.mv@SD" tvg-logo="https://i.imgur.com/Zl2FmFC.png" group-title="Travel",Maldives TV (720p)
+https://lana.psm.mv/live/mtv.m3u8
+
+#EXTINF:-1 tvg-id="Moyastikhiya.ru@HD" tvg-logo="https://i.imgur.com/Sl8c9eB.png" group-title="Travel",Moya stikhiya HD (1080p)
+http://stream.mcquack.net/141/index.m3u8
+
+#EXTINF:-1 tvg-id="OEPMTV.do@SD" tvg-logo="https://i.imgur.com/QghtwMB.jpeg" group-title="Travel",OEPM TV (720p)
+https://cnn.hostlagarto.com/oepmtelevision/tracks-v1a1/mono.m3u8
+
+#EXTINF:-1 tvg-id="PalmBeachesTV.us@SD" tvg-logo="https://i.imgur.com/kBol4Pf.png" group-title="Travel",Palm Beaches TV (720p)
+https://live.feed.thepalmbeaches.tv/index.m3u8
+
+#EXTINF:-1 tvg-id="PeerTVAltoAdige.it@SD" tvg-logo="https://www.peer.biz/peertv-iptv/peer-tv-alto-adige.png" group-title="Outdoor;Travel",Peer TV Alto Adige (1280p)
+https://iptv.peer.biz/live/peertv-it.m3u8
+
+#EXTINF:-1 tvg-id="PeerTVSouthTyrol.it@SD" tvg-logo="https://www.peer.biz/peertv-iptv/peer-tv-south-tyrol.png" group-title="Outdoor;Travel",Peer TV South Tyrol (1280p)
+https://iptv.peer.biz/live/peertv-en.m3u8
+
+#EXTINF:-1 tvg-id="PeerTVSudtirol.it@SD" tvg-logo="https://www.peer.biz/peertv-iptv/peer-tv-suedtirol.png" group-title="Outdoor;Travel",Peer TV Sudtirol (1080p)
+https://iptv.peer.biz/live/peertv.m3u8
+
+#EXTINF:-1 tvg-id="PoconoTelevisionNetwork.us@HD" tvg-logo="https://i.imgur.com/et6giFo.png" group-title="Travel",Pocono Television Network (1080p)
+https://dfoiz3dv1euv7.cloudfront.net/ptnlive-s3/live1.m3u8
+
+#EXTINF:-1 tvg-id="RTGint.ru@SD" tvg-logo="https://i.imgur.com/ZpUNou4.png" group-title="Travel",like Gecko) Chrome/149.0.0.0 Safari/537.3" group-title="Travel",RTG int.
+http://213.91.179.28:8000/play/a0bw
+
+#EXTINF:-1 tvg-id="RTGTV.ru@SD" tvg-logo="https://i.imgur.com/ZMKPAho.png" group-title="Travel",RTG TV (720p)
+http://31.148.48.15/RTG_HD/index.m3u8
+
+#EXTINF:-1 tvg-id="RTGTV.ru@HD" tvg-logo="https://i.imgur.com/ZMKPAho.png" group-title="Travel",RTG TV HD (1080p)
+http://stream.mcquack.net/164/index.m3u8
+
+#EXTINF:-1 tvg-id="SchladmingDachsteinTV.at@SD" tvg-logo="https://i.ibb.co/VjnzhMM/Logo-Schl-Dachstein-TV-HP-JPG.jpg" group-title="Travel",Schladming-Dachstein TV (720p)
+https://m317.video-stream-hosting.de/gzSoftware-live/_definst_/smil:livestream.smil/playlist.m3u8
+
+#EXTINF:-1 tvg-id="SpaceLivepoweredbysen.uk@SD" tvg-logo="https://static.frequency.com/studio/itv/channels/1224-400x200.png" group-title="Relax;Travel",Space Live powered by sen (1080p)
+https://linear-1224.frequency.stream/dist/lg-uk/1224/hls/master/playlist.m3u8
+
+#EXTINF:-1 tvg-id="SunChannel.ve@SD" tvg-logo="https://i.imgur.com/B26qL3e.png" group-title="Travel",Sun Channel (720p)
+http://168.196.127.137:6001/play/a06p/index.m3u8
+
+#EXTINF:-1 tvg-id="TanzaniaSafariChannel.tz@SD" tvg-logo="https://i.imgur.com/fcLFYhn.png" group-title="Travel",Tanzania Safari Channel (576p)
+https://stream-134630.castr.net/5fe35eae8c53540cab83659a/live_31dabe40323511f08b8efff0016f3b67/index.m3u8
+
+#EXTINF:-1 tvg-id="Teleputeshestviya.ru@SD" tvg-logo="https://i.imgur.com/eXJm1n3.png" group-title="Travel",Teleputeshestviya (576p)
+http://31.148.48.15/Teleputeshestviya/index.m3u8
+
+#EXTINF:-1 tvg-id="Teletur.do@SD" tvg-logo="https://i.imgur.com/Ig4gR93.png" group-title="Travel",Teletur (720p) [Not 24/7]
+https://fox.hostlagarto.com:8081/teleturtv/tracks-v1a1/mono.m3u8
+
+#EXTINF:-1 tvg-id="TravelBoxBrazil.br@SD" tvg-logo="https://i.imgur.com/3tBJERH.png" group-title="Travel",Travel Box Brazil (720p)
+http://168.197.104.22/TRAVEL_BOX_BRASIL/index.m3u8
+
+#EXTINF:-1 tvg-id="TravelChannel.pl@SD" tvg-logo="https://upload.wikimedia.org/wikipedia/commons/thumb/0/00/Travel_Channel_logo-cerulean_blue.png/960px-Travel_Channel_logo-cerulean_blue.png" group-title="Travel",Travel Channel (Poland) (576i)
+http://92.114.85.87:8011/play/a00d/index.m3u8
+
+#EXTINF:-1 tvg-id="TravelMix.ro@SD" tvg-logo="https://i.imgur.com/4dMeEQO.png" group-title="Travel",Travel Mix (576p)
+http://rpprod.hbbtv.cdn.cra.cz:8080/hbbTV/cme-ro-travel-mix/live_hq?offsetSeconds=0
+
+#EXTINF:-1 tvg-id="TravelTV.bg@SD" tvg-logo="https://i.imgur.com/5xllfed.png" group-title="Travel",Travel TV (576p)
+https://streamer103.neterra.tv/travel/live.m3u8
+
+#EXTINF:-1 tvg-id="TravelPlusAdventure.ru@SD" tvg-logo="https://i.imgur.com/AlpdXC4.png" group-title="Travel",Travel+Adventure (1080p)
+http://31.148.48.15/Travel_Adventure_HD/index.m3u8
+
+#EXTINF:-1 tvg-id="TravelPlusAdventure.ru@HD" tvg-logo="https://i.imgur.com/AlpdXC4.png" group-title="Travel",Travel+Adventure HD (1080p)
+http://stream.mcquack.net/206/index.m3u8
+
+#EXTINF:-1 tvg-id="Travelxp.in@4KHDR" tvg-logo="https://xstreamcp-assets-msp.streamready.in/assets/LIVETV/LIVECHANNEL/LIVETV_LIVETVCHANNEL_TRAVELXP/images/LOGO_HD/image.png" group-title="Travel",Travelxp 4K HDR (2160p) [Geo-blocked]
+https://deltatesttatasky.akamaized.net/out/i/968284.m3u8
+
+#EXTINF:-1 tvg-id="Travelxp.in@HD" tvg-logo="https://xstreamcp-assets-msp.streamready.in/assets/LIVETV/LIVECHANNEL/LIVETV_LIVETVCHANNEL_TRAVELXP/images/LOGO_HD/image.png" group-title="Travel",Travelxp HD (1080p)
+http://103.151.60.162:2122/play/a01s/index.m3u8?hls
+
+#EXTINF:-1 tvg-id="Travelxp.in@Russia" tvg-logo="https://xstreamcp-assets-msp.streamready.in/assets/LIVETV/LIVECHANNEL/LIVETV_LIVETVCHANNEL_TRAVELXP/images/LOGO_HD/image.png" group-title="Travel",Travelxp Russia (1080p)
+http://stream.mcquack.net/451/index.m3u8
+
+#EXTINF:-1 tvg-id="TurismoRDTV.do@HD" tvg-logo="https://www.vivalivetv.com/public/files/shows/0/1/3800-294x165-FFFFFF.jpg" group-title="Travel",Turismo RDTV (720p)
+https://streamunoapp.com:3086/live/telemileniolive.m3u8
+
+#EXTINF:-1 tvg-id="TurismoTravelTV.cl@SD" tvg-logo="https://i.imgur.com/4ixl8Px.png" group-title="Travel",Turismo Travel TV
+https://stmv3.voxtvhd.com.br/turismotraveltv/turismotraveltv/playlist.m3u8
+
+#EXTINF:-1 tvg-id="TuristikTV.mx@SD" tvg-logo="https://i.imgur.com/g9j0ze8.png" group-title="Travel",Turistik TV (720p)
+https://cdn1.cef-technology.com/stream_web/turistik/playlist.m3u8
+
+#EXTINF:-1 tvg-id="TVOFF.bo@SD" tvg-logo="https://i.imgur.com/vBe1GgI.png" group-title="Travel",TV OFF (1080p)
+https://edge.enhdtv.com/tvoff/index.m3u8
+
+#EXTINF:-1 tvg-id="TVPaprika.cz@SD" tvg-logo="https://i.imgur.com/NSabYyT.png" group-title="Lifestyle;Travel",like Gecko) Chrome/120.0.0.0 Safari/537.36" group-title="Lifestyle;Travel",TV Paprika (Czech Republic)
+http://88.212.15.17/live/test_parpika_tv_sd_hevc/playlist.m3u8
+
+#EXTINF:-1 tvg-id="TVPaprika.hu@SD" tvg-logo="https://i.imgur.com/KLpZIS6.png" group-title="Lifestyle;Travel",like Gecko) Chrome/120.0.0.0 Safari/537.36" group-title="Lifestyle;Travel",TV Paprika (Hungary)
+http://88.212.15.17/live/parpika_hun/index.m3u8
+
+#EXTINF:-1 tvg-id="TVPaprika.ro@SD" tvg-logo="https://i.imgur.com/3fuXBHT.png" group-title="Lifestyle;Travel",like Gecko) Chrome/130.0.0.0 Safari/537.36 VLC/3.0.18 LibVLC/3.0.18" group-title="Lifestyle;Travel",TV Paprika (Romania)
+https://galandriel1.thobias11.cfd/papi/usergendxs3jk0s9nd.m3u8
+
+#EXTINF:-1 tvg-id="TVParanaTurismo.br@SD" tvg-logo="https://i.imgur.com/I6pKoBd.png" group-title="Travel",TV Parana Turismo (720p) [Not 24/7]
+http://200.189.113.201/hls/tve.m3u8
+
+#EXTINF:-1 tvg-id="TVSayohi.tj@SD" tvg-logo="https://i.imgur.com/lAkMrtr.png" group-title="Travel",TV Sayohi (1080p)
+https://live.teleradiocom.tj/16/3m.m3u8
+
+#EXTINF:-1 tvg-id="TVSTravelNetwork.us@SD" tvg-logo="https://i.imgur.com/vSFf5Ce.png" group-title="Travel",TVS Travel Network (720p) [Not 24/7]
+https://rpn.bozztv.com/gusa/gusa-tvstravel/index.m3u8
+
+#EXTINF:-1 tvg-id="VinhLongTV4.vn@SD" tvg-logo="https://i.imgur.com/ARhIkvR.png" group-title="Culture;Entertainment;Sports;Travel",Vinh Long TV 4 (720p)
+https://dethich.pw/thvl4/index.m3u8
+
+#EXTINF:-1 tvg-id="Vkus.ru@SD" tvg-logo="https://www.cableman.ru/sites/default/files/logo%20%287%29%20%281%29.png" group-title="Travel",Vkus (576p)
+http://178.134.1.158:8081/vkus/index.m3u8
+
+#EXTINF:-1 tvg-id="VoyagesSaveurs.es@FR" tvg-logo="https://images.pluto.tv/channels/680291e38e1ff89c2427aefd/colorLogoPNG_1749650211442.png" group-title="Lifestyle;Travel",Voyages & Saveurs (720p)
+https://jmp2.uk/plu-680291e38e1ff89c2427aefd.m3u8
+

@@ -440,17 +440,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           if (playPromise !== undefined) {
             playPromise
               .then(() => setIsPlaying(true))
-              .catch(async () => {
-                // Browsers commonly block autoplay with sound. Retry muted so the
-                // selected channel starts automatically; the viewer can unmute anytime.
-                try {
-                  video.muted = true;
-                  setIsMuted(true);
-                  await video.play();
-                  setIsPlaying(true);
-                } catch {
-                  setIsPlaying(false);
-                }
+              .catch(() => {
+                // Never silently fall back to muted playback. Keep the requested
+                // volume enabled; browsers that block audible autoplay can start
+                // playback after the viewer presses Play.
+                video.muted = false;
+                video.volume = Math.max(0.01, volumeRef.current);
+                setIsMuted(false);
+                setIsPlaying(false);
               });
           }
         });
@@ -549,17 +546,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           // Metadata only means the stream was found; wait for the playing event.
           const playPromise = video.play();
           if (playPromise !== undefined) {
-            playPromise.then(() => setIsPlaying(true)).catch(async () => {
-              // Audible autoplay may be blocked by browser policy. Retry muted so
-              // channel changes still start automatically without a Play click.
-              try {
-                video.muted = true;
-                setIsMuted(true);
-                await video.play();
-                setIsPlaying(true);
-              } catch {
-                setIsPlaying(false);
-              }
+            playPromise.then(() => setIsPlaying(true)).catch(() => {
+              // Keep audio enabled if autoplay is blocked; do not start muted.
+              video.muted = false;
+              video.volume = Math.max(0.01, volumeRef.current);
+              setIsMuted(false);
+              setIsPlaying(false);
             });
           }
         };
@@ -669,12 +661,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }, [volume, onNextChannel, onPrevChannel]);
 
   const togglePlay = () => {
-    if (!videoRef.current) return;
+    const video = videoRef.current;
+    if (!video) return;
     if (isPlaying) {
-      videoRef.current.pause();
+      video.pause();
       setIsPlaying(false);
     } else {
-      videoRef.current.play().then(() => setIsPlaying(true)).catch(console.error);
+      // A direct user gesture is the most reliable way to satisfy autoplay
+      // restrictions while ensuring playback starts with sound.
+      video.muted = false;
+      video.volume = Math.max(0.01, volumeRef.current);
+      setIsMuted(false);
+      video.play().then(() => setIsPlaying(true)).catch((error) => {
+        console.warn('[Ma9icTV playback] Play with sound was blocked or failed', error);
+        setIsPlaying(false);
+      });
     }
   };
 

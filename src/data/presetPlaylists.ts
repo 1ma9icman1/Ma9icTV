@@ -484,12 +484,23 @@ const COUNTRY_EPG_CODES: Record<string, string> = {
   Mexico: 'mx',
 };
 
+// iptv-org publishes country-specific merged XMLTV guides. There is no single
+// universal guide file, so worldwide/category playlists progressively combine
+// the regional guides that are most likely to cover their channels.
+const WORLDWIDE_EPG_CODES = [
+  'us', 'uk', 'ca', 'au', 'nz', 'ie', 'fr', 'de', 'es', 'it',
+  'pt', 'nl', 'za', 'in', 'jp', 'kr', 'ph', 'br', 'mx',
+];
+
 for (const playlist of CATALOG_PLAYLISTS) {
-  if (playlist.epgUrl) continue;
+  // Do not change the working EPG configuration for streaming services.
+  if (playlist.epgUrl || playlist.category === 'Streaming Services') continue;
   if (playlist.category === 'Countries') {
     const code = COUNTRY_EPG_CODES[playlist.name];
     if (code) playlist.epgUrl = `https://iptv-org.github.io/epg/guides/${code}.xml.gz`;
   } else if (playlist.category === 'Worldwide' || playlist.category === 'Categories') {
-    playlist.epgUrl = 'https://iptv-org.github.io/epg/guides/us.xml.gz,https://iptv-org.github.io/epg/guides/uk.xml.gz,https://iptv-org.github.io/epg/guides/ca.xml.gz,https://iptv-org.github.io/epg/guides/au.xml.gz,https://iptv-org.github.io/epg/guides/nz.xml.gz,https://iptv-org.github.io/epg/guides/ie.xml.gz,https://iptv-org.github.io/epg/guides/fr.xml.gz,https://iptv-org.github.io/epg/guides/de.xml.gz';
+    playlist.epgUrl = WORLDWIDE_EPG_CODES
+      .map((code) => `https://iptv-org.github.io/epg/guides/${code}.xml.gz`)
+      .join(',');
   }
 }

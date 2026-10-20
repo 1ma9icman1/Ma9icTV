@@ -656,7 +656,8 @@ export default function App() {
               onImportFavoriteChannels={handleImportFavoriteChannels}
               onNextChannel={handleNextChannel}
               onPrevChannel={handlePrevChannel}
-              onOpenPlaylistModal={() => setIsPlaylistModalOpen(true)}
+              onStreamFailed={handleStreamFailed}
+               onOpenPlaylistModal={() => setIsPlaylistModalOpen(true)}
               onExpandPlayer={() => setCurrentView('player')}
               activePlaylistTitle={activePlaylist.title}
               activePlaylistEpgUrl={activePlaylist.epgUrl}

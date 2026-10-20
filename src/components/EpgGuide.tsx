@@ -438,57 +438,83 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     return () => window.removeEventListener('keydown', handleGuideKeys, { capture: true });
   }, []);
 
-  // Handle loading XMLTV URL
+  // Load one or more XMLTV sources. Worldwide/catalog playlists can use a
+  // comma-separated list of regional guides; sending that entire string to the
+  // parser as one URL made those playlists appear to have no EPG.
   const handleLoadXmltv = async (showAlert = true, urlOverride?: string) => {
     const sourceUrl = (urlOverride ?? epgUrlInput).trim();
     if (!sourceUrl) return;
+    const sourceUrls = Array.from(new Set(sourceUrl.split(',').map((url) => url.trim()).filter(Boolean)));
     setIsLoadingEpg(true);
     setEpgLoadError('');
     try {
-      const res = await fetch('/api/parse-epg', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: sourceUrl }),
+      const results = await Promise.all(sourceUrls.map(async (url) => {
+        try {
+          const res = await fetch('/api/parse-epg', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url }),
+          });
+          if (!res.ok) throw new Error(`Failed to load XMLTV source: ${url}`);
+          const data = await res.json();
+          if (!Array.isArray(data.programmes)) throw new Error(`No XMLTV programmes returned by: ${url}`);
+          return data;
+        } catch (error) {
+          console.warn('Could not load XMLTV source:', url, error);
+          return null;
+        }
+      }));
+      const successfulResults = results.filter((data): data is { programmes: any[]; channels?: any[] } => !!data && Array.isArray(data.programmes));
+      const allProgrammes = successfulResults.flatMap((data) => data.programmes);
+      const allChannels = successfulResults.flatMap((data) => Array.isArray(data.channels) ? data.channels : []);
+      if (successfulResults.length === 0 || allProgrammes.length === 0) {
+        throw new Error('No XMLTV programmes could be loaded from the selected EPG source(s).');
+      }
+
+      const now = Date.now();
+      const seenProgrammes = new Set<string>();
+      const parsed: EpgProgram[] = allProgrammes.flatMap((p: any) => {
+        const startMs = parseXmltvDate(p.start).getTime();
+        const stopMs = parseXmltvDate(p.stop).getTime();
+        // Discard malformed records rather than inventing times or generic titles.
+        if (!p.channel || !p.title?.trim() || !Number.isFinite(startMs) || !Number.isFinite(stopMs) || stopMs <= startMs) return [];
+        const title = String(p.title).trim();
+        const channelId = String(p.channel).trim();
+        const programmeKey = `${channelId.toLowerCase()}|${startMs}|${stopMs}|${title.toLowerCase()}`;
+        if (seenProgrammes.has(programmeKey)) return [];
+        seenProgrammes.add(programmeKey);
+        const isLive = now >= startMs && now < stopMs;
+        const progress = isLive ? Math.max(0, Math.min(100, Math.round(((now - startMs) / (stopMs - startMs)) * 100))) : 0;
+        return [{
+          id: `xmltv-${parsed.length}-${seenProgrammes.size}`,
+          channelId,
+          title,
+          desc: p.desc || '',
+          category: p.category || '',
+          start: new Date(startMs).toISOString(),
+          stop: new Date(stopMs).toISOString(),
+          startTime: new Date(startMs),
+          stopTime: new Date(stopMs),
+          isLive,
+          progress,
+        }];
       });
-      if (!res.ok) throw new Error('Failed to load XMLTV file');
-      const data = await res.json();
-      if (data.programmes && Array.isArray(data.programmes)) {
-        const now = Date.now();
-        const parsed: EpgProgram[] = data.programmes.flatMap((p: any, idx: number) => {
-          const startMs = parseXmltvDate(p.start).getTime();
-          const stopMs = parseXmltvDate(p.stop).getTime();
-          // Discard malformed records rather than inventing times or generic titles.
-          if (!p.channel || !p.title?.trim() || !Number.isFinite(startMs) || !Number.isFinite(stopMs) || stopMs <= startMs) return [];
-          const isLive = now >= startMs && now < stopMs;
-          const progress = isLive ? Math.max(0, Math.min(100, Math.round(((now - startMs) / (stopMs - startMs)) * 100))) : 0;
-          return [{
-            id: `xmltv-${idx}`,
-            channelId: String(p.channel).trim(),
-            title: String(p.title).trim(),
-            desc: p.desc || '',
-            category: p.category || '',
-            start: new Date(startMs).toISOString(),
-            stop: new Date(stopMs).toISOString(),
-            startTime: new Date(startMs),
-            stopTime: new Date(stopMs),
-            isLive,
-            progress,
-          }];
-        });
-        const aliases: Record<string, string[]> = {};
-        (Array.isArray(data.channels) ? data.channels : []).forEach((channel: any) => {
-          const id = String(channel.id || '').trim().toLowerCase();
-          if (!id) return;
-          const names = Array.isArray(channel.names) ? channel.names : [channel.name].filter(Boolean);
-          aliases[id] = names.map((name: unknown) => String(name).trim()).filter(Boolean);
-        });
-        setXmltvChannelAliases(aliases);
-        setXmltvProgrammes(parsed);
-        localStorage.setItem('ma9ictv-epg-url', sourceUrl);
-        if (showAlert) localStorage.setItem('ma9ictv-manual-epg-url', sourceUrl);
-        if (parsed.length === 0) throw new Error('The XMLTV file contained no valid programme titles and times.');
-      } else {
-        throw new Error('The server returned no XMLTV programmes.');
+
+      const aliases: Record<string, string[]> = {};
+      allChannels.forEach((channel: any) => {
+        const id = String(channel.id || '').trim().toLowerCase();
+        if (!id) return;
+        const names = Array.isArray(channel.names) ? channel.names : [channel.name].filter(Boolean);
+        const mergedNames = [...(aliases[id] || []), ...names.map((name: unknown) => String(name).trim()).filter(Boolean)];
+        aliases[id] = Array.from(new Set(mergedNames));
+      });
+      if (parsed.length === 0) throw new Error('The XMLTV source(s) contained no valid programme titles and times.');
+      setXmltvChannelAliases(aliases);
+      setXmltvProgrammes(parsed);
+      localStorage.setItem('ma9ictv-epg-url', sourceUrl);
+      if (showAlert) localStorage.setItem('ma9ictv-manual-epg-url', sourceUrl);
+      if (successfulResults.length < sourceUrls.length) {
+        setEpgLoadError(`Loaded guide data from ${successfulResults.length} of ${sourceUrls.length} EPG sources; some regional guides were unavailable.`);
       }
     } catch (err: any) {
       console.error('Could not load XMLTV guide:', err);

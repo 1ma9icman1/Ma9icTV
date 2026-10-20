@@ -444,7 +444,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   // downloads to four at a time. Keep the bundle in one request; fanning it out
   // from the browser launches eight large XMLTV parses concurrently and can
   // overwhelm the server, causing every EPG request to fail.
-  const handleLoadXmltv = async (showAlert = true, urlOverride?: string) => {
+  const handleLoadXmltv = async (showAlert = true, urlOverride?: string, append = false) => {
     const sourceUrl = (urlOverride ?? epgUrlInput).trim();
     if (!sourceUrl) return;
     setIsLoadingEpg(true);
@@ -503,8 +503,25 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
         aliases[id] = Array.from(new Set(mergedNames));
       });
       if (parsed.length === 0) throw new Error('The XMLTV source(s) contained no valid programme titles and times.');
-      setXmltvChannelAliases(aliases);
-      setXmltvProgrammes(parsed);
+      // Publish the first regional guide immediately. Additional regions are
+      // merged later, so the guide is useful before every large XMLTV feed finishes.
+      setXmltvChannelAliases((previous) => {
+        if (!append) return aliases;
+        const merged: Record<string, string[]> = { ...previous };
+        Object.entries(aliases).forEach(([id, names]) => {
+          merged[id] = Array.from(new Set([...(merged[id] || []), ...names]));
+        });
+        return merged;
+      });
+      setXmltvProgrammes((previous) => {
+        if (!append) return parsed;
+        const merged = new Map<string, EpgProgram>();
+        [...previous, ...parsed].forEach((programme) => {
+          const key = `${programme.channelId.toLowerCase()}|${programme.start}|${programme.stop}|${programme.title.toLowerCase()}`;
+          if (!merged.has(key)) merged.set(key, programme);
+        });
+        return Array.from(merged.values());
+      });
       localStorage.setItem('ma9ictv-epg-url', sourceUrl);
       if (showAlert) localStorage.setItem('ma9ictv-manual-epg-url', sourceUrl);
       if (Number(data.failedSourceCount) > 0) {
@@ -539,13 +556,28 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     setXmltvChannelAliases({});
     setEpgUrlInput(sourceUrl);
 
+    let cancelled = false;
     if (sourceUrl) {
       localStorage.setItem('ma9ictv-epg-url', sourceUrl);
-      void handleLoadXmltv(false, sourceUrl);
+      const sources = sourceUrl.split(',').map((url) => url.trim()).filter(Boolean);
+      if (sources.length > 1) {
+        // Fast first paint: load one regional XMLTV feed first, then fetch the
+        // remaining regions after the initial guide is visible.
+        void (async () => {
+          await handleLoadXmltv(false, sources[0]);
+          if (cancelled) return;
+          await new Promise<void>((resolve) => window.setTimeout(resolve, 150));
+          if (cancelled) return;
+          await handleLoadXmltv(false, sources.slice(1).join(','), true);
+        })();
+      } else {
+        void handleLoadXmltv(false, sourceUrl);
+      }
     } else {
       localStorage.removeItem('ma9ictv-epg-url');
       setEpgLoadError('');
     }
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activePlaylistEpgUrl]);
 

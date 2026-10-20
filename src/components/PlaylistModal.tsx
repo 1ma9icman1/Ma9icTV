@@ -91,36 +91,38 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
   if (!isOpen) return null;
 
   // Import a playlist by URL helper
-  const importPlaylistByUrl = async (targetUrl: string, targetTitle?: string, customUA?: string, targetEpgUrl?: string) => {
+  const importPlaylistByUrl = async (targetUrl: string, targetTitle?: string, customUA?: string, targetEpgUrl?: string, sourceUrls?: string[]) => {
     setIsLoading(true);
     setLoadingItemUrl(targetUrl);
     setErrorMsg(null);
 
     try {
       const playlistId = `pl-${Date.now()}`;
-      const response = await fetch('/api/parse-playlist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          url: targetUrl.trim(),
-          userAgent: customUA?.trim() || undefined,
-        }),
-      });
-
-      if (!response.ok) {
-        let reason = response.statusText || 'Request failed';
-        try {
-          const errorData = await response.json();
-          reason = errorData?.error || errorData?.details || reason;
-        } catch {
-          // Keep the HTTP status text if the server did not return JSON.
+      const urls = Array.from(new Set([targetUrl, ...(sourceUrls || [])].map((value) => value.trim()).filter(Boolean)));
+      const results = await Promise.all(urls.map(async (sourceUrl) => {
+        const response = await fetch('/api/parse-playlist', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: sourceUrl, userAgent: customUA?.trim() || undefined }),
+        });
+        if (!response.ok) {
+          let reason = response.statusText || 'Request failed';
+          try {
+            const errorData = await response.json();
+            reason = errorData?.error || errorData?.details || reason;
+          } catch {
+            // Keep the HTTP status text if the server did not return JSON.
+          }
+          throw new Error(`Failed to load ${sourceUrl} (HTTP ${response.status}): ${reason}`);
         }
-        throw new Error(`Failed to load playlist (HTTP ${response.status}): ${reason}`);
-      }
-
-      const data = await response.json();
+        return response.json();
+      }));
+      const data = {
+        items: results.flatMap((result: any) => Array.isArray(result.items) ? result.items : []),
+        header: results.find((result: any) => result.header?.urlTvg)?.header || results[0]?.header || {},
+      };
       if (!data.items || data.items.length === 0) {
-        throw new Error('Playlist contains no valid stream entries.');
+        throw new Error('The selected collection returned no valid stream entries.');
       }
 
       const channels: Channel[] = dedupeChannels(data.items.map((item: any, idx: number) => ({
@@ -176,7 +178,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
 
   // Handle 1-click catalog import
   const handleLoadCatalogItem = async (item: CatalogPlaylist) => {
-    await importPlaylistByUrl(item.url, item.name, undefined, item.epgUrl);
+    await importPlaylistByUrl(item.url, item.name, undefined, item.epgUrl, item.sourceUrls);
   };
 
   // Handle local file upload

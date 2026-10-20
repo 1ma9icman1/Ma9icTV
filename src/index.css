@@ -200,3 +200,58 @@ select:focus-visible, textarea:focus-visible, video:focus-visible {
 @media (max-width: 767px) {
   [class*="bg-slate-950/95"] { background-color: rgba(5, 12, 24, .98) !important; }
 }
+
+/* EPG refinement: stronger channel rail, readable programme cards, and clear live focus. */
+[data-testid="epg-guide"], .epg-guide {
+  isolation: isolate;
+}
+[class*="min-w-"] [class*="h-12"][class*="rounded-xl"][class*="cursor-pointer"] {
+  min-height: 48px;
+  border-radius: 9px !important;
+  padding: 7px 9px !important;
+  background-image: linear-gradient(145deg, rgba(20, 38, 59, .92), rgba(10, 22, 38, .96));
+  border-color: rgba(112, 151, 190, .22) !important;
+}
+[class*="min-w-"] [class*="h-12"][class*="rounded-xl"][class*="cursor-pointer"]:hover {
+  border-color: rgba(54, 228, 247, .72) !important;
+  background-image: linear-gradient(145deg, rgba(20, 61, 81, .96), rgba(15, 30, 51, .98));
+  box-shadow: 0 0 0 1px rgba(54, 228, 247, .08), 0 5px 18px rgba(0, 0, 0, .18);
+}
+[class*="min-w-"] [class*="h-12"][class*="rounded-xl"][class*="cursor-pointer"] h5 {
+  color: #e6f3ff;
+  font-size: 11px;
+  letter-spacing: .005em;
+}
+[class*="min-w-"] [class*="h-12"][class*="rounded-xl"][class*="cursor-pointer"] span {
+  color: #9eb5ca;
+}
+[class*="min-w-"] [class*="h-12"][class*="rounded-xl"][class*="cursor-pointer"][class*="bg-indigo-600"] {
+  background-image: linear-gradient(120deg, rgba(8, 127, 156, .96), rgba(47, 71, 145, .96)) !important;
+  border-color: rgba(91, 237, 255, .9) !important;
+  box-shadow: inset 3px 0 0 #57efff, 0 0 16px rgba(54, 228, 247, .12);
+}
+[class*="h-12"][class*="rounded-xl"][class*="cursor-pointer"] .animate-pulse {
+  box-shadow: 0 0 0 3px rgba(54, 228, 247, .10), 0 0 10px rgba(54, 228, 247, .7);
+}
+[class*="text-xs"][class*="font-semibold"][class*="truncate"] {
+  letter-spacing: .01em;
+}
+[class*="sticky"][class*="left-0"][class*="bg-slate-950"] {
+  background: rgba(5, 12, 24, .97) !important;
+  backdrop-filter: blur(12px);
+}
+button, [role="button"] {
+  -webkit-tap-highlight-color: transparent;
+}
+@media (min-width: 768px) {
+  [class*="min-w-"] [class*="h-12"][class*="rounded-xl"][class*="cursor-pointer"] {
+    min-height: 50px;
+  }
+}
+@media (max-width: 767px) {
+  [class*="min-w-"] [class*="h-12"][class*="rounded-xl"][class*="cursor-pointer"] {
+    padding: 6px 7px !important;
+    border-radius: 8px !important;
+  }
+}
+

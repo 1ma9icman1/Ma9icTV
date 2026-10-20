@@ -484,9 +484,9 @@ const COUNTRY_EPG_CODES: Record<string, string> = {
   Mexico: 'mx',
 };
 
-// iptv-org publishes country-specific merged XMLTV guides. There is no single
-// universal guide file, so worldwide/category playlists progressively combine
-// the regional guides that are most likely to cover their channels.
+// iptv-org publishes provider-specific XMLTV files inside country folders;
+// the old /guides/us.xml.gz-style URLs are no longer valid. Combine working
+// provider feeds across regions for the worldwide and category playlists.
 const WORLDWIDE_EPG_SOURCES = [
   'https://iptv-org.github.io/epg/guides/us/directv.com.epg.xml.gz',
   'https://iptv-org.github.io/epg/guides/us/tvguide.com.epg.xml.gz',

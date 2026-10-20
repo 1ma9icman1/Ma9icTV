@@ -339,7 +339,11 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       active: false,
       suppressClick: false,
     };
-    try { element.setPointerCapture(event.pointerId); } catch { /* capture may be unavailable on some TV browsers */ }
+    // Avoid pointer capture on the category bar: capture retargets pointerup
+    // away from a pill and can prevent a normal category click from firing.
+    if (element !== categoryScrollRef.current) {
+      try { element.setPointerCapture(event.pointerId); } catch { /* capture may be unavailable on some TV browsers */ }
+    }
   };
 
   const handleDragPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {

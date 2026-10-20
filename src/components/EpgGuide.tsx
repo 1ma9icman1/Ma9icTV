@@ -125,7 +125,9 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     guideChannels.forEach((c) => {
       if (c.group && c.group.trim()) set.add(c.group.trim());
     });
-    return ['All', ...Array.from(set).slice(0, 15)];
+    // Do not cap this list: genre playlists can include dozens of countries
+    // and regional groups, and every one must remain reachable by scrolling.
+    return ['All', ...Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }))];
   }, [guideChannels]);
 
   // Filter channels by category and search
@@ -829,12 +831,12 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       </div>
 
       {/* Category Pills Bar */}
-      <div ref={categoryScrollRef} onPointerDown={handleDragPointerDown} onPointerMove={handleDragPointerMove} onPointerUp={handleDragPointerUp} onPointerCancel={handleDragPointerUp} onClickCapture={handleDragClickCapture} className="bg-slate-950/60 border-b border-slate-800/60 px-4 py-1.5 overflow-x-auto flex items-center gap-1.5 no-scrollbar cursor-grab active:cursor-grabbing select-none" style={{ touchAction: "pan-x", WebkitOverflowScrolling: "touch" }} aria-label="Scrollable channel categories">
+      <div ref={categoryScrollRef} onPointerDown={handleDragPointerDown} onPointerMove={handleDragPointerMove} onPointerUp={handleDragPointerUp} onPointerCancel={handleDragPointerUp} onClickCapture={handleDragClickCapture} className="bg-slate-950/60 border-b border-slate-800/60 px-4 py-1.5 overflow-x-auto overflow-y-hidden flex flex-nowrap items-center gap-1.5 cursor-grab active:cursor-grabbing select-none" style={{ touchAction: "pan-x", WebkitOverflowScrolling: "touch", scrollbarWidth: "thin", scrollbarColor: "#6366f1 #0f172a" }} aria-label="Scrollable channel categories">
         {categories.map((cat) => (
           <button
             key={cat}
             onClick={() => setSelectedCategory(cat)}
-            className={`px-3 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-all ${
+            className={`flex-shrink-0 px-3 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-all ${
               selectedCategory === cat
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'

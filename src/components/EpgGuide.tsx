@@ -623,6 +623,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
         {/* Left: Live Video Player Preview Stage */}
         <div className="w-full h-full min-h-0 flex-shrink-0 relative">
           <VideoPlayer
+            key={selectedChannel?.id || selectedChannel?.url || 'no-channel'}
             channel={selectedChannel}
             settings={settings}
             onNextChannel={onNextChannel}

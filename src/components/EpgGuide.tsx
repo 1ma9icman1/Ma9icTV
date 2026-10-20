@@ -480,7 +480,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
         const isLive = now >= startMs && now < stopMs;
         const progress = isLive ? Math.max(0, Math.min(100, Math.round(((now - startMs) / (stopMs - startMs)) * 100))) : 0;
         return [{
-          id: `xmltv-${seenProgrammes.size}`,
+          id: `xmltv-${encodeURIComponent(channelId)}-${startMs}-${stopMs}`,
           channelId,
           title,
           desc: p.desc || '',
@@ -522,8 +522,10 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
         });
         return Array.from(merged.values());
       });
-      localStorage.setItem('ma9ictv-epg-url', sourceUrl);
-      if (showAlert) localStorage.setItem('ma9ictv-manual-epg-url', sourceUrl);
+      if (showAlert) {
+        localStorage.setItem('ma9ictv-epg-url', sourceUrl);
+        localStorage.setItem('ma9ictv-manual-epg-url', sourceUrl);
+      }
       if (Number(data.failedSourceCount) > 0) {
         setEpgLoadError(`Loaded guide data from ${data.loadedSourceCount || 0} of ${data.sourceCount || 0} EPG sources; some regional guides were unavailable.`);
       }

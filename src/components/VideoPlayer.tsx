@@ -115,6 +115,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const hlsRef = useRef<Hls | null>(null);
   const startupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const startupStartedAtRef = useRef<number>(0);
+  const playbackStartedRef = useRef(false);
   const failedStartupRef = useRef<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
@@ -338,6 +339,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       startupTimeoutRef.current = setTimeout(() => {
         startupTimeoutRef.current = null;
         if (videoRef.current !== video || !channel) return;
+        // A fallback attempt may recreate this timer after playback already began.
+        // Never classify a stream as dead once this channel has actually played.
+        if (playbackStartedRef.current) return;
         if (failedStartupRef.current === channel.url) return;
         failedStartupRef.current = channel.url;
         console.warn('[Ma9icTV playback] marked stream unavailable after 4 seconds; removing and moving on', {
@@ -589,6 +593,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   useEffect(() => {
     startupStartedAtRef.current = Date.now();
+    playbackStartedRef.current = false;
     failedStartupRef.current = null;
     initPlayer();
     return () => {
@@ -830,6 +835,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               setIsPlaying(true);
               setIsLoading(false);
               setErrorMsg(null);
+              playbackStartedRef.current = true;
               failedStartupRef.current = null;
               onStreamConnected?.();
             }}

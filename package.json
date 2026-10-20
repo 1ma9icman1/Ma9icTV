@@ -10,7 +10,9 @@
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
     "desktop:dev": "npm run build && electron .",
-    "desktop:pack": "npm run build && electron-builder --win portable"
+    "desktop:pack": "npm run build && electron-builder --win portable",
+    "m3u:check": "node scripts/check-m3u.cjs",
+    "m3u:check:apply": "node scripts/check-m3u.cjs --apply"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

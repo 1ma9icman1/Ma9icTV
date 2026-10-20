@@ -4,6 +4,11 @@ import {
   Clock,
   Search,
   Upload,
+  Download,
+  FileUp,
+  Star,
+  Plus,
+  Minus,
   Link as LinkIcon,
   Play,
   RefreshCw,
@@ -21,6 +26,7 @@ import {
 } from 'lucide-react';
 import { Channel, EpgProgram, AppSettings } from '../types';
 import { VideoPlayer } from './VideoPlayer';
+import { getEpgExcludedChannels, saveEpgExcludedChannels } from '../utils/storage';
 
 function normalizeEpgName(value: string): string {
   return value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
@@ -42,7 +48,9 @@ interface EpgGuideProps {
   onSelectChannel: (channel: Channel) => void;
   settings: AppSettings;
   favorites: string[];
+  favoriteChannels: Channel[];
   onToggleFavorite: (channelId: string) => void;
+  onImportFavoriteChannels: (channels: Channel[]) => void;
   onNextChannel: () => void;
   onPrevChannel: () => void;
   onOpenPlaylistModal: () => void;
@@ -57,7 +65,9 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   onSelectChannel,
   settings,
   favorites,
+  favoriteChannels,
   onToggleFavorite,
+  onImportFavoriteChannels,
   onNextChannel,
   onPrevChannel,
   onOpenPlaylistModal,
@@ -72,6 +82,10 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   const [epgUrlInput, setEpgUrlInput] = useState(() => localStorage.getItem('ma9ictv-epg-url') || '');
   const [isLoadingEpg, setIsLoadingEpg] = useState(false);
   const [streamConnectedForBatchLoad, setStreamConnectedForBatchLoad] = useState(false);
+  const [hasConnectedForEpg, setHasConnectedForEpg] = useState(false);
+  const [excludedEpgChannels, setExcludedEpgChannels] = useState<Channel[]>(() => getEpgExcludedChannels());
+  const [showExcludedEpgChannels, setShowExcludedEpgChannels] = useState(false);
+  const favoriteFileInputRef = useRef<HTMLInputElement | null>(null);
   const [epgLoadError, setEpgLoadError] = useState('');
   const [xmltvProgrammes, setXmltvProgrammes] = useState<EpgProgram[]>([]);
   const [xmltvChannelAliases, setXmltvChannelAliases] = useState<Record<string, string[]>>({});
@@ -81,8 +95,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   const dragStateRef = useRef<{ pointerId: number; startX: number; startY: number; scrollLeft: number; scrollTop: number; active: boolean; suppressClick: boolean } | null>(null);
   const legacySavedEpgUrl = useRef(localStorage.getItem('ma9ictv-epg-url') || '');
   const legacyEpgResolved = useRef(false);
-  // Defer the initial EPG request until the first stream starts successfully.
-  const initialStreamHasConnected = useRef(false);
+  // Gate the first EPG request on playback independently of channel pagination.
   const [currentTimeMs, setCurrentTimeMs] = useState(Date.now());
 
   // Update clock every 30 seconds
@@ -104,8 +117,20 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   }, [channels]);
 
   // Filter channels by category and search
+  const excludedChannelKeys = useMemo(() => {
+    const keys = new Set<string>();
+    excludedEpgChannels.forEach((channel) => {
+      if (channel.id) keys.add(`id:${channel.id}`);
+      if (channel.url) keys.add(`url:${channel.url.trim().toLowerCase()}`);
+    });
+    return keys;
+  }, [excludedEpgChannels]);
+
   const filteredChannels = useMemo(() => {
     return channels.filter((c) => {
+      const isExcluded = excludedChannelKeys.has(`id:${c.id}`) ||
+        excludedChannelKeys.has(`url:${String(c.url || '').trim().toLowerCase()}`);
+      if (showExcludedEpgChannels !== isExcluded) return false;
       const matchCat = selectedCategory === 'All' || c.group?.toLowerCase() === selectedCategory.toLowerCase();
       if (!matchCat) return false;
       if (!searchQuery.trim()) return true;
@@ -116,7 +141,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
         c.tvgName?.toLowerCase().includes(q)
       );
     });
-  }, [channels, selectedCategory, searchQuery]);
+  }, [channels, selectedCategory, searchQuery, excludedChannelKeys, showExcludedEpgChannels]);
 
   // Start with 100 rows for a fast first render, then expand the guide in
   // background batches after a channel has been selected. This avoids making
@@ -417,11 +442,11 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     }
   };
 
-  // On initial page load, start the stream before requesting EPG data.
-  // Once the first stream connects, later playlist changes load EPG normally.
+  // Load the guide after the first successful stream; channel changes must not
+  // restart large XMLTV downloads. Changing the playlist guide still reloads it.
   const playlistEpgSource = activePlaylistEpgUrl?.trim() || '';
   useEffect(() => {
-    if (!initialStreamHasConnected.current) return;
+    if (!hasConnectedForEpg) return;
     let manualUrl = localStorage.getItem('ma9ictv-manual-epg-url')?.trim() || '';
     if (!legacyEpgResolved.current) {
       if (!manualUrl && legacySavedEpgUrl.current && legacySavedEpgUrl.current !== playlistEpgSource) {
@@ -444,7 +469,87 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       setEpgLoadError('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePlaylistEpgUrl, streamConnectedForBatchLoad]);
+  }, [activePlaylistEpgUrl, hasConnectedForEpg]);
+
+  const updateExcludedEpgChannel = (channel: Channel, exclude: boolean) => {
+    setExcludedEpgChannels((previous) => {
+      const matches = (item: Channel) => item.id === channel.id ||
+        item.url.trim().toLowerCase() === channel.url.trim().toLowerCase();
+      const next = exclude ? [...previous.filter((item) => !matches(item)), channel] : previous.filter((item) => !matches(item));
+      saveEpgExcludedChannels(next);
+      return next;
+    });
+  };
+
+  const exportFavoritesText = () => {
+    const lines = [
+      '# Ma9icTV Favorites & Personal EPG v1',
+      ...favoriteChannels.map((channel) => JSON.stringify({ type: 'favorite', channel })),
+      ...excludedEpgChannels.map((channel) => JSON.stringify({ type: 'epg-excluded', channel })),
+    ];
+    const file = new Blob([lines.join('\r\n')], { type: 'text/plain;charset=utf-8' });
+    const objectUrl = URL.createObjectURL(file);
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = 'ma9ictv-favorites.txt';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  };
+
+  const importFavoritesText = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      const rawText = (await file.text()).trim();
+      let records: unknown[] = [];
+      try {
+        const parsed: unknown = JSON.parse(rawText);
+        if (Array.isArray(parsed)) records = parsed;
+        else if (parsed && typeof parsed === 'object' && Array.isArray((parsed as any).channels)) records = (parsed as any).channels;
+        else records = [parsed];
+      } catch {
+        records = rawText.split(/\r?\n/).map((line) => line.trim())
+          .filter((line) => line && !line.startsWith('#')).map((line) => JSON.parse(line));
+      }
+      const validChannel = (value: unknown): value is Channel => {
+        if (!value || typeof value !== 'object') return false;
+        const channel = value as Partial<Channel>;
+        return typeof channel.id === 'string' && typeof channel.name === 'string' &&
+          typeof channel.url === 'string' &&
+          (channel.url.startsWith('https://') || channel.url.startsWith('http://'));
+      };
+      const importedFavorites: Channel[] = [];
+      const importedExcluded: Channel[] = [];
+      for (const record of records) {
+        if (!record || typeof record !== 'object') continue;
+        const row = record as any;
+        if (row.type === 'favorite' && validChannel(row.channel)) importedFavorites.push(row.channel);
+        else if (row.type === 'epg-excluded' && validChannel(row.channel)) importedExcluded.push(row.channel);
+        else if (validChannel(row.channel)) importedFavorites.push(row.channel);
+        else if (validChannel(row)) importedFavorites.push(row);
+      }
+      if (!importedFavorites.length && !importedExcluded.length) {
+        throw new Error('No valid favorites or personal EPG entries were found in this text file.');
+      }
+      if (importedFavorites.length) onImportFavoriteChannels(importedFavorites);
+      if (importedExcluded.length) {
+        setExcludedEpgChannels((previous) => {
+          const byUrl = new Map<string, Channel>();
+          [...previous, ...importedExcluded].forEach((channel) => byUrl.set(channel.url.trim().toLowerCase(), channel));
+          const next = [...byUrl.values()];
+          saveEpgExcludedChannels(next);
+          return next;
+        });
+      }
+      alert(`Loaded ${importedFavorites.length} favorite(s) and ${importedExcluded.length} excluded EPG channel(s).`);
+    } catch (error: any) {
+      alert(error?.message || 'Could not read the favorites text file.');
+    } finally {
+      event.target.value = '';
+    }
+  };
 
   return (
     <div className="flex-1 min-h-0 min-w-0 flex flex-col h-full bg-[#0a0e17] text-slate-100 overflow-hidden select-none">
@@ -464,7 +569,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
             mode="epg-preview"
             onExpandPlayer={onExpandPlayer}
             onStreamConnected={() => {
-              initialStreamHasConnected.current = true;
+              setHasConnectedForEpg(true);
               setStreamConnectedForBatchLoad(true);
             }}
           />
@@ -628,7 +733,29 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
             className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-3 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
           />
         </div>
-
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <input ref={favoriteFileInputRef} type="file" accept=".txt,text/plain,.json,application/json"
+            className="hidden" onChange={importFavoritesText} aria-label="Import favorites and personal EPG file" />
+          <button type="button" onClick={exportFavoritesText}
+            disabled={favoriteChannels.length === 0 && excludedEpgChannels.length === 0}
+            title="Export favorites and personal EPG exclusions to a reloadable text file"
+            className="min-h-9 px-2.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 text-slate-300 text-xs font-semibold flex items-center gap-1.5">
+            <Download className="w-3.5 h-3.5" /><span className="hidden md:inline">Export</span>
+          </button>
+          <button type="button" onClick={() => favoriteFileInputRef.current?.click()}
+            title="Reload favorites and personal EPG from text file"
+            className="min-h-9 px-2.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold flex items-center gap-1.5">
+            <FileUp className="w-3.5 h-3.5" /><span className="hidden md:inline">Import</span>
+          </button>
+          <button type="button" onClick={() => setShowExcludedEpgChannels((value) => !value)}
+            aria-pressed={showExcludedEpgChannels}
+            title={showExcludedEpgChannels ? 'Return to personal EPG channels' : 'Manage channels removed from personal EPG'}
+            className={`min-h-9 px-2.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 ${showExcludedEpgChannels ? 'border-amber-500/50 bg-amber-500/10 text-amber-200' : 'border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300'}`}>
+            {showExcludedEpgChannels ? <Plus className="w-3.5 h-3.5" /> : <Minus className="w-3.5 h-3.5" />}
+            <span className="hidden sm:inline">{showExcludedEpgChannels ? 'Restore channels' : 'Personal EPG'}</span>
+            <span>({excludedEpgChannels.length})</span>
+          </button>
+        </div>
       </div>
 
       {/* Category Pills Bar */}
@@ -702,6 +829,8 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
             <div className="flex flex-col divide-y divide-slate-800/50">
               {filteredChannels.slice(0, epgPageLimit).map((channel, cIdx) => {
                 const isSelected = selectedChannel?.id === channel.id;
+                const isFavorite = favorites.includes(channel.id);
+                const isExcluded = showExcludedEpgChannels;
                 const programs = channelSchedules.get(channel.id) || [];
 
                 return (
@@ -721,10 +850,18 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                       }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">
-                        {/* Channel Number / Index */}
-                        <span className="hidden sm:block text-[11px] font-mono font-bold text-slate-500 w-5 text-right flex-shrink-0">
-                          {cIdx + 1}
-                        </span>
+                        {/* Channel number and personal EPG include/exclude toggle */}
+                        <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
+                          <span className="hidden sm:block text-[11px] font-mono font-bold text-slate-500 w-5 text-right">
+                            {cIdx + 1}
+                          </span>
+                          <button type="button" onClick={(e) => { e.stopPropagation(); updateExcludedEpgChannel(channel, !isExcluded); }}
+                            className={`p-1 rounded-md transition-colors ${isExcluded ? 'text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20' : 'text-slate-600 hover:text-amber-300 hover:bg-slate-800'}`}
+                            title={isExcluded ? 'Add channel back to personal EPG' : 'Remove channel from personal EPG'}
+                            aria-label={isExcluded ? `Add ${channel.name} back to personal EPG` : `Remove ${channel.name} from personal EPG`}>
+                            {isExcluded ? <Plus className="w-3.5 h-3.5" /> : <Minus className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
 
                         {/* Logo */}
                         <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-slate-900 border border-slate-800 p-0.5 flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -751,21 +888,20 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                         </div>
                       </div>
 
-                      {/* Play Button Indicator */}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onSelectChannel(channel);
-                        }}
-                        className={`p-2 sm:p-1.5 rounded-lg transition-colors flex-shrink-0 ${
-                          isSelected
-                            ? 'bg-indigo-600 text-white shadow-sm'
-                            : 'text-slate-500 hover:text-white hover:bg-slate-800'
-                        }`}
-                        title="Tune Channel"
-                      >
-                        <Play className="w-3.5 h-3.5 fill-current" />
-                      </button>
+                      <div className="flex items-center gap-0.5 flex-shrink-0">
+                        <button type="button" onClick={(e) => { e.stopPropagation(); onToggleFavorite(channel.id); }}
+                          className={`p-1.5 rounded-lg transition-colors ${isFavorite ? 'text-amber-300 bg-amber-400/10' : 'text-slate-500 hover:text-amber-300 hover:bg-slate-800'}`}
+                          title={isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
+                          aria-label={isFavorite ? `Remove ${channel.name} from Favorites` : `Add ${channel.name} to Favorites`}
+                          aria-pressed={isFavorite}>
+                          <Star className={`w-3.5 h-3.5 ${isFavorite ? 'fill-current' : ''}`} />
+                        </button>
+                        <button type="button" onClick={(e) => { e.stopPropagation(); onSelectChannel(channel); }}
+                          className={`p-2 sm:p-1.5 rounded-lg transition-colors flex-shrink-0 ${isSelected ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-white hover:bg-slate-800'}`}
+                          title="Tune Channel" aria-label={`Tune ${channel.name}`}>
+                          <Play className="w-3.5 h-3.5 fill-current" />
+                        </button>
+                      </div>
                     </div>
 
                     {/* Timeline Program Blocks */}

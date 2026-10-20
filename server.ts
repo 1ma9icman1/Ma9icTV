@@ -7,8 +7,6 @@ import { Readable } from 'stream';
 import parser from 'iptv-playlist-parser';
 import { XMLParser } from 'fast-xml-parser';
 
-process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -17,8 +15,9 @@ async function startServer() {
   const PORT = Number(process.env.PORT) || 3000;
   const isProd = process.env.NODE_ENV === 'production';
 
-  app.use(express.json({ limit: '50mb' }));
-  app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+  // Large playlist/XMLTV payloads are supported, but bounded to reduce memory-exhaustion risk.
+  app.use(express.json({ limit: '20mb', strict: true }));
+  app.use(express.urlencoded({ extended: true, limit: '20mb', parameterLimit: 2000 }));
 
   // Enable CORS for all internal API requests
   app.use((req, res, next) => {
@@ -35,7 +34,7 @@ async function startServer() {
 
   // Health check endpoint
   app.get('/api/health', (_req: Request, res: Response) => {
-    res.json({ status: 'ok', name: 'IPTVnator Web Server', time: new Date().toISOString() });
+    res.json({ status: 'ok', name: 'Ma9icTV Web Server', time: new Date().toISOString() });
   });
 
   // Proxy endpoint to bypass CORS and stream content / playlists

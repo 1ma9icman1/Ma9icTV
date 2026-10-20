@@ -13,6 +13,18 @@ const STORAGE_KEYS = {
   BLACKLISTED_CHANNELS: 'iptvnator_blacklisted_channels',
 };
 
+/** Remove only Ma9icTV-owned keys; never wipe unrelated applications' storage. */
+export function resetAppStorage(): void {
+  try {
+    for (const key of Object.values(STORAGE_KEYS)) localStorage.removeItem(key);
+    // Also clear app-specific keys written by the EPG guide.
+    localStorage.removeItem('ma9ictv-epg-url');
+    localStorage.removeItem('ma9ictv-manual-epg-url');
+  } catch (error) {
+    console.warn('Unable to fully reset Ma9icTV browser storage:', error);
+  }
+}
+
 const DEFAULT_SETTINGS: AppSettings = {
   theme: 'dark',
   proxyMode: 'always', // Essential in web browsers to bypass CORS and stream seamlessly
@@ -138,12 +150,17 @@ export function savePlaylists(playlists: Playlist[]): void {
 }
 
 export function getActivePlaylistId(): string {
-  const saved = localStorage.getItem(STORAGE_KEYS.ACTIVE_PLAYLIST_ID);
-  return saved || INITIAL_PRESETS[0].id;
+  try {
+    const saved = localStorage.getItem(STORAGE_KEYS.ACTIVE_PLAYLIST_ID);
+    return saved || INITIAL_PRESETS[0].id;
+  } catch {
+    return INITIAL_PRESETS[0].id;
+  }
 }
 
 export function setActivePlaylistId(id: string): void {
-  localStorage.setItem(STORAGE_KEYS.ACTIVE_PLAYLIST_ID, id);
+  try { localStorage.setItem(STORAGE_KEYS.ACTIVE_PLAYLIST_ID, id); }
+  catch (error) { console.warn('Failed to save active playlist:', error); }
 }
 
 export function getFavorites(): string[] {
@@ -159,7 +176,8 @@ export function toggleFavorite(channelId: string): string[] {
   const current = getFavorites();
   const exists = current.includes(channelId);
   const updated = exists ? current.filter((id) => id !== channelId) : [...current, channelId];
-  localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(updated));
+  try { localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(updated)); }
+  catch (error) { console.warn('Failed to save favorites:', error); }
   return updated;
 }
 
@@ -196,7 +214,8 @@ export function getSettings(): AppSettings {
 }
 
 export function saveSettings(settings: AppSettings): void {
-  localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings));
+  try { localStorage.setItem(STORAGE_KEYS.SETTINGS, JSON.stringify(settings)); }
+  catch (error) { console.warn('Failed to save settings:', error); }
 }
 
 export function exportAppState(): string {

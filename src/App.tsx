@@ -26,6 +26,7 @@ import {
   addRecentlyPlayed,
   getSettings,
   saveSettings,
+  resetAppStorage,
 } from './utils/storage';
 import { INITIAL_PRESETS, CATALOG_PLAYLISTS } from './data/presetPlaylists';
 
@@ -354,15 +355,22 @@ export default function App() {
 
   // Reset all data
   const handleResetAllData = useCallback(() => {
-    localStorage.clear();
-    setPlaylists(INITIAL_PRESETS);
+    // Reset only Ma9icTV data, not unrelated sites' LocalStorage on this origin.
+    resetAppStorage();
+    const resetPlaylists = getSavedPlaylists();
+    setPlaylists(resetPlaylists);
+    savePlaylists(resetPlaylists);
     setActivePlaylistIdState(INITIAL_PRESETS[0].id);
+    setActivePlaylistId(INITIAL_PRESETS[0].id);
     setFavorites([]);
     setRecentlyPlayed([]);
     const defaultSettings = getSettings();
     setSettings(defaultSettings);
+    saveSettings(defaultSettings);
     if (INITIAL_PRESETS[0].channels.length > 0) {
-      setSelectedChannel(INITIAL_PRESETS[0].channels[0]);
+      setSelectedChannel(getFirstStreamChannel(INITIAL_PRESETS[0].channels) || INITIAL_PRESETS[0].channels[0]);
+    } else {
+      setSelectedChannel(null);
     }
   }, []);
 

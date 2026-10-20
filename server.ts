@@ -152,8 +152,14 @@ async function startServer() {
 
       const contentType = response.headers.get('content-type') || '';
       const safeTarget = `${parsedUrl.protocol}//${parsedUrl.host}${parsedUrl.pathname}`;
-      const isManifestRequest = /\.m3u8(?:$|\/)/i.test(parsedUrl.pathname)
-        || /mpegurl/i.test(contentType);
+      // Some IPTV CDNs incorrectly label binary AES key files (.key) as
+      // application/vnd.apple.mpegurl. Exclude them from manifest handling so
+      // their binary response body remains available to the HLS player.
+      const isKeyRequest = /\.key(?:$|\/)/i.test(parsedUrl.pathname);
+      const isManifestRequest = !isKeyRequest && (
+        /\.m3u8(?:$|\/)/i.test(parsedUrl.pathname)
+        || /mpegurl/i.test(contentType)
+      );
 
       if (!response.ok && response.status !== 206) {
         console.warn('[Ma9icTV proxy] upstream rejected stream', {
@@ -179,8 +185,12 @@ async function startServer() {
       const urlLower = targetUrl.toLowerCase();
       const finalUrlLower = finalUrl.toLowerCase();
 
-      // Check whether this request is a video segment (.ts / .m4s / .mp4 / audio) vs an M3U8 manifest
+      // Treat binary AES key files as media payloads even when a CDN sends a
+      // misleading HLS playlist content-type for them.
+      const isKeyPayload = /\.key(?:$|[?#/])/i.test(urlLower) || /\.key(?:$|[?#/])/i.test(finalUrlLower);
+      // Check whether this request is a video segment (.ts / .m4s / .mp4) or an M3U8 manifest.
       const isSegment =
+        isKeyPayload ||
         urlLower.includes('.ts') ||
         finalUrlLower.includes('.ts') ||
         urlLower.includes('.m4s') ||

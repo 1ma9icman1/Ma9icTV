@@ -36,6 +36,16 @@ interface VideoPlayerProps {
 }
 
 // Detect YouTube or Twitch embeds for channels in public IPTV playlists
+function describeStreamUrl(value: string): string {
+  try {
+    const url = new URL(value);
+    // Never print query strings: IPTV URLs can contain credentials or access tokens.
+    return `${url.protocol}//${url.host}${url.pathname}`;
+  } catch {
+    return '[invalid stream URL]';
+  }
+}
+
 function getThirdPartyEmbed(url: string): { type: 'youtube' | 'twitch' | null; embedUrl: string } {
   if (!url) return { type: null, embedUrl: '' };
 
@@ -346,8 +356,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         ? `/api/proxy?${proxyParams}`
         : channel.url;
 
-      // Treat known file formats as native media instead of trying to parse them as HLS.
-      // Many IPTV playlists mix .m3u8 live streams with direct MP4/audio URLs.
       let originalPath = channel.url;
       try {
         originalPath = new URL(channel.url).pathname;
@@ -358,6 +366,16 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       const isDirectMediaFile = /\.(mp4|m4v|webm|mp3|m4a|aac|ogg|oga|wav)$/i.test(originalPath);
       const isHlsStream = isHlsManifest || (!channel.isRadio && !isDirectMediaFile);
 
+      console.info('[Ma9icTV playback] starting', {
+        channel: channel.name,
+        source: describeStreamUrl(channel.url),
+        route: shouldProxy ? 'server proxy' : 'direct',
+        format: isHlsStream ? 'HLS' : channel.isRadio ? 'radio/native' : 'direct media',
+        hlsSupported: Hls.isSupported(),
+      });
+
+      // Treat known file formats as native media instead of trying to parse them as HLS.
+      // Many IPTV playlists mix .m3u8 live streams with direct MP4/audio URLs.
       if (isHlsStream && Hls.isSupported()) {
         const configuredBuffer = Number(settings.bufferLengthSeconds) || 20;
         const hls = new Hls({
@@ -385,8 +403,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         hls.on(Hls.Events.SUBTITLE_TRACKS_UPDATED, enforceHlsCaptionPreference);
         hls.on(Hls.Events.SUBTITLE_TRACK_SWITCH, enforceHlsCaptionPreference);
         hls.on(Hls.Events.MANIFEST_PARSED, enforceHlsCaptionPreference);
-        hls.loadSource(streamUrl);
-        hls.attachMedia(video);
 
         let networkRetries = 0;
         let mediaRetries = 0;
@@ -451,9 +467,27 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           }
         });
 
+        hls.on(Hls.Events.MANIFEST_LOADING, () => {
+          if (hlsRef.current === hls) console.info('[Ma9icTV playback] HLS manifest request started', { channel: channel.name });
+        });
+        hls.on(Hls.Events.MANIFEST_LOADED, (_event, data) => {
+          if (hlsRef.current === hls) console.info('[Ma9icTV playback] HLS manifest received', {
+            channel: channel.name,
+            levels: data.levels?.length ?? 0,
+            url: describeStreamUrl(data.url || channel.url),
+          });
+        });
         hls.on(Hls.Events.ERROR, (_event, data) => {
           if (hlsRef.current !== hls) return;
-          console.warn('HLS Event Error:', data.type, data.details);
+          console.warn('[Ma9icTV playback] HLS error', {
+            channel: channel.name,
+            type: data.type,
+            details: data.details,
+            fatal: data.fatal,
+            responseCode: data.response?.code,
+            networkStatus: (data.networkDetails as any)?.status,
+            route: shouldProxy ? 'proxy' : 'direct',
+          });
           if (data.fatal) {
             switch (data.type) {
               case Hls.ErrorTypes.NETWORK_ERROR:
@@ -499,6 +533,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             }
           }
         });
+
+        // Attach every diagnostic/error listener before triggering network requests.
+        // This prevents fast local/proxy responses from racing listener registration.
+        hls.attachMedia(video);
+        hls.loadSource(streamUrl);
       } else if (video.canPlayType('application/vnd.apple.mpegurl') || !isHlsStream) {
         // Native Safari HLS or direct audio/mp4 stream
         video.src = streamUrl;
@@ -765,6 +804,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             autoPlay
             preload="auto"
             onPlaying={() => {
+              console.info('[Ma9icTV playback] media playing', {
+                channel: channel?.name,
+                currentTime: videoRef.current?.currentTime,
+                readyState: videoRef.current?.readyState,
+                networkState: videoRef.current?.networkState,
+              });
               if (startupTimeoutRef.current) {
                 clearTimeout(startupTimeoutRef.current);
                 startupTimeoutRef.current = null;
@@ -775,6 +820,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               onStreamConnected?.();
             }}
             onWaiting={() => {
+              console.warn('[Ma9icTV playback] media waiting/buffering', {
+                channel: channel?.name,
+                readyState: videoRef.current?.readyState,
+                networkState: videoRef.current?.networkState,
+                errorCode: videoRef.current?.error?.code,
+              });
               // Re-show the loading bar if playback stalls after starting.
               if (videoRef.current && !videoRef.current.paused && !errorMsg) {
                 setIsLoading(true);
@@ -784,6 +835,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               if (videoRef.current && !videoRef.current.paused && !errorMsg) {
                 setIsLoading(true);
               }
+            }}
+            onError={() => {
+              const mediaError = videoRef.current?.error;
+              console.error('[Ma9icTV playback] HTML media error', {
+                channel: channel?.name,
+                code: mediaError?.code,
+                message: mediaError?.message,
+                currentSrc: describeStreamUrl(videoRef.current?.currentSrc || ''),
+                readyState: videoRef.current?.readyState,
+                networkState: videoRef.current?.networkState,
+              });
             }}
             onPause={() => {
               setIsPlaying(false);

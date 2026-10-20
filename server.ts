@@ -79,6 +79,7 @@ async function startServer() {
         headers['Range'] = req.headers.range;
       }
 
+      const startedAt = Date.now();
       const response = await fetch(targetUrl, {
         method: 'GET',
         headers,
@@ -86,12 +87,31 @@ async function startServer() {
         signal: abortController.signal,
       });
 
+      const contentType = response.headers.get('content-type') || '';
+      const safeTarget = `${parsedUrl.protocol}//${parsedUrl.host}${parsedUrl.pathname}`;
+      const isManifestRequest = /\.m3u8(?:$|\/)/i.test(parsedUrl.pathname)
+        || /mpegurl/i.test(contentType);
+
       if (!response.ok && response.status !== 206) {
+        console.warn('[Ma9icTV proxy] upstream rejected stream', {
+          host: parsedUrl.host,
+          path: parsedUrl.pathname,
+          status: response.status,
+          statusText: response.statusText,
+          elapsedMs: Date.now() - startedAt,
+        });
         res.status(response.status).send(`Upstream server returned error: ${response.status} ${response.statusText}`);
         return;
       }
 
-      const contentType = response.headers.get('content-type') || '';
+      if (isManifestRequest) {
+        console.info('[Ma9icTV proxy] manifest response', {
+          source: safeTarget,
+          status: response.status,
+          contentType,
+          elapsedMs: Date.now() - startedAt,
+        });
+      }
       const finalUrl = response.url || targetUrl;
       const urlLower = targetUrl.toLowerCase();
       const finalUrlLower = finalUrl.toLowerCase();
@@ -143,6 +163,11 @@ async function startServer() {
             }
           });
 
+          console.info('[Ma9icTV proxy] manifest rewritten', {
+            source: safeTarget,
+            lines: rewrittenLines.length,
+            mediaUris: rewrittenLines.filter((line) => line.startsWith('/api/proxy?')).length,
+          });
           res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
           res.setHeader('Access-Control-Allow-Origin', '*');
           res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
@@ -179,7 +204,19 @@ async function startServer() {
         res.end();
       }
     } catch (err: any) {
-      console.error('Proxy request failed:', err?.message || err);
+      const safeTarget = (() => {
+        try {
+          const url = new URL(String(req.query.url || ''));
+          return `${url.protocol}//${url.host}${url.pathname}`;
+        } catch {
+          return '[invalid stream URL]';
+        }
+      })();
+      console.error('[Ma9icTV proxy] request failed', {
+        source: safeTarget,
+        error: err?.message || String(err),
+        aborted: err?.name === 'AbortError',
+      });
       if (!res.headersSent && !res.destroyed) {
         res.status(502).json({ error: 'Proxy request failed', details: err?.message });
       }

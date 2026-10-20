@@ -202,6 +202,21 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       keys.forEach((key) => relevantKeys.add(key));
     }
 
+    // Add XMLTV display-name aliases that plausibly correspond to one of the
+    // visible channel names. This keeps the index small while allowing common
+    // naming variants such as "Example TV HD" vs "Example TV" to match.
+    const channelNameKeys = [...relevantKeys];
+    for (const aliases of Object.values(xmltvChannelAliases)) {
+      for (const alias of aliases) {
+        const normalizedAlias = normalizeEpgName(alias);
+        if (normalizedAlias.length < 6) continue;
+        if (channelNameKeys.some((key) =>
+          key.length >= 6 &&
+          (normalizedAlias.startsWith(key) || key.startsWith(normalizedAlias))
+        )) relevantKeys.add(normalizedAlias);
+      }
+    }
+
     const programmesByName = new Map<string, EpgProgram[]>();
     const addProgramme = (key: string, programme: EpgProgram) => {
       const normalized = normalizeEpgName(key);

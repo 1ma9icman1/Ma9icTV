@@ -19,7 +19,7 @@ import {
   Play,
 } from 'lucide-react';
 import { Playlist, Channel } from '../types';
-import { parseM3uString } from '../utils/playlistParser';
+import { dedupeChannels, parseM3uString } from '../utils/playlistParser';
 import { CATALOG_PLAYLISTS, CatalogPlaylist } from '../data/presetPlaylists';
 
 function extractM3uEpgUrl(text: string): string | undefined {
@@ -123,7 +123,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
         throw new Error('Playlist contains no valid stream entries.');
       }
 
-      const channels: Channel[] = data.items.map((item: any, idx: number) => ({
+      const channels: Channel[] = dedupeChannels(data.items.map((item: any, idx: number) => ({
         id: `${playlistId}-ch-${idx}`,
         name: item.name || 'Unnamed Channel',
         url: item.url,
@@ -141,7 +141,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
         httpUserAgent: item.httpUserAgent || undefined,
         httpReferrer: item.httpReferrer || undefined,
         raw: item.raw,
-      }));
+      })));
 
       const newPlaylist: Playlist = {
         id: playlistId,

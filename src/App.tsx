@@ -57,7 +57,9 @@ export default function App() {
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(() => {
     const savedPlaylists = getSavedPlaylists();
     const savedActiveId = getActivePlaylistId();
-    const savedActive = savedPlaylists.find((playlist) => playlist.id === savedActiveId)
+    const cachedDefault = savedPlaylists.find((playlist) => playlist.id === 'default-samsung-tv-plus-us');
+    const savedActive = cachedDefault
+      || savedPlaylists.find((playlist) => playlist.id === savedActiveId)
       || savedPlaylists[0]
       || INITIAL_PRESETS[0];
     return savedActive ? getFirstStreamChannel(savedActive.channels) : null;
@@ -131,6 +133,21 @@ export default function App() {
     const loadDefaultSamsung = async () => {
       const samsungUrl = 'https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/samsungtvplus_us.m3u';
       const samsungId = 'default-samsung-tv-plus-us';
+
+      // Use the previously downloaded lineup immediately on repeat visits.
+      // Re-fetching the same M3U at every startup delayed the first useful guide
+      // and caused a second unnecessary EPG load after the network response.
+      const cached = getSavedPlaylists().find((playlist) => playlist.id === samsungId);
+      if (cached?.channels?.length) {
+        setActivePlaylistIdState(samsungId);
+        setActivePlaylistId(samsungId);
+        const firstStream = getFirstStreamChannel(cached.channels);
+        if (firstStream) setSelectedChannel(firstStream);
+        setCurrentView('epg');
+        setIsSidebarCollapsed(true);
+        return;
+      }
+
       try {
         const response = await fetch('/api/parse-playlist', {
           method: 'POST',

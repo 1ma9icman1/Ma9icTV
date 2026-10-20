@@ -1008,9 +1008,25 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                         return (
                           <div
                             key={prog.id}
-                            onClick={() => {
+                            onClick={(event) => {
+                              // Every visible programme block is a channel-tune target,
+                              // whether it is in the past, live now, or scheduled later.
+                              // Tune immediately instead of opening a details overlay first.
+                              event.preventDefault();
+                              event.stopPropagation();
                               onSelectChannel(channel);
-                              setSelectedProgram(prog);
+                              setSelectedProgram(null);
+                            }}
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`Tune ${channel.name} from programme: ${prog.title}`}
+                            title={`Watch ${channel.name}`}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault();
+                                onSelectChannel(channel);
+                                setSelectedProgram(null);
+                              }
                             }}
                             className={`absolute top-1.5 h-12 rounded-xl p-2 flex flex-col justify-between overflow-hidden cursor-pointer transition-colors border ${
                               isNowPlayingThis && isSelected

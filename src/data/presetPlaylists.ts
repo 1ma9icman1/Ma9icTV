@@ -487,7 +487,7 @@ const COUNTRY_EPG_CODES: Record<string, string> = {
 // iptv-org publishes country-specific merged XMLTV guides. There is no single
 // universal guide file, so worldwide/category playlists progressively combine
 // the regional guides that are most likely to cover their channels.
-const WORLDWIDE_EPG_CODES = [
+const WORLDWIDE_EPG_SOURCES = [
   'https://iptv-org.github.io/epg/guides/us/directv.com.epg.xml.gz',
   'https://iptv-org.github.io/epg/guides/us/tvguide.com.epg.xml.gz',
   'https://iptv-org.github.io/epg/guides/us/gatotv.com.epg.xml.gz',
@@ -500,6 +500,16 @@ const WORLDWIDE_EPG_CODES = [
   'https://iptv-org.github.io/epg/guides/ca/sportsnet.ca.epg.xml.gz',
   'https://iptv-org.github.io/epg/guides/au/foxtel.com.au.epg.xml.gz',
   'https://iptv-org.github.io/epg/guides/au/abc.net.au.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/fr/chaines-tv.orange.fr.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/fr/tv.sfr.fr.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/de/web.magentatv.de.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/it/guidatv.sky.it.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/it/superguidatv.it.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/pt/vodafone.pt.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/nl/tvgids.nl.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/za/dstv.com.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/in/tataplay.com.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/br/claro.com.br.epg.xml.gz',
 ];
 
 for (const playlist of CATALOG_PLAYLISTS) {

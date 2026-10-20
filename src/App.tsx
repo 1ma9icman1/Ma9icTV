@@ -588,6 +588,7 @@ export default function App() {
 
               {/* Video Player Main Stage */}
               <VideoPlayer
+                key={selectedChannel?.id || selectedChannel?.url || 'no-channel'}
                 channel={selectedChannel}
                 settings={settings}
                 onNextChannel={handleNextChannel}

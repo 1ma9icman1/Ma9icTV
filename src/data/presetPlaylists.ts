@@ -457,6 +457,8 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
     channelEstimate: 'Music and concert channels',
   },
 
+];
+
 // Fill EPG sources for every catalog playlist. Country collections use a
 // country-specific merged guide; worldwide and genre collections combine the
 // major regional guides so a US-only schedule is not used for every channel.

@@ -145,7 +145,8 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       const isExcluded = excludedChannelKeys.has(`id:${c.id}`) ||
         excludedChannelKeys.has(`url:${String(c.url || '').trim().toLowerCase()}`);
       if (!showFavoritePlaylist && showExcludedEpgChannels !== isExcluded) return false;
-      const matchCat = selectedCategory === 'All' || c.group?.toLowerCase() === selectedCategory.toLowerCase();
+      const normalizeCategory = (value: string | undefined) => String(value || '').trim().replace(/\\s+/g, ' ').toLocaleLowerCase();
+      const matchCat = selectedCategory === 'All' || normalizeCategory(c.group) === normalizeCategory(selectedCategory);
       if (!matchCat) return false;
       if (!searchQuery.trim()) return true;
       const q = searchQuery.toLowerCase();

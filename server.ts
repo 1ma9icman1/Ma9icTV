@@ -496,7 +496,7 @@ async function startServer() {
       const uniqueUrls = Array.from(new Set(urls));
       const sources = content
         ? [{ url: 'inline XMLTV', content: String(content) }]
-        : uniqueUrls.slice(0, 8).map((sourceUrl) => ({ url: sourceUrl }));
+        : uniqueUrls.slice(0, 32).map((sourceUrl) => ({ url: sourceUrl }));
       if (sources.length === 0) {
         res.status(400).json({ error: 'No valid EPG URLs were found' });
         return;
@@ -608,7 +608,8 @@ async function startServer() {
       if (loadedSources === 0 || programmes.length === 0) {
         res.status(502).json({
           error: 'No valid XMLTV programme data could be loaded',
-          sourceCount: sources.length,
+          sourceCount: uniqueUrls.length,
+          loadedSourceCount: loadedSources,
           failedSourceCount: failedSources.length,
           failedSources: failedSources.slice(0, 10),
         });
@@ -620,7 +621,7 @@ async function startServer() {
         programmes,
         channelCount: channels.length,
         programmeCount: programmes.length,
-        sourceCount: sources.length,
+        sourceCount: uniqueUrls.length,
         loadedSourceCount: loadedSources,
         failedSourceCount: failedSources.length,
         failedSources: failedSources.slice(0, 10),

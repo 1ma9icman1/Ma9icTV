@@ -524,9 +524,13 @@ async function startServer() {
       const channelsById = new Map<string, any>();
       const programmeByKey = new Map<string, any>();
       const failedSources: string[] = [];
+      const sourceDiagnostics: Array<{
+        url: string; durationMs: number; channelCount: number; programmeCount: number; error?: string;
+      }> = [];
       let loadedSources = 0;
 
       const parseSource = async (source: { url: string; content?: string }) => {
+        const sourceStartedAt = Date.now();
         try {
           let rawXml = source.content;
           if (!rawXml) {
@@ -550,6 +554,14 @@ async function startServer() {
           const tvData = parsedData.tv || {};
           const rawChannels = Array.isArray(tvData.channel) ? tvData.channel : (tvData.channel ? [tvData.channel] : []);
           const rawProgrammes = Array.isArray(tvData.programme) ? tvData.programme : (tvData.programme ? [tvData.programme] : []);
+          const sourceDurationMs = Date.now() - sourceStartedAt;
+          sourceDiagnostics.push({
+            url: source.url,
+            durationMs: sourceDurationMs,
+            channelCount: rawChannels.length,
+            programmeCount: rawProgrammes.length,
+          });
+          console.info(`[EPG] Loaded ${source.url} in ${sourceDurationMs}ms: ${rawChannels.length} channels, ${rawProgrammes.length} programmes`);
 
           for (const channel of rawChannels) {
             const id = String(channel['@_id'] || '').trim();
@@ -593,7 +605,17 @@ async function startServer() {
           }
           loadedSources += 1;
         } catch (error: any) {
-          failedSources.push(`${source.url}: ${error?.message || 'fetch/parse failed'}`);
+          const message = error?.message || 'fetch/parse failed';
+          const durationMs = Date.now() - sourceStartedAt;
+          failedSources.push(`${source.url}: ${message}`);
+          sourceDiagnostics.push({
+            url: source.url,
+            durationMs,
+            channelCount: 0,
+            programmeCount: 0,
+            error: message,
+          });
+          console.warn(`[EPG] Failed ${source.url} after ${durationMs}ms: ${message}`);
         }
       };
 
@@ -612,6 +634,7 @@ async function startServer() {
           loadedSourceCount: loadedSources,
           failedSourceCount: failedSources.length,
           failedSources: failedSources.slice(0, 10),
+          sourceDiagnostics,
         });
         return;
       }
@@ -625,6 +648,7 @@ async function startServer() {
         loadedSourceCount: loadedSources,
         failedSourceCount: failedSources.length,
         failedSources: failedSources.slice(0, 10),
+        sourceDiagnostics,
       };
 
       if (cacheKey) {

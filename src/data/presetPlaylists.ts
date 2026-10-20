@@ -398,7 +398,86 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
     channelEstimate: '~110 channels',
   },
 
-  // --- 4. Playlist Categories & Genres ---
+  // --- 4. Local curated category playlists from this repository ---
+  {
+    name: 'Business & Finance (Curated Local List)',
+    url: 'https://raw.githubusercontent.com/1ma9icman1/Ma9icTV/main/m3u_lists/popular-business-iptv.m3u',
+    category: 'Categories',
+    description: 'Curated business and finance channels from the Ma9icTV local playlist collection.',
+    channelEstimate: '~76 channels',
+  },
+  {
+    name: 'Comedy (Curated Local List)',
+    url: 'https://raw.githubusercontent.com/1ma9icman1/Ma9icTV/main/m3u_lists/popular-comedy-iptv.m3u',
+    category: 'Categories',
+    description: 'Curated comedy, sitcom, and entertainment channels from the Ma9icTV local playlist collection.',
+    channelEstimate: '~217 channels',
+  },
+  {
+    name: 'Documentaries (Curated Local List)',
+    url: 'https://raw.githubusercontent.com/1ma9icman1/Ma9icTV/main/m3u_lists/popular-documentary-iptv.m3u',
+    category: 'Categories',
+    description: 'Curated documentary, history, and factual channels from the Ma9icTV local playlist collection.',
+    channelEstimate: '~273 channels',
+  },
+  {
+    name: 'General Entertainment (Curated Local List)',
+    url: 'https://raw.githubusercontent.com/1ma9icman1/Ma9icTV/main/m3u_lists/popular-general-iptv.m3u',
+    category: 'Categories',
+    description: 'Broad international general-entertainment channel collection.',
+    channelEstimate: '~2,755 channels',
+  },
+  {
+    name: 'Kids & Family (Curated Local List)',
+    url: 'https://raw.githubusercontent.com/1ma9icman1/Ma9icTV/main/m3u_lists/popular-kids-iptv.m3u',
+    category: 'Categories',
+    description: 'Children’s programming, cartoons, and family channels from the Ma9icTV local playlist collection.',
+    channelEstimate: '~431 channels',
+  },
+  {
+    name: 'Movies (Curated Local List)',
+    url: 'https://raw.githubusercontent.com/1ma9icman1/Ma9icTV/main/m3u_lists/popular-movies-iptv.m3u',
+    category: 'Categories',
+    description: 'Movie and cinema channels from the Ma9icTV local playlist collection.',
+    channelEstimate: '~798 channels',
+  },
+  {
+    name: 'Music (Curated Local List)',
+    url: 'https://raw.githubusercontent.com/1ma9icman1/Ma9icTV/main/m3u_lists/popular-music-iptv.m3u',
+    category: 'Categories',
+    description: 'Music video, music television, and concert channels from the Ma9icTV local playlist collection.',
+    channelEstimate: '~781 channels',
+  },
+  {
+    name: 'News (Curated Local List)',
+    url: 'https://raw.githubusercontent.com/1ma9icman1/Ma9icTV/main/m3u_lists/popular-news-iptv.m3u',
+    category: 'Categories',
+    description: 'International and regional news channels from the Ma9icTV local playlist collection.',
+    channelEstimate: '~1,017 channels',
+  },
+  {
+    name: 'Science (Curated Local List)',
+    url: 'https://raw.githubusercontent.com/1ma9icman1/Ma9icTV/main/m3u_lists/popular-science-iptv.m3u',
+    category: 'Categories',
+    description: 'Science, technology, and discovery channels from the Ma9icTV local playlist collection.',
+    channelEstimate: '~24 channels',
+  },
+  {
+    name: 'Sports (Curated Local List)',
+    url: 'https://raw.githubusercontent.com/1ma9icman1/Ma9icTV/main/m3u_lists/popular-sports-iptv.m3u',
+    category: 'Categories',
+    description: 'Sports, live action, and related sports channels from the Ma9icTV local playlist collection.',
+    channelEstimate: '~482 channels',
+  },
+  {
+    name: 'Travel (Curated Local List)',
+    url: 'https://raw.githubusercontent.com/1ma9icman1/Ma9icTV/main/m3u_lists/popular-travel-iptv.m3u',
+    category: 'Categories',
+    description: 'Travel, destinations, and outdoor exploration channels from the Ma9icTV local playlist collection.',
+    channelEstimate: '~61 channels',
+  },
+
+  // --- 5. Public playlist categories & genres ---
   {
     name: 'News & 24/7 Information',
     url: 'https://iptv-org.github.io/iptv/categories/news.m3u',

@@ -488,8 +488,18 @@ const COUNTRY_EPG_CODES: Record<string, string> = {
 // universal guide file, so worldwide/category playlists progressively combine
 // the regional guides that are most likely to cover their channels.
 const WORLDWIDE_EPG_CODES = [
-  'us', 'uk', 'ca', 'au', 'nz', 'ie', 'fr', 'de', 'es', 'it',
-  'pt', 'nl', 'za', 'in', 'jp', 'kr', 'ph', 'br', 'mx',
+  'https://iptv-org.github.io/epg/guides/us/directv.com.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/us/tvguide.com.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/us/gatotv.com.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/us/ontvtonight.com.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/uk/sky.com.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/uk/virginmedia.com.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/uk/bt.com.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/uk/tv24.co.uk.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/ca/tvhebdo.com.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/ca/sportsnet.ca.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/au/foxtel.com.au.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/au/abc.net.au.epg.xml.gz',
 ];
 
 for (const playlist of CATALOG_PLAYLISTS) {
@@ -499,8 +509,6 @@ for (const playlist of CATALOG_PLAYLISTS) {
     const code = COUNTRY_EPG_CODES[playlist.name];
     if (code) playlist.epgUrl = `https://iptv-org.github.io/epg/guides/${code}.xml.gz`;
   } else if (playlist.category === 'Worldwide' || playlist.category === 'Categories') {
-    playlist.epgUrl = WORLDWIDE_EPG_CODES
-      .map((code) => `https://iptv-org.github.io/epg/guides/${code}.xml.gz`)
-      .join(',');
+    playlist.epgUrl = WORLDWIDE_EPG_CODES.join(',');
   }
 }

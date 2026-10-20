@@ -429,9 +429,11 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       event.preventDefault();
       event.stopPropagation();
       const horizontal = event.key === 'ArrowLeft' || event.key === 'ArrowRight';
+      // One arrow press moves one EPG time slot horizontally (30 minutes) or
+      // one channel row vertically. Page Up/Down still jump most of a screen.
       const distance = event.key === 'PageDown' || event.key === 'PageUp'
         ? Math.max(180, Math.floor(grid.clientHeight * 0.75))
-        : horizontal ? Math.max(100, Math.floor(grid.clientWidth * 0.25)) : 68;
+        : horizontal ? 30 * minuteWidthPx : 60;
       if (horizontal) grid.scrollBy({ left: event.key === 'ArrowLeft' ? -distance : distance, behavior: 'smooth' });
       else grid.scrollBy({ top: event.key === 'ArrowUp' || event.key === 'PageUp' ? -distance : distance, behavior: 'smooth' });
     };

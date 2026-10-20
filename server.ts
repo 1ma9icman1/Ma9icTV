@@ -703,11 +703,11 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`[IPTVnator] Server listening on http://0.0.0.0:${PORT}`);
+    console.log(`[Ma9icTV] Server listening on http://0.0.0.0:${PORT}`);
   });
 }
 
 startServer().catch((err) => {
-  console.error('[IPTVnator] Failed to start server:', err);
+  console.error('[Ma9icTV] Failed to start server:', err);
   process.exit(1);
 });

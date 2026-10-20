@@ -33,6 +33,7 @@ interface VideoPlayerProps {
   mode?: 'full' | 'compact' | 'epg-preview';
   onExpandPlayer?: () => void;
   onStreamConnected?: () => void;
+  onStreamFailed?: (channel: Channel, reason: string) => void;
 }
 
 // Detect YouTube or Twitch embeds for channels in public IPTV playlists
@@ -107,11 +108,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   mode = 'full',
   onExpandPlayer,
   onStreamConnected,
+  onStreamFailed,
 }) => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const hlsRef = useRef<Hls | null>(null);
   const startupTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startupStartedAtRef = useRef<number>(0);
+  const failedStartupRef = useRef<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
@@ -326,29 +330,32 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       const shouldProxy = forceProxy !== undefined ? forceProxy : settings.proxyMode !== 'direct';
       setIsUsingProxy(shouldProxy);
 
-      // Some IPTV hosts never return a fatal HLS/media error, leaving the UI
-      // spinning forever. Put a deadline on startup and try the alternate route
-      // once in Auto mode; otherwise show a useful error instead of infinite loading.
+      // Hard startup deadline: after four seconds without actual playback, mark
+      // this URL dead and let the app blacklist it and select the next channel.
+      // Fallback attempts share the original deadline rather than resetting it.
+      if (!startupStartedAtRef.current) startupStartedAtRef.current = Date.now();
+      const startupRemainingMs = Math.max(0, 4000 - (Date.now() - startupStartedAtRef.current));
       startupTimeoutRef.current = setTimeout(() => {
         startupTimeoutRef.current = null;
-        if (videoRef.current !== video) return;
-
-        if (!preventFallback && !shouldProxy) {
-          initPlayer(true, true);
-        } else if (!preventFallback && shouldProxy) {
-          // If the server-side proxy cannot reach this host, try the stream directly once.
-          // This is a last-resort recovery even when the user's normal mode is Always Proxy.
-          initPlayer(false, true);
-        } else {
-          setErrorMsg('Stream did not start in time. The channel may be offline or this browser may not support its stream format.');
-          setIsLoading(false);
-          // Some public movie/cinema playlist entries never raise an HLS error.
-          // Advance automatically after the same short warning used for fatal errors.
-          if (settings.autoPlayNext && onNextChannel) {
-            setAutoSkipCountdown(4);
-          }
+        if (videoRef.current !== video || !channel) return;
+        if (failedStartupRef.current === channel.url) return;
+        failedStartupRef.current = channel.url;
+        console.warn('[Ma9icTV playback] marked stream unavailable after 4 seconds; removing and moving on', {
+          channel: channel.name,
+          source: describeStreamUrl(channel.url),
+        });
+        if (hlsRef.current) {
+          hlsRef.current.destroy();
+          hlsRef.current = null;
         }
-      }, 18000);
+        video.pause();
+        video.removeAttribute('src');
+        video.load();
+        setErrorMsg('No playback after 4 seconds. Stream marked unavailable and skipped.');
+        setIsLoading(false);
+        setIsPlaying(false);
+        onStreamFailed?.(channel, 'No playback began within 4 seconds.');
+      }, startupRemainingMs);
 
       const streamUserAgent = channel.httpUserAgent?.trim() || settings.customUserAgent;
       const proxyParams = `url=${encodeURIComponent(channel.url)}&userAgent=${encodeURIComponent(streamUserAgent)}${channel.httpReferrer?.trim() ? `&referer=${encodeURIComponent(channel.httpReferrer.trim())}` : ''}`;
@@ -574,10 +581,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         setIsLoading(false);
       }
     },
-    [channel, settings.bufferLengthSeconds, settings.proxyMode, settings.customUserAgent, settings.autoPlayNext, onNextChannel]
+    [channel, settings.bufferLengthSeconds, settings.proxyMode, settings.customUserAgent, settings.autoPlayNext, onNextChannel, onStreamFailed]
   );
 
   useEffect(() => {
+    startupStartedAtRef.current = Date.now();
+    failedStartupRef.current = null;
     initPlayer();
     return () => {
       if (startupTimeoutRef.current) {
@@ -818,6 +827,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               setIsPlaying(true);
               setIsLoading(false);
               setErrorMsg(null);
+              failedStartupRef.current = null;
               onStreamConnected?.();
             }}
             onWaiting={() => {

@@ -486,7 +486,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
         const isLive = now >= startMs && now < stopMs;
         const progress = isLive ? Math.max(0, Math.min(100, Math.round(((now - startMs) / (stopMs - startMs)) * 100))) : 0;
         return [{
-          id: `xmltv-${parsed.length}-${seenProgrammes.size}`,
+          id: `xmltv-${seenProgrammes.size}`,
           channelId,
           title,
           desc: p.desc || '',

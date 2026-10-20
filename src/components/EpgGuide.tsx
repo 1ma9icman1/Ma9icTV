@@ -722,7 +722,15 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
         </div>
 
         {/* Favorites playlist toggle sits immediately before the EPG loading indicator. */}
-        <button type="button" onClick={() => { setShowFavoritePlaylist((value) => !value); setShowExcludedEpgChannels(false); setSelectedCategory('All'); }}
+        <button type="button"
+          onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); }}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setShowFavoritePlaylist((value) => !value);
+            setShowExcludedEpgChannels(false);
+            setSelectedCategory('All');
+          }}
           aria-pressed={showFavoritePlaylist}
           title={showFavoritePlaylist ? 'Return to the active playlist EPG' : `Load favorite channels in the EPG guide (${favoriteChannels.length})`}
           disabled={favoriteChannels.length === 0}

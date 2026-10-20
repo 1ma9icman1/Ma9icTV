@@ -400,6 +400,8 @@ export default function App() {
     setActivePlaylistIdState(INITIAL_PRESETS[0].id);
     setActivePlaylistId(INITIAL_PRESETS[0].id);
     setFavorites([]);
+    setFavoriteChannels([]);
+    window.dispatchEvent(new Event('ma9ictv-storage-reset'));
     setRecentlyPlayed([]);
     const defaultSettings = getSettings();
     setSettings(defaultSettings);

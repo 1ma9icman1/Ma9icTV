@@ -386,15 +386,18 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       if (isHlsStream && Hls.isSupported()) {
         const configuredBuffer = Number(settings.bufferLengthSeconds) || 20;
         const hls = new Hls({
-          // Keep the user-selected buffer within a sensible range for TV devices.
-          maxBufferLength: Math.max(10, Math.min(configuredBuffer, 45)),
-          maxMaxBufferLength: 60,
-          maxBufferSize: 60 * 1000 * 1000,
-          liveSyncDurationCount: 3,
-          liveMaxLatencyDurationCount: 6,
+          // Favor first picture quickly: start with the lowest rendition, then
+          // let ABR climb toward the 720p cap once playback is underway.
+          startLevel: 0,
+          abrEwmaDefaultEstimate: 500000,
+          maxBufferLength: Math.max(6, Math.min(configuredBuffer, 12)),
+          maxMaxBufferLength: 24,
+          maxBufferSize: 32 * 1000 * 1000,
+          liveSyncDurationCount: 2,
+          liveMaxLatencyDurationCount: 5,
           enableWorker: true,
           lowLatencyMode: false,
-          backBufferLength: 15,
+          backBufferLength: 5,
         });
 
         hlsRef.current = hls;

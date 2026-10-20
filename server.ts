@@ -516,8 +516,11 @@ async function startServer() {
       }
 
       const nowMs = Date.now();
-      const programmeWindowStartMs = nowMs - 4 * 60 * 60 * 1000;
-      const programmeWindowEndMs = nowMs + 20 * 60 * 60 * 1000;
+      // EpgGuide indexes programmes from two hours back to eight hours ahead.
+      // Keep a one-hour margin on either side so the five-minute cache stays useful
+      // as the clock advances, while returning far fewer records than a full XMLTV day.
+      const programmeWindowStartMs = nowMs - 3 * 60 * 60 * 1000;
+      const programmeWindowEndMs = nowMs + 9 * 60 * 60 * 1000;
       const channelsById = new Map<string, any>();
       const programmeByKey = new Map<string, any>();
       const failedSources: string[] = [];

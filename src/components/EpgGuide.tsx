@@ -93,6 +93,32 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   const [epgLoadError, setEpgLoadError] = useState('');
   const [xmltvProgrammes, setXmltvProgrammes] = useState<EpgProgram[]>([]);
   const [xmltvChannelAliases, setXmltvChannelAliases] = useState<Record<string, string[]>>({});
+  const [epgLoadStats, setEpgLoadStats] = useState<{
+    sourceCount: number; loadedSourceCount: number; failedSourceCount: number;
+  } | null>(null);
+
+  const epgKnownChannelKeys = useMemo(() => {
+    const keys = new Set<string>();
+    Object.entries(xmltvChannelAliases).forEach(([id, names]) => {
+      const normalizedId = normalizeEpgName(id);
+      if (normalizedId) keys.add(normalizedId);
+      names.forEach((name) => {
+        const normalizedName = normalizeEpgName(name);
+        if (normalizedName) keys.add(normalizedName);
+      });
+    });
+    xmltvProgrammes.forEach((programme) => {
+      const normalizedId = normalizeEpgName(programme.channelId);
+      if (normalizedId) keys.add(normalizedId);
+    });
+    return keys;
+  }, [xmltvChannelAliases, xmltvProgrammes]);
+
+  const epgMatchedChannelCount = useMemo(() => guideChannels.filter((channel) =>
+    [channel.tvgId, channel.tvgName, channel.name]
+      .filter(Boolean)
+      .some((value) => epgKnownChannelKeys.has(normalizeEpgName(String(value))))
+  ).length, [guideChannels, epgKnownChannelKeys]);
 
   const gridScrollRef = useRef<HTMLDivElement | null>(null);
   const categoryScrollRef = useRef<HTMLDivElement | null>(null);

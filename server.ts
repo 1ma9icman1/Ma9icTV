@@ -6,6 +6,31 @@ import zlib from 'zlib';
 import { Readable } from 'stream';
 import parser from 'iptv-playlist-parser';
 import { XMLParser } from 'fast-xml-parser';
+import { Agent } from 'undici';
+
+const TLS_CERTIFICATE_ERROR_CODES = new Set([
+  'CERT_HAS_EXPIRED',
+  'CERT_NOT_YET_VALID',
+  'CERT_REVOKED',
+  'DEPTH_ZERO_SELF_SIGNED_CERT',
+  'ERR_TLS_CERT_ALTNAME_INVALID',
+  'ERR_TLS_CERT_SIGNATURE_ALGORITHM_UNSUPPORTED',
+  'SELF_SIGNED_CERT_IN_CHAIN',
+  'UNABLE_TO_GET_ISSUER_CERT',
+  'UNABLE_TO_GET_ISSUER_CERT_LOCALLY',
+  'UNABLE_TO_VERIFY_LEAF_SIGNATURE',
+]);
+
+function isTlsCertificateError(error: unknown): boolean {
+  let current: any = error;
+  const visited = new Set<unknown>();
+  while (current && !visited.has(current)) {
+    visited.add(current);
+    if (typeof current.code === 'string' && TLS_CERTIFICATE_ERROR_CODES.has(current.code)) return true;
+    current = current.cause;
+  }
+  return false;
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -80,12 +105,50 @@ async function startServer() {
       }
 
       const startedAt = Date.now();
-      const response = await fetch(targetUrl, {
-        method: 'GET',
+      const fetchOptions = {
+        method: 'GET' as const,
         headers,
-        redirect: 'follow',
+        redirect: 'follow' as const,
         signal: abortController.signal,
-      });
+      };
+      let response: globalThis.Response;
+      let insecureTlsDispatcher: Agent | null = null;
+
+      try {
+        response = await fetch(targetUrl, fetchOptions);
+      } catch (error) {
+        // The older app disabled TLS verification globally. Keep secure HTTPS as the
+        // default, but preserve compatibility with IPTV providers whose certificates
+        // are broken by retrying only recognized certificate-validation failures.
+        if (parsedUrl.protocol !== 'https:' || !isTlsCertificateError(error)) throw error;
+
+        console.warn('[Ma9icTV proxy] TLS certificate validation failed; retrying this stream only with relaxed validation', {
+          host: parsedUrl.host,
+          path: parsedUrl.pathname,
+          code: (() => {
+            let current: any = error;
+            while (current && !current.code) current = current.cause;
+            return current?.code || 'unknown certificate error';
+          })(),
+        });
+
+        insecureTlsDispatcher = new Agent({ connect: { rejectUnauthorized: false } });
+        try {
+          response = await fetch(targetUrl, {
+            ...fetchOptions,
+            dispatcher: insecureTlsDispatcher,
+          } as RequestInit & { dispatcher: Agent });
+        } catch (retryError) {
+          await insecureTlsDispatcher.close();
+          insecureTlsDispatcher = null;
+          throw retryError;
+        }
+      }
+
+      if (insecureTlsDispatcher) {
+        const dispatcherToClose = insecureTlsDispatcher;
+        res.once('close', () => { void dispatcherToClose.close().catch(() => {}); });
+      }
 
       const contentType = response.headers.get('content-type') || '';
       const safeTarget = `${parsedUrl.protocol}//${parsedUrl.host}${parsedUrl.pathname}`;

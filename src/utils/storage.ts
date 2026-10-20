@@ -5,6 +5,8 @@ const STORAGE_KEYS = {
   PLAYLISTS: 'iptvnator_playlists',
   ACTIVE_PLAYLIST_ID: 'iptvnator_active_playlist',
   FAVORITES: 'iptvnator_favorites',
+  FAVORITE_CHANNELS: 'ma9ictv_favorite_channels',
+  EPG_EXCLUDED_CHANNELS: 'ma9ictv_epg_excluded_channels',
   RECENTLY_PLAYED: 'iptvnator_recent_channels',
   SETTINGS: 'iptvnator_settings',
   XTREAM_ACCOUNTS: 'iptvnator_xtream_accounts',
@@ -166,18 +168,56 @@ export function setActivePlaylistId(id: string): void {
 export function getFavorites(): string[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEYS.FAVORITES);
-    return raw ? JSON.parse(raw) : [];
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed.filter((id): id is string => typeof id === 'string') : [];
   } catch {
     return [];
   }
+}
+
+export function saveFavorites(ids: string[]): void {
+  try { localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify([...new Set(ids)])); }
+  catch (error) { console.warn('Failed to save favorites:', error); }
+}
+
+function readStoredChannels(key: string): Channel[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(key) || '[]');
+    return Array.isArray(parsed)
+      ? parsed.filter((channel): channel is Channel => Boolean(
+          channel && typeof channel.id === 'string' && typeof channel.name === 'string' &&
+          typeof channel.url === 'string' &&
+          (channel.url.startsWith('http://') || channel.url.startsWith('https://'))
+        ))
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+export function getFavoriteChannels(): Channel[] {
+  return readStoredChannels(STORAGE_KEYS.FAVORITE_CHANNELS);
+}
+
+export function saveFavoriteChannels(channels: Channel[]): void {
+  try { localStorage.setItem(STORAGE_KEYS.FAVORITE_CHANNELS, JSON.stringify(channels)); }
+  catch (error) { console.warn('Failed to save favorite channel records:', error); }
+}
+
+export function getEpgExcludedChannels(): Channel[] {
+  return readStoredChannels(STORAGE_KEYS.EPG_EXCLUDED_CHANNELS);
+}
+
+export function saveEpgExcludedChannels(channels: Channel[]): void {
+  try { localStorage.setItem(STORAGE_KEYS.EPG_EXCLUDED_CHANNELS, JSON.stringify(channels)); }
+  catch (error) { console.warn('Failed to save personal EPG channel list:', error); }
 }
 
 export function toggleFavorite(channelId: string): string[] {
   const current = getFavorites();
   const exists = current.includes(channelId);
   const updated = exists ? current.filter((id) => id !== channelId) : [...current, channelId];
-  try { localStorage.setItem(STORAGE_KEYS.FAVORITES, JSON.stringify(updated)); }
-  catch (error) { console.warn('Failed to save favorites:', error); }
+  saveFavorites(updated);
   return updated;
 }
 

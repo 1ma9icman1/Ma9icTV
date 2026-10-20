@@ -398,14 +398,9 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   };
 
   const handleDragClickCapture = (event: React.MouseEvent<HTMLDivElement>) => {
-    // A drag's click-suppression flag must never swallow an intentional tune
-    // click. These targets explicitly select a channel and should behave like
-    // the Play button even if a previous pointer gesture left stale drag state.
-    const target = event.target;
-    if (target instanceof Element && target.closest('[data-tune-channel="true"]')) {
-      dragStateRef.current = null;
-      return;
-    }
+    // A real drag should never activate a channel/programme underneath the
+    // pointer. Ordinary clicks leave dragStateRef null on pointer-up, so they
+    // continue to tune channels normally.
     if (dragStateRef.current?.suppressClick) {
       event.preventDefault();
       event.stopPropagation();
@@ -927,7 +922,6 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                     {/* Sticky Left Channel Card */}
                     <div
                       data-tune-channel="true"
-                      onPointerDown={(event) => event.stopPropagation()}
                       onClick={(event) => {
                         event.preventDefault();
                         event.stopPropagation();
@@ -1025,7 +1019,6 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                           <div
                             key={prog.id}
                             data-tune-channel="true"
-                            onPointerDown={(event) => event.stopPropagation()}
                             onClick={(event) => {
                               // Every visible programme block is a channel-tune target,
                               // whether it is in the past, live now, or scheduled later.

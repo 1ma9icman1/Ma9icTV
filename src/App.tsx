@@ -91,39 +91,9 @@ export default function App() {
     return () => document.removeEventListener('fullscreenchange', syncFullscreenState);
   }, []);
 
-  // Try fullscreen immediately on startup. Browsers that require a user gesture
-  // will reject this attempt, so retry on the first remote/keyboard/mouse input.
-  useEffect(() => {
-    let enteredFullscreen = false;
-
-    const enterFullscreen = async () => {
-      if (enteredFullscreen || document.fullscreenElement) return;
-      if (!document.documentElement.requestFullscreen) return;
-
-      try {
-        await document.documentElement.requestFullscreen();
-        enteredFullscreen = true;
-        setIsAppFullscreen(true);
-        removeGestureListeners();
-      } catch {
-        // Expected on browsers that only allow fullscreen after user interaction.
-      }
-    };
-
-    const removeGestureListeners = () => {
-      window.removeEventListener('pointerdown', enterFullscreen);
-      window.removeEventListener('keydown', enterFullscreen);
-      window.removeEventListener('touchstart', enterFullscreen);
-    };
-
-    void enterFullscreen();
-    window.addEventListener('pointerdown', enterFullscreen, { passive: true });
-    window.addEventListener('keydown', enterFullscreen);
-    window.addEventListener('touchstart', enterFullscreen, { passive: true });
-
-    return removeGestureListeners;
-  }, []);
-
+  // Do not automatically enter fullscreen on the first user interaction.
+  // In particular, clicks on EPG controls must never trigger a fullscreen transition.
+  // Fullscreen remains available through the explicit Fullscreen button.
   const toggleAppFullscreen = async () => {
     try {
       if (document.fullscreenElement) {

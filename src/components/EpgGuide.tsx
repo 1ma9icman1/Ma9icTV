@@ -93,29 +93,6 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   const [epgLoadError, setEpgLoadError] = useState('');
   const [xmltvProgrammes, setXmltvProgrammes] = useState<EpgProgram[]>([]);
   const [xmltvChannelAliases, setXmltvChannelAliases] = useState<Record<string, string[]>>({});
-  const epgKnownChannelKeys = useMemo(() => {
-    const keys = new Set<string>();
-    Object.entries(xmltvChannelAliases).forEach(([id, names]) => {
-      const normalizedId = normalizeEpgName(id);
-      if (normalizedId) keys.add(normalizedId);
-      names.forEach((name) => {
-        const normalizedName = normalizeEpgName(name);
-        if (normalizedName) keys.add(normalizedName);
-      });
-    });
-    xmltvProgrammes.forEach((programme) => {
-      const normalizedId = normalizeEpgName(programme.channelId);
-      if (normalizedId) keys.add(normalizedId);
-    });
-    return keys;
-  }, [xmltvChannelAliases, xmltvProgrammes]);
-
-  const epgMatchedChannelCount = useMemo(() => guideChannels.filter((channel) =>
-    [channel.tvgId, channel.tvgName, channel.name]
-      .filter(Boolean)
-      .some((value) => epgKnownChannelKeys.has(normalizeEpgName(String(value))))
-  ).length, [guideChannels, epgKnownChannelKeys]);
-
   const gridScrollRef = useRef<HTMLDivElement | null>(null);
   const categoryScrollRef = useRef<HTMLDivElement | null>(null);
   const dragStateRef = useRef<{ pointerId: number; startX: number; startY: number; scrollLeft: number; scrollTop: number; active: boolean; suppressClick: boolean } | null>(null);
@@ -866,10 +843,10 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
         </button>
 
         {/* EPG loading indicator */}
-        <div className="flex min-w-[110px] flex-1 flex-col justify-center gap-1 px-1 sm:px-2" role="status" aria-live="polite" aria-label={isLoadingEpg ? "Loading EPG guide" : xmltvProgrammes.length > 0 ? `EPG loaded: ${xmltvProgrammes.length} programmes, ${epgMatchedChannelCount} channels matched` : "EPG guide waiting"}>
+        <div className="flex min-w-[110px] flex-1 flex-col justify-center gap-1 px-1 sm:px-2" role="status" aria-live="polite" aria-label={isLoadingEpg ? "Loading EPG guide" : xmltvProgrammes.length > 0 ? `EPG loaded: ${xmltvProgrammes.length} programmes` : "EPG guide waiting"}>
           <div className="flex items-center justify-between gap-2 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider">
             <span className={isLoadingEpg ? "text-indigo-300" : xmltvProgrammes.length > 0 ? "text-emerald-400" : "text-slate-500"}>
-              {showFavoritePlaylist ? 'Favorite Playlist' : isLoadingEpg ? "Loading EPG" : xmltvProgrammes.length > 0 ? `EPG Loaded · ${xmltvProgrammes.length.toLocaleString()} programmes · ${epgMatchedChannelCount.toLocaleString()}/${guideChannels.length.toLocaleString()} matched` : "EPG Guide"}
+              {showFavoritePlaylist ? 'Favorite Playlist' : isLoadingEpg ? "Loading EPG" : xmltvProgrammes.length > 0 ? `EPG Loaded · ${xmltvProgrammes.length.toLocaleString()} programmes` : "EPG Guide"}
             </span>
             {isLoadingEpg && <RefreshCw className="h-3 w-3 animate-spin text-indigo-400" />}
           </div>

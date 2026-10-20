@@ -342,6 +342,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         // A fallback attempt may recreate this timer after playback already began.
         // Never classify a stream as dead once this channel has actually played.
         if (playbackStartedRef.current) return;
+        // A stream can deliver/decode its first media data before the browser emits
+        // "playing". Do not blacklist it at the hard deadline if the video element
+        // already has media data; HLS startup and DRM/ad segments can delay playback.
+        if (video.readyState >= HTMLMediaElement.HAVE_CURRENT_DATA || video.currentTime > 0) {
+          console.info('[Ma9icTV playback] startup deadline reached with media data available; allowing playback to continue', {
+            channel: channel.name,
+            readyState: video.readyState,
+            currentTime: video.currentTime,
+          });
+          return;
+        }
         if (failedStartupRef.current === channel.url) return;
         failedStartupRef.current = channel.url;
         console.warn('[Ma9icTV playback] marked stream unavailable after 4 seconds; removing and moving on', {
@@ -835,6 +846,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               setIsPlaying(true);
               setIsLoading(false);
               setErrorMsg(null);
+              // A late successful start cancels any pending error auto-advance.
+              setAutoSkipCountdown(null);
               playbackStartedRef.current = true;
               failedStartupRef.current = null;
               onStreamConnected?.();

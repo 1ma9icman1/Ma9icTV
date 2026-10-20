@@ -187,7 +187,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   // indexing every channel/programme combination made opening large guides freeze.
   const channelSchedules = useMemo(() => {
     const scheduleChannels = filteredChannels.slice(0, epgPageLimit);
-    if (selectedChannel && !scheduleChannels.some((channel) => channel.id === selectedChannel.id)) {
+    if (!showFavoritePlaylist && selectedChannel && !scheduleChannels.some((channel) => channel.id === selectedChannel.id)) {
       scheduleChannels.push(selectedChannel);
     }
 
@@ -240,7 +240,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       map.set(channel.id, matches);
     }
     return map;
-  }, [filteredChannels, epgPageLimit, selectedChannel, xmltvProgrammes, xmltvChannelAliases]);
+  }, [filteredChannels, epgPageLimit, selectedChannel, xmltvProgrammes, xmltvChannelAliases, showFavoritePlaylist]);
 
   // Active channel programs
   const activeChannelPrograms = useMemo(() => {

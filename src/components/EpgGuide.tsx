@@ -999,9 +999,9 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
 
                         {/* Name and Group */}
                         <div className="min-w-0">
-                          <h4 className="text-xs font-semibold truncate leading-tight">{channel.name}</h4>
-                          <span className="text-[10px] text-slate-500 truncate block">
-                            {channel.group || 'General'}
+                          <h4 className="ma9-scroll-viewport text-xs font-semibold leading-tight" title={channel.name}><span className="ma9-scroll-text">{channel.name}</span></h4>
+                          <span className="ma9-scroll-viewport text-[10px] text-slate-500 block" title={channel.group || 'General'}>
+                            <span className="ma9-scroll-text">{channel.group || 'General'}</span>
                           </span>
                         </div>
                       </div>
@@ -1100,7 +1100,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                                 ></span>
                               )}
                             </div>
-                            <h5 className="text-xs font-semibold truncate leading-tight">{prog.title}</h5>
+                            <h5 className="ma9-scroll-viewport text-xs font-semibold leading-tight" title={prog.title}><span className="ma9-scroll-text">{prog.title}</span></h5>
                           </div>
                         );
                       })}

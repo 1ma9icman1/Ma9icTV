@@ -167,16 +167,24 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   }, [selectedChannel?.id]);
 
   useEffect(() => {
-    if (!streamConnectedForBatchLoad || !selectedChannel || epgPageLimit >= filteredChannels.length) return;
+    if (!selectedChannel || epgPageLimit >= filteredChannels.length) return;
     let cancelled = false;
-    // Wait until the video reports playback, then render more rows in paced
-    // batches so the guide never delays starting the stream.
-    const delayMs = epgPageLimit <= 100 ? 1200 : 900;
+
+    // Give the first selected stream priority: when playback reports connected,
+    // begin expanding shortly afterward. If a provider never emits that event,
+    // don't strand the guide at 100 rows; allow the next batch after a short
+    // startup window. Once the first batch is expanded, keep loading in the
+    // background in small, paced batches without requiring any button clicks.
+    const isFirstExpansion = epgPageLimit <= 100;
+    const delayMs = isFirstExpansion
+      ? (streamConnectedForBatchLoad ? 900 : 4000)
+      : 700;
     const timer = window.setTimeout(() => {
       if (!cancelled) {
         setEpgPageLimit((limit) => Math.min(limit + 100, filteredChannels.length));
       }
     }, delayMs);
+
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
@@ -1121,16 +1129,11 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                 );
               })}
               {filteredChannels.length > epgPageLimit && (
-                <div className="sticky left-0 flex items-center justify-center gap-3 p-4 bg-slate-950 border-t border-slate-800">
+                <div className="sticky left-0 flex items-center justify-center gap-2 p-3 bg-slate-950 border-t border-slate-800">
+                  <RefreshCw className="h-3 w-3 animate-spin text-indigo-400" />
                   <span className="text-xs text-slate-400">
-                    Showing {Math.min(epgPageLimit, filteredChannels.length).toLocaleString()} of {filteredChannels.length.toLocaleString()} channels
+                    Loading channels automatically — {Math.min(epgPageLimit, filteredChannels.length).toLocaleString()} of {filteredChannels.length.toLocaleString()}
                   </span>
-                  <button
-                    onClick={() => setEpgPageLimit((limit) => Math.min(limit + 100, filteredChannels.length))}
-                    className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
-                  >
-                    Load 100 More Channels
-                  </button>
                 </div>
               )}
             </div>

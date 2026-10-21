@@ -95,7 +95,7 @@ export function isPreferredMasterCatalogChannel(channel: Pick<Channel, 'name' | 
     normalizedName.endsWith(` ${language}`) ||
     normalizedName.includes(` ${language} audio`) ||
     normalizedName.includes(` ${language} language`) ||
-    normalizedName.includes(` ${language} dub')
+    normalizedName.includes(` ${language} dub`)
   );
   return !nonEnglishGroup.test(group) && !explicitlyTaggedName;
 }

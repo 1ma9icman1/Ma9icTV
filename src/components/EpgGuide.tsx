@@ -857,52 +857,33 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
           </div>
         </div>
 
-        {/* Center: Search */}
-        <div className="relative w-full sm:w-64 flex-1 sm:flex-none min-w-[140px]">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search channels & shows..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-3 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-          />
-        </div>
-        <div className="flex items-center gap-1.5 flex-shrink-0 min-w-0">
-          <label className="sr-only" htmlFor="epg-category-select">Channel category</label>
-          <select
-            id="epg-category-select"
-            value={selectedCategory}
-            onChange={(event) => setSelectedCategory(event.target.value)}
-            title="Choose a channel category"
-            aria-label="Choose a channel category"
-            className="min-h-9 w-[130px] sm:w-[190px] max-w-[42vw] rounded-lg border border-indigo-500/40 bg-slate-900 px-2 text-xs font-semibold text-slate-200 focus:outline-none focus:border-indigo-400"
-          >
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>{cat}</option>
-            ))}
-          </select>
-          <input ref={favoriteFileInputRef} type="file" accept=".txt,text/plain,.json,application/json"
-            className="hidden" onChange={importFavoritesText} aria-label="Import favorites and personal EPG file" />
-          <button type="button" onClick={exportFavoritesText}
-            disabled={favoriteChannels.length === 0 && excludedEpgChannels.length === 0}
-            title="Export favorites and personal EPG exclusions to a reloadable text file"
-            className="min-h-9 px-2.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 text-slate-300 text-xs font-semibold flex items-center gap-1.5">
-            <Download className="w-3.5 h-3.5" /><span className="hidden md:inline">Export</span>
-          </button>
-          <button type="button" onClick={() => favoriteFileInputRef.current?.click()}
-            title="Reload favorites and personal EPG from text file"
-            className="min-h-9 px-2.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold flex items-center gap-1.5">
-            <FileUp className="w-3.5 h-3.5" /><span className="hidden md:inline">Import</span>
-          </button>
-          <button type="button" onClick={() => setShowExcludedEpgChannels((value) => !value)}
-            aria-pressed={showExcludedEpgChannels}
-            title={showExcludedEpgChannels ? 'Return to personal EPG channels' : 'Manage channels removed from personal EPG'}
-            className={`min-h-9 px-2.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 ${showExcludedEpgChannels ? 'border-amber-500/50 bg-amber-500/10 text-amber-200' : 'border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300'}`}>
-            {showExcludedEpgChannels ? <Plus className="w-3.5 h-3.5" /> : <Minus className="w-3.5 h-3.5" />}
-            <span className="hidden sm:inline">{showExcludedEpgChannels ? 'Restore channels' : 'Personal EPG'}</span>
-            <span>({excludedEpgChannels.length})</span>
-          </button>
+        {/* Search channels/shows with the category filter directly beside it. */}
+        <div className="flex w-full sm:w-auto flex-1 min-w-0 items-center gap-1.5">
+          <div className="relative flex-1 min-w-0 sm:w-64 sm:flex-none">
+            <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Search channels & shows..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-3 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            />
+          </div>
+          <div className="flex-shrink-0">
+            <label className="sr-only" htmlFor="epg-category-select">Channel category</label>
+            <select
+              id="epg-category-select"
+              value={selectedCategory}
+              onChange={(event) => setSelectedCategory(event.target.value)}
+              title="Choose a channel category"
+              aria-label="Choose a channel category"
+              className="min-h-9 w-[105px] sm:w-[150px] rounded-lg border border-indigo-500/40 bg-slate-900 px-2 text-xs font-semibold text-slate-200 focus:outline-none focus:border-indigo-400"
+            >
+              {categories.map((cat) => (
+                <option key={cat} value={cat}>{cat}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </div>
 

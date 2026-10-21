@@ -34,7 +34,7 @@ import {
   isChannelBlacklisted,
 } from './utils/storage';
 import { INITIAL_PRESETS, CATALOG_PLAYLISTS } from './data/presetPlaylists';
-import { buildMasterCatalog, isExcludedMasterCatalogLabel, readCachedMasterCatalog, writeCachedMasterCatalog } from './utils/masterCatalog';
+import { buildMasterCatalog, isExcludedMasterCatalogLabel, isPreferredMasterCatalogChannel, isPreferredMasterCatalogSource, readCachedMasterCatalog, writeCachedMasterCatalog } from './utils/masterCatalog';
 
 import { ChannelList } from './components/ChannelList';
 import { VideoPlayer } from './components/VideoPlayer';
@@ -200,7 +200,7 @@ export default function App() {
         // temporarily collapse the master catalog to one stream per channel.
         const cachedChannels: Channel[] = cached.entries.filter((entry) => !isExcludedMasterCatalogLabel(entry.name, entry.tvgName, entry.tvgId)).flatMap((entry) =>
           (entry.variants || []).flatMap((variant) => {
-            if (!variant?.url || !/^https?:\/\//i.test(variant.url)) return [];
+            if (!variant?.url || !/^https?:\/\//i.test(variant.url) || !isPreferredMasterCatalogSource(variant.playlistTitle) || !isPreferredMasterCatalogChannel({ name: entry.name, group: entry.group }, variant.playlistTitle)) return [];
             return [{
               id: `${entry.id}:${variant.playlistId}:${variant.channelId}`,
               name: entry.name,
@@ -218,7 +218,8 @@ export default function App() {
         setMasterSourceChannels(cachedChannels);
       }
 
-      const sources = Array.from(new Set(CATALOG_PLAYLISTS.flatMap((item) =>
+      const selectedSources = CATALOG_PLAYLISTS.filter((item) => isPreferredMasterCatalogSource(item.name));
+      const sources = Array.from(new Set(selectedSources.flatMap((item) =>
         [item.url, ...(item.sourceUrls || [])].map((url) => url.trim()).filter((url) => /^https?:\/\//i.test(url))
       )));
       let finishedCount = 0;
@@ -342,7 +343,7 @@ export default function App() {
               httpUserAgent: item.httpUserAgent,
               httpReferrer: item.httpReferrer,
               raw: item.raw,
-            })).filter((channel: Channel) => /^https?:\/\//i.test(String(channel.url || '')));
+            })).filter((channel: Channel) => /^https?:\/\//i.test(String(channel.url || '')) && isPreferredMasterCatalogChannel(channel, source?.name));
             finishedCount++;
             rawChannelCount += channels.length;
             if (channels.length) {

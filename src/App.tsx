@@ -31,6 +31,7 @@ import {
   saveSettings,
   resetAppStorage,
   addBlacklistedChannel,
+  isChannelBlacklisted,
 } from './utils/storage';
 import { INITIAL_PRESETS, CATALOG_PLAYLISTS } from './data/presetPlaylists';
 import { buildMasterCatalog, isExcludedMasterCatalogLabel, readCachedMasterCatalog, writeCachedMasterCatalog } from './utils/masterCatalog';
@@ -90,7 +91,7 @@ export default function App() {
     }
     return {
       id: MASTER_PLAYLIST_ID,
-      title: masterSourceChannels.length ? 'MASTER CATALOG — All Sources' : 'MASTER CATALOG — Loading Sources',
+      title: masterSourceChannels.length ? 'Ma9icTV' : 'Ma9icTV — Loading Sources',
       type: 'preset',
       channelCount: channels.length,
       addedAt: 0,
@@ -211,7 +212,7 @@ export default function App() {
               isRadio: entry.isRadio,
               httpUserAgent: variant.userAgent,
               httpReferrer: variant.referrer,
-            } as Channel];
+            } as Channel].filter((channel) => !isChannelBlacklisted(channel));
           })
         );
         setMasterSourceChannels(cachedChannels);
@@ -264,7 +265,7 @@ export default function App() {
               isRadio: entry.isRadio,
               httpUserAgent: variant.userAgent,
               httpReferrer: variant.referrer,
-            } as Channel];
+            } as Channel].filter((channel) => !isChannelBlacklisted(channel));
           })
         );
         setMasterSourceChannels(channels);
@@ -448,6 +449,12 @@ export default function App() {
       ? remainingChannels[Math.min(Math.max(failedIndex, 0), remainingChannels.length - 1)]
       : null;
 
+    // The active Master Catalog is generated from this separate source state,
+    // not from saved playlists, so remove the failed URL from both stores.
+    setMasterSourceChannels((previous) => previous.filter(
+      (item) => item.url.toLowerCase() !== failedChannel.url.toLowerCase()
+        && item.id !== failedChannel.id
+    ));
     setPlaylists((previous) => {
       const updated = previous.map((playlist) => {
         const channels = playlist.channels.filter(

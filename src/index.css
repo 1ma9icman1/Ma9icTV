@@ -273,8 +273,12 @@ button, [role="button"] {
   max-width: none;
   white-space: nowrap;
   text-overflow: clip;
+}
+.ma9-scroll-viewport:hover .ma9-scroll-text,
+.ma9-scroll-viewport:focus .ma9-scroll-text,
+.ma9-scroll-viewport:focus-within .ma9-scroll-text {
   animation: ma9-horizontal-reveal 8s ease-in-out infinite alternate;
-  animation-delay: .65s;
+  animation-delay: .2s;
   will-change: transform;
 }
 @keyframes ma9-horizontal-reveal {

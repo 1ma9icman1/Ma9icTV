@@ -317,7 +317,9 @@ export default function App() {
         if (!response.ok) throw new Error('Unable to load Samsung TV Plus playlist');
         const data = await response.json();
         if (!Array.isArray(data.items) || data.items.length === 0) throw new Error('Samsung TV Plus returned no channels');
-        if (cancelled) return;
+        // This request may have started before the user selected Master Catalog.
+        // Never let its late response switch the active playlist back to Samsung.
+        if (cancelled || getActivePlaylistId() === MASTER_PLAYLIST_ID) return;
 
         const channels: Channel[] = data.items.map((item: any, idx: number) => ({
           id: `${samsungId}-ch-${idx}`,

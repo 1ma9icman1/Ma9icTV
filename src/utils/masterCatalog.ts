@@ -61,8 +61,7 @@ function normalizeUrl(value: string): string {
 export function isPreferredMasterCatalogSource(title: string | undefined): boolean {
   const value = normalizeLabel(title);
   if (!value) return false;
-  if (value === 'free tv curated quality playlist' ||
-      value === 'worldwide channels grouped by language' ||
+  if (value === 'worldwide channels grouped by language' ||
       value === 'samsung tv plus united states' ||
       value === 'pluto tv united states' ||
       value === 'plex tv united states' ||
@@ -88,8 +87,10 @@ export function isPreferredMasterCatalogChannel(channel: Pick<Channel, 'name' | 
     return group === 'english' || group === 'english language' || group.startsWith('english ');
   }
   if (source === 'mexico') return true;
-  const nonEnglishGroup = /(^| )(french|francais|german|deutsch|spanish|espanol|italian|portuguese|arabic|russian|hindi|japanese|korean|turkish|albanian|greek|polish|ukrainian|romanian|serbian|croatian|chinese|mandarin|persian|farsi|dutch|swedish|norwegian|danish|finnish|czech|slovak|hungarian|bulgarian|thai|vietnamese|indonesian|hebrew|bengali|tamil|urdu|malayalam|telugu)( |$)/;
-  return !nonEnglishGroup.test(group);
+  const foreignLanguage = '(french|francais|german|deutsch|spanish|espanol|italian|portuguese|arabic|russian|hindi|japanese|korean|turkish|albanian|greek|polish|ukrainian|romanian|serbian|croatian|chinese|mandarin|persian|farsi|dutch|swedish|norwegian|danish|finnish|czech|slovak|hungarian|bulgarian|thai|vietnamese|indonesian|hebrew|bengali|tamil|urdu|malayalam|telugu)';
+  const nonEnglishGroup = new RegExp('(^| )' + foreignLanguage + '( |$)');
+  const explicitlyTaggedName = new RegExp('(?:\\\\[|\\\\(|\\\\b)' + foreignLanguage + '(?:\\\\]|\\\\)|\\\\s+(?:language|audio|feed|dub))', 'i');
+  return !nonEnglishGroup.test(group) && !explicitlyTaggedName.test(channel.name);
 }
 
 /** Exclude the two confirmed-dead channels from the combined Master Catalog only. */

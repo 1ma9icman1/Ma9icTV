@@ -84,8 +84,8 @@ export const ChannelList: React.FC<ChannelListProps> = ({
   return (
     <div className="flex flex-col h-[40%] min-h-[145px] max-h-[44dvh] md:h-full md:max-h-none md:min-h-0 bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 w-full md:w-80 lg:w-96 min-w-0 flex-shrink-0 select-none">
       {/* Search Bar & View Mode Header */}
-      <div className="p-3 border-b border-slate-800 space-y-2">
-        <div className="flex items-center gap-2">
+      <div className="p-2 border-b border-slate-800 space-y-1.5">
+        <div className="flex items-center gap-1.5">
           <div className="relative flex-1">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
             <input
@@ -198,7 +198,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
       </div>
 
       {/* Channels List / Grid Area */}
-      <div className="flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-contain p-2 space-y-1">
+      <div className="flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-contain p-1.5 space-y-0.5">
         {filteredChannels.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-8 text-center text-slate-500 h-64">
             <Sparkles className="w-10 h-10 mb-2 stroke-[1.5] text-slate-600" />
@@ -207,7 +207,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
           </div>
         ) : isGridView ? (
           /* Grid View Mode */
-          <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 min-[420px]:grid-cols-2 gap-1.5">
             {visibleChannels.map((channel) => {
               const isSelected = selectedChannel?.id === channel.id;
               const isFav = favorites.includes(channel.id);
@@ -216,14 +216,14 @@ export const ChannelList: React.FC<ChannelListProps> = ({
                 <div
                   key={channel.id}
                   onClick={() => onSelectChannel(channel)}
-                  className={`group relative p-2.5 rounded-xl border cursor-pointer transition-all flex flex-col justify-between h-28 ${
+                  className={`group relative p-2 rounded-lg border cursor-pointer transition-all flex flex-col justify-between h-24 ${
                     isSelected
                       ? 'bg-indigo-950/40 border-indigo-500 shadow-md ring-1 ring-indigo-500/50'
                       : 'bg-slate-950/60 border-slate-800/80 hover:bg-slate-800 hover:border-slate-700'
                   }`}
                 >
                   <div className="flex items-start justify-between gap-1">
-                    <div className="w-9 h-9 rounded-lg bg-slate-900 border border-slate-800 p-1 flex items-center justify-center overflow-hidden flex-shrink-0">
+                    <div className="w-7 h-7 rounded-lg bg-slate-900 border border-slate-800 p-1 flex items-center justify-center overflow-hidden flex-shrink-0">
                       {channel.logo ? (
                         <img
                           src={channel.logo}
@@ -279,7 +279,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
           </div>
         ) : (
           /* List View Mode */
-          <div className="space-y-1">
+          <div className="space-y-0.5">
             {visibleChannels.map((channel) => {
               const isSelected = selectedChannel?.id === channel.id;
               const isFav = favorites.includes(channel.id);
@@ -288,14 +288,14 @@ export const ChannelList: React.FC<ChannelListProps> = ({
                 <div
                   key={channel.id}
                   onClick={() => onSelectChannel(channel)}
-                  className={`group px-3 py-2 rounded-xl border cursor-pointer transition-all flex items-center justify-between gap-3 ${
+                  className={`group px-2 py-1.5 rounded-lg border cursor-pointer transition-all flex items-center justify-between gap-2 ${
                     isSelected
                       ? 'bg-indigo-950/50 border-indigo-500 text-white shadow-sm'
                       : 'bg-slate-950/40 border-slate-800/60 hover:bg-slate-800/70 hover:border-slate-700 text-slate-300'
                   }`}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 p-1 flex items-center justify-center overflow-hidden flex-shrink-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-lg bg-slate-900 border border-slate-800 p-1 flex items-center justify-center overflow-hidden flex-shrink-0">
                       {channel.logo ? (
                         <img
                           src={channel.logo}
@@ -375,7 +375,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
       </div>
 
       {/* Footer Info */}
-      <div className="p-2 border-t border-slate-800 text-[11px] text-slate-500 text-center flex items-center justify-between px-4">
+      <div className="px-3 py-1.5 border-t border-slate-800 text-[10px] text-slate-500 text-center flex items-center justify-between">
         <span>
           Showing {Math.min(visibleChannels.length, filteredChannels.length)} of {filteredChannels.length} channels
         </span>

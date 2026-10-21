@@ -12,6 +12,7 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { Channel } from '../types';
+import { getBroadCategoryCounts, getBroadChannelCategory } from '../utils/channelCategories';
 
 interface ChannelListProps {
   channels: Channel[];
@@ -40,17 +41,8 @@ export const ChannelList: React.FC<ChannelListProps> = ({
     setPageLimit(150);
   }, [searchQuery, selectedGroup]);
 
-  // Extract all distinct groups and their counts
-  const groupStats = useMemo(() => {
-    const counts: Record<string, number> = {};
-    channels.forEach((c) => {
-      const g = c.group || 'General';
-      counts[g] = (counts[g] || 0) + 1;
-    });
-
-    const sortedGroups = Object.entries(counts).sort((a, b) => b[1] - a[1]);
-    return sortedGroups;
-  }, [channels]);
+  // Aggregate upstream group labels into a small set of useful categories.
+  const groupStats = useMemo(() => getBroadCategoryCounts(channels), [channels]);
 
   // Filter channels based on tab, group, and query
   const filteredChannels = useMemo(() => {
@@ -63,7 +55,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
     } else if (selectedGroup === 'RADIO') {
       list = channels.filter((c) => c.isRadio);
     } else if (selectedGroup !== 'ALL') {
-      list = channels.filter((c) => (c.group || 'General') === selectedGroup);
+      list = channels.filter((c) => getBroadChannelCategory(c) === selectedGroup);
     }
 
     if (!searchQuery.trim()) return list;

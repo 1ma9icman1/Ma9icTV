@@ -517,16 +517,23 @@ export default function App() {
     }
   }, [selectedChannel, activePlaylist, handleSelectChannel]);
 
-  // Playlist management handlers
+  // This experiment intentionally exposes ONE active channel list.
+  // Source playlists are inputs to the catalog, never selectable replacements for it.
   const handleSelectPlaylist = useCallback((id: string) => {
-    setActivePlaylistIdState(id);
-    setActivePlaylistId(id);
-    const target = id === MASTER_PLAYLIST_ID ? masterPlaylist : playlists.find((p) => p.id === id);
-    if (target && target.channels.length > 0) {
-      setSelectedChannel(target.channels[0]);
+    if (id !== MASTER_PLAYLIST_ID) {
+      console.warn('[Ma9icTV DEBUG] blocked individual-playlist switch; keeping Master Catalog active', {
+        requestedId: id,
+        requestedTitle: playlists.find((playlist) => playlist.id === id)?.title || 'unknown playlist',
+        activeIdBefore: activePlaylistIdState,
+        masterChannelCount: masterPlaylist.channels.length,
+      });
     }
+    setActivePlaylistIdState(MASTER_PLAYLIST_ID);
+    setActivePlaylistId(MASTER_PLAYLIST_ID);
+    const firstStream = getFirstStreamChannel(masterPlaylist.channels);
+    if (firstStream) setSelectedChannel(firstStream);
     setCurrentView('epg');
-  }, [playlists, masterPlaylist]);
+  }, [activePlaylistIdState, masterPlaylist, playlists]);
 
   const handleAddPlaylist = useCallback((newPlaylist: Playlist) => {
     setPlaylists((prev) => {

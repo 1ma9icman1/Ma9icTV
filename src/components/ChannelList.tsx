@@ -261,10 +261,10 @@ export const ChannelList: React.FC<ChannelListProps> = ({
                         isSelected ? 'text-indigo-200 font-semibold' : 'text-slate-200'
                       }`}
                       title={channel.name}
-                      onMouseEnter={(event) => event.currentTarget.style.setProperty('--ma9-scroll-distance', `${Math.max(0, event.currentTarget.scrollWidth - event.currentTarget.clientWidth)}px`)}
+                      onMouseEnter={(event) => event.currentTarget.style.setProperty('--ma9-scroll-distance', `${Math.max(0, ((event.currentTarget.querySelector('.ma9-scroll-text') as HTMLElement | null)?.scrollWidth || 0) - event.currentTarget.clientWidth}px`)}
                     ><span className="ma9-scroll-text">{channel.name}</span></h5>
                     <div className="flex items-center justify-between text-[10px] text-slate-500 mt-1">
-                      <span className="ma9-scroll-viewport max-w-[80px]" title={channel.group || 'Live'} onMouseEnter={(event) => event.currentTarget.style.setProperty('--ma9-scroll-distance', `${Math.max(0, event.currentTarget.scrollWidth - event.currentTarget.clientWidth)}px`)}><span className="ma9-scroll-text">{channel.group || 'Live'}</span></span>
+                      <span className="ma9-scroll-viewport max-w-[80px]" title={channel.group || 'Live'} onMouseEnter={(event) => event.currentTarget.style.setProperty('--ma9-scroll-distance', `${Math.max(0, ((event.currentTarget.querySelector('.ma9-scroll-text') as HTMLElement | null)?.scrollWidth || 0) - event.currentTarget.clientWidth}px`)}><span className="ma9-scroll-text">{channel.group || 'Live'}</span></span>
                       {isSelected && (
                         <span className="flex items-center gap-1 text-emerald-400 font-bold">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -319,7 +319,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
                             isSelected ? 'text-indigo-200 font-semibold' : 'text-slate-200'
                           }`}
                           title={channel.name}
-                          onMouseEnter={(event) => event.currentTarget.style.setProperty('--ma9-scroll-distance', `${Math.max(0, event.currentTarget.scrollWidth - event.currentTarget.clientWidth)}px`)}
+                          onMouseEnter={(event) => event.currentTarget.style.setProperty('--ma9-scroll-distance', `${Math.max(0, ((event.currentTarget.querySelector('.ma9-scroll-text') as HTMLElement | null)?.scrollWidth || 0) - event.currentTarget.clientWidth}px`)}
                         >
                           <span className="ma9-scroll-text">{channel.name}</span>
                         </span>
@@ -329,7 +329,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
                           </span>
                         )}
                       </div>
-                      <p className="ma9-scroll-viewport text-[10px] text-slate-500" title={channel.group || 'General'} onMouseEnter={(event) => event.currentTarget.style.setProperty('--ma9-scroll-distance', `${Math.max(0, event.currentTarget.scrollWidth - event.currentTarget.clientWidth)}px`)}><span className="ma9-scroll-text">{channel.group || 'General'}</span></p>
+                      <p className="ma9-scroll-viewport text-[10px] text-slate-500" title={channel.group || 'General'} onMouseEnter={(event) => event.currentTarget.style.setProperty('--ma9-scroll-distance', `${Math.max(0, ((event.currentTarget.querySelector('.ma9-scroll-text') as HTMLElement | null)?.scrollWidth || 0) - event.currentTarget.clientWidth}px`)}><span className="ma9-scroll-text">{channel.group || 'General'}</span></p>
                     </div>
                   </div>
 

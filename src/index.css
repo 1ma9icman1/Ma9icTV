@@ -257,17 +257,15 @@ button, [role="button"] {
 
 
 
-/* Reveal long channel names and programme titles without shrinking the guide.
-   The measured overflow distance makes the full label readable on hover/focus. */
+/* Automatically pan long labels left and right. The viewport clips overflow;
+   it never shows a horizontal scrollbar. Short labels stay visually still. */
 .ma9-scroll-viewport {
   display: block;
   min-width: 0;
   max-width: 100%;
-  overflow-x: auto;
-  overflow-y: hidden;
-  scrollbar-width: thin;
-  touch-action: pan-x;
+  overflow: hidden;
   white-space: nowrap;
+  text-overflow: clip;
 }
 .ma9-scroll-text {
   display: inline-block;
@@ -275,21 +273,17 @@ button, [role="button"] {
   max-width: none;
   white-space: nowrap;
   text-overflow: clip;
-}
-.ma9-scroll-viewport:hover .ma9-scroll-text,
-.ma9-scroll-viewport:focus .ma9-scroll-text,
-.ma9-scroll-viewport:focus-within .ma9-scroll-text {
-  animation: ma9-horizontal-reveal 7s ease-in-out infinite alternate;
+  animation: ma9-horizontal-reveal 8s ease-in-out infinite alternate;
+  animation-delay: .65s;
   will-change: transform;
 }
 @keyframes ma9-horizontal-reveal {
-  from { transform: translateX(0); }
-  to { transform: translateX(calc(0px - var(--ma9-scroll-distance, 0px))); }
+  0%, 10% { transform: translateX(0); }
+  90%, 100% { transform: translateX(calc(0px - var(--ma9-scroll-distance, 0px))); }
 }
 @media (prefers-reduced-motion: reduce) {
-  .ma9-scroll-viewport:hover .ma9-scroll-text,
-  .ma9-scroll-viewport:focus .ma9-scroll-text,
-  .ma9-scroll-viewport:focus-within .ma9-scroll-text {
+  .ma9-scroll-text {
     animation: none;
+    transform: none;
   }
 }

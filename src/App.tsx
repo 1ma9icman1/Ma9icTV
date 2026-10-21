@@ -33,6 +33,7 @@ import {
   addBlacklistedChannel,
 } from './utils/storage';
 import { INITIAL_PRESETS, CATALOG_PLAYLISTS } from './data/presetPlaylists';
+import { buildMasterCatalog, readCachedMasterCatalog, writeCachedMasterCatalog } from './utils/masterCatalog';
 
 import { ChannelList } from './components/ChannelList';
 import { VideoPlayer } from './components/VideoPlayer';
@@ -54,43 +55,45 @@ export default function App() {
   // Playlists and Channels state
   const [playlists, setPlaylists] = useState<Playlist[]>(() => getSavedPlaylists());
   const [activePlaylistIdState, setActivePlaylistIdState] = useState<string>(() => getActivePlaylistId());
+  const [masterSourceChannels, setMasterSourceChannels] = useState<Channel[]>([]);
 
-  // A virtual Master Catalog combines every saved playlist without changing the originals.
-  // It is derived in memory and never written back as a source playlist.
+  // The Master Catalog combines the configured M3U sources with any locally saved playlists.
+  // It is cached in IndexedDB and refreshed in the background; source loading never blocks startup.
   const masterPlaylist = useMemo<Playlist>(() => {
     const seenUrls = new Set<string>();
     const channels: Channel[] = [];
-    for (const playlist of playlists) {
-      if (playlist.id === MASTER_PLAYLIST_ID) continue;
-      for (const channel of playlist.channels || []) {
-        const url = String(channel.url || '').trim();
-        if (!/^https?:\/\//i.test(url)) continue;
-        const identity = url.toLowerCase();
-        if (seenUrls.has(identity)) continue;
-        seenUrls.add(identity);
-        channels.push({ ...channel, id: `master:${playlist.id}:${channel.id}` });
-      }
+    const candidates = masterSourceChannels.length
+      ? [...masterSourceChannels, ...playlists.filter((playlist) => playlist.id !== MASTER_PLAYLIST_ID).flatMap((playlist) => playlist.channels || [])]
+      : playlists.filter((playlist) => playlist.id !== MASTER_PLAYLIST_ID).flatMap((playlist) => playlist.channels || []);
+    for (const channel of candidates) {
+      const url = String(channel.url || '').trim();
+      if (!/^https?:\/\//i.test(url)) continue;
+      const identity = url.toLowerCase();
+      if (seenUrls.has(identity)) continue;
+      seenUrls.add(identity);
+      channels.push({ ...channel, id: `master:${channel.id}` });
     }
     return {
       id: MASTER_PLAYLIST_ID,
-      title: 'MASTER CATALOG — All Playlists',
+      title: masterSourceChannels.length ? 'MASTER CATALOG — All Sources' : 'MASTER CATALOG — Loading Sources',
       type: 'preset',
       channelCount: channels.length,
       addedAt: 0,
-      lastUpdated: Math.max(0, ...playlists.map((playlist) => playlist.lastUpdated || 0)),
+      lastUpdated: Date.now(),
       channels,
     };
-  }, [playlists]);
+  }, [playlists, masterSourceChannels]);
   // Select a saved channel immediately so the embedded EPG player can begin
   // loading while the default Pluto playlist is fetched in the background.
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(() => {
     const savedPlaylists = getSavedPlaylists();
     const savedActiveId = getActivePlaylistId();
-    const cachedDefault = savedPlaylists.find((playlist) => playlist.id === 'default-samsung-tv-plus-us');
-    const savedActive = cachedDefault
-      || savedPlaylists.find((playlist) => playlist.id === savedActiveId)
-      || savedPlaylists[0]
-      || INITIAL_PRESETS[0];
+    const savedActive = savedActiveId === MASTER_PLAYLIST_ID
+      ? null
+      : savedPlaylists.find((playlist) => playlist.id === savedActiveId)
+        || savedPlaylists.find((playlist) => playlist.id === 'default-samsung-tv-plus-us')
+        || savedPlaylists[0]
+        || INITIAL_PRESETS[0];
     return savedActive ? getFirstStreamChannel(savedActive.channels) : null;
   });
 
@@ -157,10 +160,115 @@ export default function App() {
       : selected;
   }, [playlists, activePlaylistIdState, masterPlaylist]);
 
-  // Load Samsung TV Plus by default on startup, without opening the playlist picker.
-  // The normal playlist menu remains available for users to switch sources.
+  // Populate the Master Catalog from every configured source in the background.
+  // A cached catalog appears immediately; failed sources are skipped and can be retried on next load.
   useEffect(() => {
     let cancelled = false;
+    const loadMasterSources = async () => {
+      const cached = await readCachedMasterCatalog();
+      if (cancelled) return;
+      if (cached?.entries?.length) {
+        const cachedChannels: Channel[] = cached.entries.flatMap((entry) => {
+          const variant = entry.variants?.[0];
+          if (!variant?.url) return [];
+          return [{
+            id: entry.id,
+            name: entry.name,
+            url: variant.url,
+            group: entry.group || 'Uncategorized',
+            logo: entry.logo,
+            tvgId: entry.tvgId,
+            tvgName: entry.tvgName,
+            isRadio: entry.isRadio,
+          } as Channel];
+        });
+        setMasterSourceChannels(cachedChannels);
+      }
+
+      const sources = Array.from(new Set(CATALOG_PLAYLISTS.flatMap((item) =>
+        [item.url, ...(item.sourceUrls || [])].map((url) => url.trim()).filter((url) => /^https?:\/\//i.test(url))
+      )));
+      const loaded: Playlist[] = [];
+      let next = 0;
+      const worker = async () => {
+        while (!cancelled) {
+          const index = next++;
+          if (index >= sources.length) return;
+          const url = sources[index];
+          try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 25000);
+            const response = await fetch('/api/parse-playlist', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ url }),
+              signal: controller.signal,
+            });
+            clearTimeout(timeout);
+            if (!response.ok) continue;
+            const data = await response.json();
+            if (!Array.isArray(data.items) || !data.items.length) continue;
+            const source = CATALOG_PLAYLISTS.find((item) => item.url === url || item.sourceUrls?.includes(url));
+            const channels: Channel[] = data.items.map((item: any, idx: number) => ({
+              id: `master-source-${index}-${idx}`,
+              name: item.name || 'Unnamed Channel',
+              url: item.url,
+              group: item.group?.title || item.group || source?.category || 'Uncategorized',
+              logo: item.tvg?.logo || undefined,
+              tvgId: item.tvg?.id || undefined,
+              tvgName: item.tvg?.name || undefined,
+              isRadio: item.radio === 'true' || /\.(mp3|aac)(\?|$)/i.test(item.url || ''),
+              raw: item.raw,
+            })).filter((channel: Channel) => /^https?:\/\//i.test(String(channel.url || '')));
+            if (channels.length) loaded.push({
+              id: `master-source-${index}`,
+              title: source?.name || url,
+              url,
+              type: 'm3u-url',
+              channelCount: channels.length,
+              addedAt: 0,
+              lastUpdated: Date.now(),
+              epgUrl: source?.epgUrl,
+              channels,
+            });
+          } catch {
+            // A failed or slow source must not block the remaining catalog sources.
+          }
+        }
+      };
+      await Promise.all([worker(), worker(), worker()]);
+      if (cancelled || !loaded.length) return;
+      const catalog = buildMasterCatalog(loaded);
+      await writeCachedMasterCatalog(catalog);
+      if (cancelled) return;
+      const channels: Channel[] = catalog.entries.flatMap((entry) => {
+        const variant = entry.variants?.[0];
+        if (!variant?.url) return [];
+        return [{
+          id: entry.id,
+          name: entry.name,
+          url: variant.url,
+          group: entry.group || 'Uncategorized',
+          logo: entry.logo,
+          tvgId: entry.tvgId,
+          tvgName: entry.tvgName,
+          isRadio: entry.isRadio,
+          httpUserAgent: variant.userAgent,
+          httpReferrer: variant.referrer,
+        } as Channel];
+      });
+      setMasterSourceChannels(channels);
+    };
+    void loadMasterSources();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Load Samsung TV Plus only when no playlist or Master Catalog was selected previously.
+  // Never override a user's saved Master Catalog selection during startup.
+  useEffect(() => {
+    let cancelled = false;
+    const loadDefaultSamsung = async () => {
+      if (getActivePlaylistId() === MASTER_PLAYLIST_ID) return;
     const loadDefaultSamsung = async () => {
       const samsungUrl = 'https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/samsungtvplus_us.m3u';
       const samsungId = 'default-samsung-tv-plus-us';

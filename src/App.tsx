@@ -195,20 +195,25 @@ export default function App() {
       const cached = await readCachedMasterCatalog();
       if (cancelled) return;
       if (cached?.entries?.length) {
-        const cachedChannels: Channel[] = cached.entries.flatMap((entry) => {
-          const variant = entry.variants?.[0];
-          if (!variant?.url) return [];
-          return [{
-            id: entry.id,
-            name: entry.name,
-            url: variant.url,
-            group: entry.group || 'Uncategorized',
-            logo: entry.logo,
-            tvgId: entry.tvgId,
-            tvgName: entry.tvgName,
-            isRadio: entry.isRadio,
-          } as Channel];
-        });
+        // Restore all cached source variants too, so the startup cache cannot
+        // temporarily collapse the master catalog to one stream per channel.
+        const cachedChannels: Channel[] = cached.entries.flatMap((entry) =>
+          (entry.variants || []).flatMap((variant) => {
+            if (!variant?.url || !/^https?:\/\//i.test(variant.url)) return [];
+            return [{
+              id: `${entry.id}:${variant.playlistId}:${variant.channelId}`,
+              name: entry.name,
+              url: variant.url,
+              group: entry.group || 'Uncategorized',
+              logo: entry.logo,
+              tvgId: entry.tvgId,
+              tvgName: entry.tvgName,
+              isRadio: entry.isRadio,
+              httpUserAgent: variant.userAgent,
+              httpReferrer: variant.referrer,
+            } as Channel];
+          })
+        );
         setMasterSourceChannels(cachedChannels);
       }
 

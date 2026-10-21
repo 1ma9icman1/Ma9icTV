@@ -100,17 +100,9 @@ export default function App() {
   }, [playlists, masterSourceChannels]);
   // Select a saved channel immediately so the embedded EPG player can begin
   // loading while the default Pluto playlist is fetched in the background.
-  const [selectedChannel, setSelectedChannel] = useState<Channel | null>(() => {
-    const savedPlaylists = getSavedPlaylists();
-    const savedActiveId = getActivePlaylistId();
-    const savedActive = savedActiveId === MASTER_PLAYLIST_ID
-      ? null
-      : savedPlaylists.find((playlist) => playlist.id === savedActiveId)
-        || savedPlaylists.find((playlist) => playlist.id === 'default-samsung-tv-plus-us')
-        || savedPlaylists[0]
-        || INITIAL_PRESETS[0];
-    return savedActive ? getFirstStreamChannel(savedActive.channels) : null;
-  });
+  // Start with no individual-playlist channel selected. The first playable
+  // channel is selected only after the combined Master Catalog publishes results.
+  const [selectedChannel, setSelectedChannel] = useState<Channel | null>(null);
 
   // Favorites and History
   const [favorites, setFavorites] = useState<string[]>(() => getFavorites());
@@ -636,8 +628,8 @@ export default function App() {
     const resetPlaylists = getSavedPlaylists();
     setPlaylists(resetPlaylists);
     savePlaylists(resetPlaylists);
-    setActivePlaylistIdState(INITIAL_PRESETS[0].id);
-    setActivePlaylistId(INITIAL_PRESETS[0].id);
+    setActivePlaylistIdState(MASTER_PLAYLIST_ID);
+    setActivePlaylistId(MASTER_PLAYLIST_ID);
     setFavorites([]);
     setFavoriteChannels([]);
     window.dispatchEvent(new Event('ma9ictv-storage-reset'));

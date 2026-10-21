@@ -191,6 +191,10 @@ export default function App() {
       )));
       const loaded: Playlist[] = [];
       let next = 0;
+      // IndexedDB writes must finish in the same order as catalog snapshots are published.
+      // Otherwise a slower write of an older/smaller snapshot can finish last and replace
+      // a newer catalog, making the channel count shrink after a refresh.
+      let cacheWriteQueue: Promise<unknown> = Promise.resolve();
       const publishCatalog = async () => {
         if (cancelled || !loaded.length) return;
         const catalog = buildMasterCatalog(loaded);
@@ -212,8 +216,10 @@ export default function App() {
           } as Channel];
         });
         setMasterSourceChannels(channels);
-        // Cache each successful batch, not just after every configured source finishes.
-        void writeCachedMasterCatalog(catalog);
+        // Serialize cache writes so an older, smaller snapshot can never overwrite a newer one.
+        cacheWriteQueue = cacheWriteQueue
+          .catch(() => undefined)
+          .then(() => writeCachedMasterCatalog(catalog));
       };
       const worker = async () => {
         while (!cancelled) {

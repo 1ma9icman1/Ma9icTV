@@ -33,7 +33,7 @@ import {
   addBlacklistedChannel,
 } from './utils/storage';
 import { INITIAL_PRESETS, CATALOG_PLAYLISTS } from './data/presetPlaylists';
-import { buildMasterCatalog, readCachedMasterCatalog, writeCachedMasterCatalog } from './utils/masterCatalog';
+import { buildMasterCatalog, isExcludedMasterCatalogLabel, readCachedMasterCatalog, writeCachedMasterCatalog } from './utils/masterCatalog';
 
 import { ChannelList } from './components/ChannelList';
 import { VideoPlayer } from './components/VideoPlayer';
@@ -197,7 +197,7 @@ export default function App() {
       if (cached?.entries?.length) {
         // Restore all cached source variants too, so the startup cache cannot
         // temporarily collapse the master catalog to one stream per channel.
-        const cachedChannels: Channel[] = cached.entries.flatMap((entry) =>
+        const cachedChannels: Channel[] = cached.entries.filter((entry) => !isExcludedMasterCatalogLabel(entry.name, entry.tvgName, entry.tvgId)).flatMap((entry) =>
           (entry.variants || []).flatMap((variant) => {
             if (!variant?.url || !/^https?:\/\//i.test(variant.url)) return [];
             return [{

@@ -963,11 +963,11 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                         onSelectChannel(channel);
                         setSelectedProgram(null);
                       }}
-                      className={`sticky left-0 z-20 w-[150px] sm:w-[260px] flex-shrink-0 px-2 sm:px-3 py-2.5 border-r border-slate-700 flex items-center justify-between gap-1 sm:gap-3 cursor-pointer select-none transition-colors ${
+                      className={`sticky left-0 z-20 w-[145px] sm:w-[250px] flex-shrink-0 px-1.5 sm:px-2 py-1.5 border-r border-slate-700 flex items-center justify-between gap-1 sm:gap-3 cursor-pointer select-none transition-colors ${
                         isSelected ? 'bg-[#1b1b46] text-white' : 'bg-[#070b12] text-slate-300'
                       }`}
                     >
-                      <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="flex items-center gap-1.5 min-w-0">
                         {/* Channel number and personal EPG include/exclude toggle */}
                         <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
                           <span className="hidden sm:block text-[11px] font-mono font-bold text-slate-500 w-5 text-right">
@@ -982,7 +982,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                         </div>
 
                         {/* Logo */}
-                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-lg bg-slate-900 border border-slate-800 p-0.5 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-md bg-slate-900 border border-slate-800 p-0.5 flex items-center justify-center overflow-hidden flex-shrink-0">
                           {channel.logo ? (
                             <img
                               src={channel.logo}

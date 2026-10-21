@@ -56,6 +56,21 @@ export default function App() {
   const [playlists, setPlaylists] = useState<Playlist[]>(() => getSavedPlaylists());
   const [activePlaylistIdState, setActivePlaylistIdState] = useState<string>(() => getActivePlaylistId());
   const [masterSourceChannels, setMasterSourceChannels] = useState<Channel[]>([]);
+  // Temporary visible diagnostics for the master-catalog investigation.
+  const [masterDebug, setMasterDebug] = useState({
+    phase: 'Waiting for Master Catalog selection',
+    activeId: '',
+    savedId: '',
+    sourceTotal: 0,
+    sourceFinished: 0,
+    sourceSucceeded: 0,
+    sourceFailed: 0,
+    rawChannels: 0,
+    catalogChannels: 0,
+    lastSource: '',
+    lastError: '',
+    startedAt: '',
+  });
 
   // The Master Catalog combines the configured M3U sources with any locally saved playlists.
   // It is cached in IndexedDB and refreshed in the background; source loading never blocks startup.
@@ -161,8 +176,27 @@ export default function App() {
   }, [playlists, activePlaylistIdState, masterPlaylist]);
 
   // Populate the Master Catalog from every configured source in the background.
-  // A cached catalog appears immediately; failed sources are skipped and can be retried on next load.
+  // Debug output records whether this effect actually starts and what each source returns.
   useEffect(() => {
+    setMasterDebug((previous) => ({
+      ...previous,
+      phase: activePlaylistIdState === MASTER_PLAYLIST_ID ? 'Starting master source load' : 'Master is not active — source loader idle',
+      activeId: activePlaylistIdState,
+      savedId: getActivePlaylistId(),
+      sourceFinished: 0,
+      sourceSucceeded: 0,
+      sourceFailed: 0,
+      rawChannels: 0,
+      lastSource: '',
+      lastError: '',
+      startedAt: new Date().toLocaleTimeString(),
+    }));
+    console.info('[Ma9icTV DEBUG] playlist selection', {
+      activePlaylistIdState,
+      savedActivePlaylistId: getActivePlaylistId(),
+      masterPlaylistId: MASTER_PLAYLIST_ID,
+      savedPlaylists: getSavedPlaylists().map((playlist) => ({ id: playlist.id, title: playlist.title, channels: playlist.channels?.length || 0 })),
+    });
     if (activePlaylistIdState !== MASTER_PLAYLIST_ID) return;
     let cancelled = false;
     const loadMasterSources = async () => {
@@ -189,6 +223,23 @@ export default function App() {
       const sources = Array.from(new Set(CATALOG_PLAYLISTS.flatMap((item) =>
         [item.url, ...(item.sourceUrls || [])].map((url) => url.trim()).filter((url) => /^https?:\/\//i.test(url))
       )));
+      let finishedCount = 0;
+      let failedCount = 0;
+      let rawChannelCount = 0;
+      setMasterDebug((previous) => ({
+        ...previous,
+        phase: 'Fetching configured M3U sources',
+        sourceTotal: sources.length,
+        sourceFinished: 0,
+        sourceSucceeded: 0,
+        sourceFailed: 0,
+        rawChannels: 0,
+        catalogChannels: cached?.entries?.length || 0,
+      }));
+      console.info('[Ma9icTV DEBUG] configured source URLs', sources.map((url) => ({
+        url,
+        name: CATALOG_PLAYLISTS.find((item) => item.url === url || item.sourceUrls?.includes(url))?.name || 'unlabelled source',
+      })));
       const loaded: Playlist[] = [];
       let next = 0;
       // IndexedDB writes must finish in the same order as catalog snapshots are published.
@@ -216,6 +267,25 @@ export default function App() {
           } as Channel];
         });
         setMasterSourceChannels(channels);
+        setMasterDebug((previous) => ({
+          ...previous,
+          phase: 'Sources loading; partial catalog published',
+          activeId: activePlaylistIdState,
+          savedId: getActivePlaylistId(),
+          sourceFinished: finishedCount,
+          sourceSucceeded: loaded.length,
+          sourceFailed: failedCount,
+          rawChannels: rawChannelCount,
+          catalogChannels: channels.length,
+        }));
+        console.info('[Ma9icTV DEBUG] master catalog snapshot', {
+          loadedSources: loaded.length,
+          finishedSources: finishedCount,
+          failedSources: failedCount,
+          rawChannels: rawChannelCount,
+          deduplicatedCatalogChannels: channels.length,
+          sourceChannelCounts: loaded.map((playlist) => ({ source: playlist.title, channels: playlist.channels.length })),
+        });
         // Serialize cache writes so an older, smaller snapshot can never overwrite a newer one.
         cacheWriteQueue = cacheWriteQueue
           .catch(() => undefined)
@@ -240,9 +310,23 @@ export default function App() {
             } finally {
               clearTimeout(timeout);
             }
-            if (!response.ok) continue;
+            if (!response.ok) {
+              finishedCount++;
+              failedCount++;
+              const message = `HTTP ${response.status} ${response.statusText}`;
+              setMasterDebug((previous) => ({ ...previous, phase: 'Source returned HTTP error', sourceFinished: finishedCount, sourceFailed: failedCount, lastSource: url, lastError: message }));
+              console.error('[Ma9icTV DEBUG] source HTTP failure', { url, status: response.status, statusText: response.statusText });
+              continue;
+            }
             const data = await response.json();
-            if (!Array.isArray(data.items) || !data.items.length) continue;
+            if (!Array.isArray(data.items) || !data.items.length) {
+              finishedCount++;
+              failedCount++;
+              const message = 'Parser returned zero items';
+              setMasterDebug((previous) => ({ ...previous, phase: 'Source returned zero items', sourceFinished: finishedCount, sourceFailed: failedCount, lastSource: url, lastError: message }));
+              console.warn('[Ma9icTV DEBUG] source empty/invalid response', { url, itemCount: Array.isArray(data.items) ? data.items.length : null, responseKeys: Object.keys(data || {}) });
+              continue;
+            }
             const source = CATALOG_PLAYLISTS.find((item) => item.url === url || item.sourceUrls?.includes(url));
             const channels: Channel[] = data.items.map((item: any, idx: number) => ({
               id: `master-source-${index}-${idx}`,
@@ -257,6 +341,8 @@ export default function App() {
               httpReferrer: item.httpReferrer,
               raw: item.raw,
             })).filter((channel: Channel) => /^https?:\/\//i.test(String(channel.url || '')));
+            finishedCount++;
+            rawChannelCount += channels.length;
             if (channels.length) {
               loaded.push({
                 id: `master-source-${index}`,
@@ -272,11 +358,33 @@ export default function App() {
               await publishCatalog();
             }
           } catch (error) {
-            console.warn('[Ma9icTV Master Catalog] Source failed:', url, error);
+            finishedCount++;
+            failedCount++;
+            const message = error instanceof Error ? error.message : String(error);
+            setMasterDebug((previous) => ({ ...previous, phase: 'Source request failed', sourceFinished: finishedCount, sourceFailed: failedCount, lastSource: url, lastError: message }));
+            console.error('[Ma9icTV DEBUG] source exception', { url, error });
           }
         }
       };
       await Promise.all([worker(), worker(), worker()]);
+      if (!cancelled) {
+        setMasterDebug((previous) => ({
+          ...previous,
+          phase: loaded.length ? 'Master source load finished' : 'No sources loaded successfully',
+          sourceFinished: finishedCount,
+          sourceSucceeded: loaded.length,
+          sourceFailed: failedCount,
+          rawChannels: rawChannelCount,
+          savedId: getActivePlaylistId(),
+        }));
+        console.info('[Ma9icTV DEBUG] source loading finished', {
+          configuredSources: sources.length,
+          finishedSources: finishedCount,
+          successfulSources: loaded.length,
+          failedSources: failedCount,
+          rawChannels: rawChannelCount,
+        });
+      }
       if (!cancelled && !loaded.length) {
         console.warn('[Ma9icTV Master Catalog] No configured M3U sources loaded successfully.');
       }
@@ -787,6 +895,27 @@ export default function App() {
             </div>
           </div>
         </header>
+
+        <div className="flex-shrink-0 px-3 py-1.5 bg-amber-950/70 border-b border-amber-700/50 text-[10px] sm:text-xs font-mono text-amber-100 overflow-x-auto">
+          <div className="flex flex-wrap gap-x-4 gap-y-1 items-center">
+            <span className="font-bold text-amber-300">DEBUG</span>
+            <span>active={masterDebug.activeId || activePlaylistIdState}</span>
+            <span>saved={masterDebug.savedId || getActivePlaylistId()}</span>
+            <span>shown="{activePlaylist.title}"</span>
+            <span>shownChannels={activePlaylist.channels.length}</span>
+            <span>masterSourceChannels={masterSourceChannels.length}</span>
+            <span>sourcesOK={masterDebug.sourceSucceeded}/{masterDebug.sourceTotal}</span>
+            <span>finished={masterDebug.sourceFinished}</span>
+            <span>failed={masterDebug.sourceFailed}</span>
+            <span>rawLoaded={masterDebug.rawChannels}</span>
+            <span>phase={masterDebug.phase}</span>
+          </div>
+          {(masterDebug.lastSource || masterDebug.lastError) && (
+            <div className="mt-1 break-all text-amber-200">
+              lastSource={masterDebug.lastSource} {masterDebug.lastError ? `error=${masterDebug.lastError}` : ''}
+            </div>
+          )}
+        </div>
 
         {/* Main Body */}
         <main className="flex-1 min-h-0 min-w-0 flex flex-col md:flex-row overflow-hidden relative">

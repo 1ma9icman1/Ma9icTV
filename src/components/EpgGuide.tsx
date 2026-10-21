@@ -868,7 +868,20 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
             className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-3 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
           />
         </div>
-        <div className="flex items-center gap-1.5 flex-shrink-0">
+        <div className="flex items-center gap-1.5 flex-shrink-0 min-w-0">
+          <label className="sr-only" htmlFor="epg-category-select">Channel category</label>
+          <select
+            id="epg-category-select"
+            value={selectedCategory}
+            onChange={(event) => setSelectedCategory(event.target.value)}
+            title="Choose a channel category"
+            aria-label="Choose a channel category"
+            className="min-h-9 w-[130px] sm:w-[190px] max-w-[42vw] rounded-lg border border-indigo-500/40 bg-slate-900 px-2 text-xs font-semibold text-slate-200 focus:outline-none focus:border-indigo-400"
+          >
+            {categories.map((cat) => (
+              <option key={cat} value={cat}>{cat}</option>
+            ))}
+          </select>
           <input ref={favoriteFileInputRef} type="file" accept=".txt,text/plain,.json,application/json"
             className="hidden" onChange={importFavoritesText} aria-label="Import favorites and personal EPG file" />
           <button type="button" onClick={exportFavoritesText}
@@ -891,23 +904,6 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
             <span>({excludedEpgChannels.length})</span>
           </button>
         </div>
-      </div>
-
-      {/* Category Pills Bar */}
-      <div ref={categoryScrollRef} onPointerDown={handleDragPointerDown} onPointerMove={handleDragPointerMove} onPointerUp={handleDragPointerUp} onPointerCancel={handleDragPointerUp} onClickCapture={handleDragClickCapture} className="bg-slate-950/60 border-b border-slate-800/60 px-4 py-1.5 overflow-x-auto overflow-y-hidden flex flex-nowrap items-center gap-1.5 cursor-grab active:cursor-grabbing select-none" style={{ touchAction: "pan-x", WebkitOverflowScrolling: "touch", scrollbarWidth: "thin", scrollbarColor: "#6366f1 #0f172a" }} aria-label="Scrollable channel categories">
-        {categories.map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setSelectedCategory(cat)}
-            className={`flex-shrink-0 px-3 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-all ${
-              selectedCategory === cat
-                ? 'bg-indigo-600 text-white shadow-sm'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
       </div>
 
       {/* =========================================================================

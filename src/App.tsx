@@ -34,14 +34,14 @@ import {
 } from './utils/storage';
 import { INITIAL_PRESETS, CATALOG_PLAYLISTS } from './data/presetPlaylists';
 
-const MASTER_PLAYLIST_ID = 'ma9ictv-master-catalog';
-
 import { ChannelList } from './components/ChannelList';
 import { VideoPlayer } from './components/VideoPlayer';
 import { PlaylistModal } from './components/PlaylistModal';
 import { EpgGuide } from './components/EpgGuide';
 import { SettingsModal } from './components/SettingsModal';
 import { ShortcutsModal } from './components/ShortcutsModal';
+
+const MASTER_PLAYLIST_ID = 'ma9ictv-master-catalog';
 
 // Pick a real HTTP(S) stream instead of blindly selecting a playlist's first
 // metadata row, which can be empty or non-playable and leave the EPG visible
@@ -64,7 +64,7 @@ export default function App() {
       if (playlist.id === MASTER_PLAYLIST_ID) continue;
       for (const channel of playlist.channels || []) {
         const url = String(channel.url || '').trim();
-        if (!/^https?:\\/\\//i.test(url)) continue;
+        if (!/^https?:\/\//i.test(url)) continue;
         const identity = url.toLowerCase();
         if (seenUrls.has(identity)) continue;
         seenUrls.add(identity);

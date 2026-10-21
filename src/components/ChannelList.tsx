@@ -319,6 +319,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
                             isSelected ? 'text-indigo-200 font-semibold' : 'text-slate-200'
                           }`}
                           title={channel.name}
+                          onMouseEnter={(event) => event.currentTarget.style.setProperty('--ma9-scroll-distance', `${Math.max(0, event.currentTarget.scrollWidth - event.currentTarget.clientWidth)}px`)}
                         >
                           <span className="ma9-scroll-text">{channel.name}</span>
                         </span>
@@ -328,7 +329,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
                           </span>
                         )}
                       </div>
-                      <p className="ma9-scroll-viewport text-[10px] text-slate-500" title={channel.group || 'General'}><span className="ma9-scroll-text">{channel.group || 'General'}</span></p>
+                      <p className="ma9-scroll-viewport text-[10px] text-slate-500" title={channel.group || 'General'} onMouseEnter={(event) => event.currentTarget.style.setProperty('--ma9-scroll-distance', `${Math.max(0, event.currentTarget.scrollWidth - event.currentTarget.clientWidth)}px`)}><span className="ma9-scroll-text">{channel.group || 'General'}</span></p>
                     </div>
                   </div>
 

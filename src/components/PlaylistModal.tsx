@@ -564,7 +564,9 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
                         )}
                       </div>
                       <p className="text-xs text-slate-400 mt-1">
-                        {pl.channelCount} channels • Added {new Date(pl.addedAt).toLocaleDateString()}
+                        {pl.id === 'ma9ictv-master-catalog'
+                          ? `Combined view of all saved playlists • ${pl.channelCount} unique stream URLs`
+                          : `${pl.channelCount} channels • Added ${new Date(pl.addedAt).toLocaleDateString()}`}
                       </p>
                       {pl.url && <p className="text-[11px] text-slate-500 font-mono truncate mt-0.5">{pl.url}</p>}
                     </div>
@@ -579,7 +581,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
                         </button>
                       )}
 
-                      {playlists.length > 1 && (
+                      {pl.id !== 'ma9ictv-master-catalog' && playlists.length > 1 && (
                         <button
                           onClick={() => onDeletePlaylist(pl.id)}
                           className="p-2 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"

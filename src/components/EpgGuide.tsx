@@ -844,7 +844,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
         <div className="flex min-w-[110px] flex-1 flex-col justify-center gap-1 px-1 sm:px-2" role="status" aria-live="polite" aria-label={isLoadingEpg ? "Loading EPG guide" : xmltvProgrammes.length > 0 ? `EPG loaded: ${xmltvProgrammes.length} programmes` : "EPG guide waiting"}>
           <div className="flex items-center justify-between gap-2 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider">
             <span className={isLoadingEpg ? "text-indigo-300" : xmltvProgrammes.length > 0 ? "text-emerald-400" : "text-slate-500"}>
-              {showFavoritePlaylist ? 'Favorite Playlist' : isLoadingEpg ? "Loading EPG" : xmltvProgrammes.length > 0 ? `EPG Loaded · ${xmltvProgrammes.length.toLocaleString()} programmes` : "EPG Guide"}
+              {showFavoritePlaylist ? 'Favorite Playlist' : isLoadingEpg ? "Loading EPG" : xmltvProgrammes.length > 0 ? "EPG Ready" : "EPG Guide"}
             </span>
             {isLoadingEpg && <RefreshCw className="h-3 w-3 animate-spin text-indigo-400" />}
           </div>
@@ -1023,14 +1023,30 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                       className="relative flex-shrink-0 py-1.5"
                       style={{ width: `${(timeSlots.length - 1) * 30 * minuteWidthPx}px`, height: '60px' }}
                     >
-                      {programs.length === 0 && (
-                        <div
-                          className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-600 italic pointer-events-none"
-                          aria-label={xmltvProgrammes.length > 0 ? 'No matching programme listing for this channel' : 'Programme guide is loading or unavailable'}
-                        >
-                          {xmltvProgrammes.length > 0 ? 'No matching show listing' : isLoadingEpg ? 'Loading show listings…' : 'No show listing available'}
-                        </div>
-                      )}
+                      {/* Fill every 30-minute timeline slot with a neutral placeholder when no programme overlaps it. */}
+                      {timeSlots.slice(0, -1).map((slot, slotIndex) => {
+                        const slotStart = slot.getTime();
+                        const slotEnd = slotStart + 30 * 60 * 1000;
+                        const hasProgramme = programs.some((programme) =>
+                          programme.startTime.getTime() < slotEnd &&
+                          programme.stopTime.getTime() > slotStart
+                        );
+                        if (hasProgramme) return null;
+                        return (
+                          <div
+                            key={`unavailable-${slotIndex}`}
+                            aria-label={`Programme information unavailable from ${slot.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`}
+                            title="Programme information unavailable"
+                            className="absolute top-1.5 h-12 rounded-lg border border-dashed border-slate-800/80 bg-slate-950/70 px-2 flex items-center justify-center overflow-hidden text-[10px] text-slate-500"
+                            style={{
+                              left: `${slotIndex * 30 * minuteWidthPx}px`,
+                              width: `${30 * minuteWidthPx - 3}px`,
+                            }}
+                          >
+                            <span className="truncate">Unavailable</span>
+                          </div>
+                        );
+                      })}
                       {programs.map((prog) => {
                         const startMin = (prog.startTime.getTime() - timelineStartMs) / 60000;
                         const durationMin = (prog.stopTime.getTime() - prog.startTime.getTime()) / 60000;

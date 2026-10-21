@@ -89,8 +89,15 @@ export function isPreferredMasterCatalogChannel(channel: Pick<Channel, 'name' | 
   if (source === 'mexico') return true;
   const foreignLanguage = '(french|francais|german|deutsch|spanish|espanol|italian|portuguese|arabic|russian|hindi|japanese|korean|turkish|albanian|greek|polish|ukrainian|romanian|serbian|croatian|chinese|mandarin|persian|farsi|dutch|swedish|norwegian|danish|finnish|czech|slovak|hungarian|bulgarian|thai|vietnamese|indonesian|hebrew|bengali|tamil|urdu|malayalam|telugu)';
   const nonEnglishGroup = new RegExp('(^| )' + foreignLanguage + '( |$)');
-  const explicitlyTaggedName = new RegExp('(?:\\\\[|\\\\(|\\\\b)' + foreignLanguage + '(?:\\\\]|\\\\)|\\\\s+(?:language|audio|feed|dub))', 'i');
-  return !nonEnglishGroup.test(group) && !explicitlyTaggedName.test(channel.name);
+  const normalizedName = normalizeLabel(channel.name);
+  const explicitLanguageTags = ['french', 'francais', 'german', 'deutsch', 'spanish', 'espanol', 'italian', 'portuguese', 'arabic', 'russian', 'hindi', 'japanese', 'korean', 'turkish', 'albanian', 'greek', 'polish', 'ukrainian', 'romanian', 'serbian', 'croatian', 'chinese', 'mandarin', 'persian', 'farsi', 'dutch', 'swedish', 'norwegian', 'danish', 'finnish', 'czech', 'slovak', 'hungarian', 'bulgarian', 'thai', 'vietnamese', 'indonesian', 'hebrew', 'bengali', 'tamil', 'urdu', 'malayalam', 'telugu'];
+  const explicitlyTaggedName = explicitLanguageTags.some((language) =>
+    normalizedName.endsWith(` ${language}`) ||
+    normalizedName.includes(` ${language} audio`) ||
+    normalizedName.includes(` ${language} language`) ||
+    normalizedName.includes(` ${language} dub')
+  );
+  return !nonEnglishGroup.test(group) && !explicitlyTaggedName;
 }
 
 /** Exclude the two confirmed-dead channels from the combined Master Catalog only. */

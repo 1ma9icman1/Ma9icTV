@@ -258,7 +258,7 @@ button, [role="button"] {
 
 
 /* Reveal long channel names and programme titles without shrinking the guide.
-   Text pans horizontally on hover/focus, and remains readable on touch devices. */
+   The measured overflow distance makes the full label readable on hover/focus. */
 .ma9-scroll-viewport {
   display: block;
   min-width: 0;
@@ -268,33 +268,25 @@ button, [role="button"] {
 }
 .ma9-scroll-text {
   display: inline-block;
-  max-width: 100%;
+  width: max-content;
+  max-width: none;
   white-space: nowrap;
   text-overflow: clip;
 }
 .ma9-scroll-viewport:hover .ma9-scroll-text,
 .ma9-scroll-viewport:focus .ma9-scroll-text,
 .ma9-scroll-viewport:focus-within .ma9-scroll-text {
-  max-width: none;
   animation: ma9-horizontal-reveal 7s ease-in-out infinite alternate;
   will-change: transform;
 }
 @keyframes ma9-horizontal-reveal {
-  0%, 12% { transform: translateX(0); }
-  88%, 100% { transform: translateX(min(0px, calc(100% - 100%))); }
-}
-/* Use a measured scroll distance via content sizing; the viewport clips overflow. */
-.ma9-scroll-viewport:hover .ma9-scroll-text,
-.ma9-scroll-viewport:focus .ma9-scroll-text {
-  animation-name: ma9-horizontal-marquee;
-}
-@keyframes ma9-horizontal-marquee {
   from { transform: translateX(0); }
-  to { transform: translateX(calc(-1 * max(0px, 100% - 100vw))); }
+  to { transform: translateX(calc(-1 * var(--ma9-scroll-distance, 0px))); }
 }
 @media (prefers-reduced-motion: reduce) {
   .ma9-scroll-viewport:hover .ma9-scroll-text,
-  .ma9-scroll-viewport:focus .ma9-scroll-text {
+  .ma9-scroll-viewport:focus .ma9-scroll-text,
+  .ma9-scroll-viewport:focus-within .ma9-scroll-text {
     animation: none;
   }
 }

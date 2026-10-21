@@ -285,20 +285,27 @@ export default function App() {
     return () => { cancelled = true; };
   }, [activePlaylistIdState]);
 
-  // Load Samsung TV Plus only when no playlist or Master Catalog was selected previously.
-  // Never override a user's saved Master Catalog selection during startup.
+  // Samsung is only a startup fallback. Never let it replace a playlist the user selected.
+  // Re-run on selection changes so an in-flight startup request is cancelled immediately.
   useEffect(() => {
     let cancelled = false;
     const loadDefaultSamsung = async () => {
-      if (getActivePlaylistId() === MASTER_PLAYLIST_ID) return;
       const samsungUrl = 'https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/samsungtvplus_us.m3u';
       const samsungId = 'default-samsung-tv-plus-us';
+      const savedActiveId = getActivePlaylistId();
 
-      // Use the previously downloaded lineup immediately on repeat visits.
-      // Re-fetching the same M3U at every startup delayed the first useful guide
-      // and caused a second unnecessary EPG load after the network response.
+      // Master Catalog (and any explicitly selected non-default playlist) wins over Samsung.
+      if (
+        activePlaylistIdState === MASTER_PLAYLIST_ID ||
+        savedActiveId === MASTER_PLAYLIST_ID ||
+        (activePlaylistIdState !== 'preset-world-live' && activePlaylistIdState !== samsungId)
+      ) return;
+
+      // Use the previously downloaded lineup immediately on repeat visits, but only
+      // if this effect still represents the active startup selection.
       const cached = getSavedPlaylists().find((playlist) => playlist.id === samsungId);
       if (cached?.channels?.length) {
+        if (cancelled || getActivePlaylistId() === MASTER_PLAYLIST_ID) return;
         setActivePlaylistIdState(samsungId);
         setActivePlaylistId(samsungId);
         const firstStream = getFirstStreamChannel(cached.channels);
@@ -361,7 +368,7 @@ export default function App() {
     };
     void loadDefaultSamsung();
     return () => { cancelled = true; };
-  }, []);
+  }, [activePlaylistIdState]);
 
   // Set default selected channel on first load or when playlist changes
   useEffect(() => {

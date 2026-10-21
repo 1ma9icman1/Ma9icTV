@@ -53,6 +53,45 @@ function normalizeUrl(value: string): string {
   }
 }
 
+/**
+ * Keep the Master Catalog focused on English-language viewing and the requested
+ * regions. Global all-region feeds create thousands of duplicate/non-English rows;
+ * the language-grouped iptv-org feed is retained only for its English group.
+ */
+export function isPreferredMasterCatalogSource(title: string | undefined): boolean {
+  const value = normalizeLabel(title);
+  if (!value) return false;
+  if (value === 'free tv curated quality playlist' ||
+      value === 'worldwide channels grouped by language' ||
+      value === 'samsung tv plus united states' ||
+      value === 'pluto tv united states' ||
+      value === 'plex tv united states' ||
+      value === 'tubi tv live tv' ||
+      value === 'united states' ||
+      value === 'united kingdom' ||
+      value === 'canada' ||
+      value === 'mexico' ||
+      value === 'ireland' ||
+      value === 'australia' ||
+      value === 'new zealand' ||
+      value === 'south africa') return true;
+  // These curated genre lists are built for English-language viewing.
+  return /^(news business weather|movies classics drama|comedy entertainment|documentaries science discovery|kids family animation|sports outdoor|music concerts culture)$/.test(value);
+}
+
+/** Exclude explicitly language-tagged foreign-language groups, except Mexico which
+ * the user specifically requested. Unknown/genre groups are kept rather than guessed. */
+export function isPreferredMasterCatalogChannel(channel: Pick<Channel, 'name' | 'group'>, sourceTitle?: string): boolean {
+  const source = normalizeLabel(sourceTitle);
+  const group = normalizeLabel(channel.group);
+  if (source === 'worldwide channels grouped by language') {
+    return group === 'english' || group === 'english language' || group.startsWith('english ');
+  }
+  if (source === 'mexico') return true;
+  const nonEnglishGroup = /(^| )(french|francais|german|deutsch|spanish|espanol|italian|portuguese|arabic|russian|hindi|japanese|korean|turkish|albanian|greek|polish|ukrainian|romanian|serbian|croatian|chinese|mandarin|persian|farsi|dutch|swedish|norwegian|danish|finnish|czech|slovak|hungarian|bulgarian|thai|vietnamese|indonesian|hebrew|bengali|tamil|urdu|malayalam|telugu)( |$)/;
+  return !nonEnglishGroup.test(group);
+}
+
 /** Exclude the two confirmed-dead channels from the combined Master Catalog only. */
 export function isExcludedMasterCatalogLabel(...labels: Array<string | undefined>): boolean {
   return labels.some((label) => {

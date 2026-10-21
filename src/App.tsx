@@ -242,22 +242,26 @@ export default function App() {
         if (cancelled || !loaded.length) return;
         const catalog = buildMasterCatalog(loaded);
         // Publish partial results immediately so users see the count grow as sources finish.
-        const channels: Channel[] = catalog.entries.flatMap((entry) => {
-          const variant = entry.variants?.[0];
-          if (!variant?.url) return [];
-          return [{
-            id: entry.id,
-            name: entry.name,
-            url: variant.url,
-            group: entry.group || 'Uncategorized',
-            logo: entry.logo,
-            tvgId: entry.tvgId,
-            tvgName: entry.tvgName,
-            isRadio: entry.isRadio,
-            httpUserAgent: variant.userAgent,
-            httpReferrer: variant.referrer,
-          } as Channel];
-        });
+        // Publish every source-specific stream variant. Selecting only variants[0]
+        // silently dropped alternate sources (often leaving just Samsung's ~536 channels).
+        // The active master playlist deduplicates identical stream URLs after this step.
+        const channels: Channel[] = catalog.entries.flatMap((entry) =>
+          (entry.variants || []).flatMap((variant) => {
+            if (!variant?.url || !/^https?:\/\//i.test(variant.url)) return [];
+            return [{
+              id: `${entry.id}:${variant.playlistId}:${variant.channelId}`,
+              name: entry.name,
+              url: variant.url,
+              group: entry.group || 'Uncategorized',
+              logo: entry.logo,
+              tvgId: entry.tvgId,
+              tvgName: entry.tvgName,
+              isRadio: entry.isRadio,
+              httpUserAgent: variant.userAgent,
+              httpReferrer: variant.referrer,
+            } as Channel];
+          })
+        );
         setMasterSourceChannels(channels);
         setMasterDebug((previous) => ({
           ...previous,

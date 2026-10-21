@@ -53,6 +53,14 @@ function normalizeUrl(value: string): string {
   }
 }
 
+/** Exclude the two confirmed-dead channels from the combined Master Catalog only. */
+export function isExcludedMasterCatalogLabel(...labels: Array<string | undefined>): boolean {
+  return labels.some((label) => {
+    const normalized = normalizeLabel(label);
+    return normalized === 'kanali 7' || normalized === 'cnn albania' || normalized === 'cnn albanadnia';
+  });
+}
+
 function entryIdentity(channel: Channel): string {
   const tvgId = normalizeLabel(channel.tvgId);
   if (tvgId) return `tvg:${tvgId}`;
@@ -71,6 +79,7 @@ export function buildMasterCatalog(playlists: Playlist[]): MasterCatalog {
   for (const playlist of playlists) {
     sourcePlaylistIds.add(playlist.id);
     for (const channel of playlist.channels || []) {
+      if (isExcludedMasterCatalogLabel(channel.name, channel.tvgName, channel.tvgId)) continue;
       const url = String(channel.url || '').trim();
       if (!/^https?:\/\//i.test(url)) continue;
 

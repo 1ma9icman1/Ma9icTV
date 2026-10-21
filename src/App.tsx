@@ -269,7 +269,6 @@ export default function App() {
     let cancelled = false;
     const loadDefaultSamsung = async () => {
       if (getActivePlaylistId() === MASTER_PLAYLIST_ID) return;
-    const loadDefaultSamsung = async () => {
       const samsungUrl = 'https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/samsungtvplus_us.m3u';
       const samsungId = 'default-samsung-tv-plus-us';
 

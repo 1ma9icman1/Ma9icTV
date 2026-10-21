@@ -526,8 +526,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                   hls.destroy();
                   setErrorMsg('Stream host may be offline, geo-restricted, or blocking direct access.');
                   setIsLoading(false);
-                  if (settings.autoPlayNext && onNextChannel) {
-                    setAutoSkipCountdown(4);
+                  if (onStreamFailed && channel) {
+                    onStreamFailed(channel, 'Playback failed after proxy/direct retries.');
+                  } else if (onNextChannel) {
+                    onNextChannel();
                   }
                 }
                 break;
@@ -539,8 +541,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                   hls.destroy();
                   setErrorMsg(`Media format incompatibility (${data.details})`);
                   setIsLoading(false);
-                  if (settings.autoPlayNext && onNextChannel) {
-                    setAutoSkipCountdown(4);
+                  if (onStreamFailed && channel) {
+                    onStreamFailed(channel, 'Playback failed after proxy/direct retries.');
+                  } else if (onNextChannel) {
+                    onNextChannel();
                   }
                 }
                 break;
@@ -548,8 +552,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 hls.destroy();
                 setErrorMsg(`Stream playback encountered an error (${data.details || 'Unknown'})`);
                 setIsLoading(false);
-                if (settings.autoPlayNext && onNextChannel) {
-                  setAutoSkipCountdown(4);
+                if (onStreamFailed && channel) {
+                  onStreamFailed(channel, 'Playback failed after proxy/direct retries.');
+                } else if (onNextChannel) {
+                  onNextChannel();
                 }
                 break;
             }
@@ -589,14 +595,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           } else {
             setErrorMsg('Host may be blocking access or the stream link has expired.');
             setIsLoading(false);
-            if (settings.autoPlayNext && onNextChannel) {
-              setAutoSkipCountdown(4);
+            if (onStreamFailed && channel) {
+              onStreamFailed(channel, 'Playback failed after proxy/direct retries.');
+            } else if (onNextChannel) {
+              onNextChannel();
             }
           }
         };
       } else {
         setErrorMsg('HLS playback is not supported in this browser.');
         setIsLoading(false);
+        if (onStreamFailed && channel) onStreamFailed(channel, 'HLS playback is not supported in this browser.');
       }
     },
     [channel, settings.bufferLengthSeconds, settings.proxyMode, settings.customUserAgent, settings.autoPlayNext, onNextChannel, onStreamFailed]

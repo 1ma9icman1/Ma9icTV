@@ -27,6 +27,7 @@ import {
 import { Channel, EpgProgram, AppSettings } from '../types';
 import { VideoPlayer } from './VideoPlayer';
 import { getEpgExcludedChannels, saveEpgExcludedChannels } from '../utils/storage';
+import { getBroadChannelCategory } from '../utils/channelCategories';
 
 function normalizeEpgName(value: string): string {
   return value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
@@ -120,14 +121,10 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   }, []);
 
 
-  // Extract all channel groups for categories
+  // Consolidate the many upstream M3U group labels into a short category list.
   const categories = useMemo(() => {
     const set = new Set<string>();
-    guideChannels.forEach((c) => {
-      if (c.group && c.group.trim()) set.add(c.group.trim());
-    });
-    // Do not cap this list: genre playlists can include dozens of countries
-    // and regional groups, and every one must remain reachable by scrolling.
+    guideChannels.forEach((channel) => set.add(getBroadChannelCategory(channel)));
     return ['All', ...Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }))];
   }, [guideChannels]);
 
@@ -147,7 +144,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
         excludedChannelKeys.has(`url:${String(c.url || '').trim().toLowerCase()}`);
       if (!showFavoritePlaylist && showExcludedEpgChannels !== isExcluded) return false;
       const normalizeCategory = (value: string | undefined) => String(value || '').trim().replace(/\s+/g, ' ').toLocaleLowerCase();
-      const matchCat = selectedCategory === 'All' || normalizeCategory(c.group) === normalizeCategory(selectedCategory);
+      const matchCat = selectedCategory === 'All' || getBroadChannelCategory(c) === selectedCategory;
       if (!matchCat) return false;
       if (!searchQuery.trim()) return true;
       const q = searchQuery.toLowerCase();

@@ -163,6 +163,7 @@ export default function App() {
   // Populate the Master Catalog from every configured source in the background.
   // A cached catalog appears immediately; failed sources are skipped and can be retried on next load.
   useEffect(() => {
+    if (activePlaylistIdState !== MASTER_PLAYLIST_ID) return;
     let cancelled = false;
     const loadMasterSources = async () => {
       const cached = await readCachedMasterCatalog();
@@ -261,7 +262,7 @@ export default function App() {
     };
     void loadMasterSources();
     return () => { cancelled = true; };
-  }, []);
+  }, [activePlaylistIdState]);
 
   // Load Samsung TV Plus only when no playlist or Master Catalog was selected previously.
   // Never override a user's saved Master Catalog selection during startup.

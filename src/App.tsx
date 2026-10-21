@@ -34,6 +34,8 @@ import {
 } from './utils/storage';
 import { INITIAL_PRESETS, CATALOG_PLAYLISTS } from './data/presetPlaylists';
 
+const MASTER_PLAYLIST_ID = 'ma9ictv-master-catalog';
+
 import { ChannelList } from './components/ChannelList';
 import { VideoPlayer } from './components/VideoPlayer';
 import { PlaylistModal } from './components/PlaylistModal';
@@ -52,6 +54,33 @@ export default function App() {
   // Playlists and Channels state
   const [playlists, setPlaylists] = useState<Playlist[]>(() => getSavedPlaylists());
   const [activePlaylistIdState, setActivePlaylistIdState] = useState<string>(() => getActivePlaylistId());
+
+  // A virtual Master Catalog combines every saved playlist without changing the originals.
+  // It is derived in memory and never written back as a source playlist.
+  const masterPlaylist = useMemo<Playlist>(() => {
+    const seenUrls = new Set<string>();
+    const channels: Channel[] = [];
+    for (const playlist of playlists) {
+      if (playlist.id === MASTER_PLAYLIST_ID) continue;
+      for (const channel of playlist.channels || []) {
+        const url = String(channel.url || '').trim();
+        if (!/^https?:\\/\\//i.test(url)) continue;
+        const identity = url.toLowerCase();
+        if (seenUrls.has(identity)) continue;
+        seenUrls.add(identity);
+        channels.push({ ...channel, id: `master:${playlist.id}:${channel.id}` });
+      }
+    }
+    return {
+      id: MASTER_PLAYLIST_ID,
+      title: 'MASTER CATALOG — All Playlists',
+      type: 'preset',
+      channelCount: channels.length,
+      addedAt: 0,
+      lastUpdated: Math.max(0, ...playlists.map((playlist) => playlist.lastUpdated || 0)),
+      channels,
+    };
+  }, [playlists]);
   // Select a saved channel immediately so the embedded EPG player can begin
   // loading while the default Pluto playlist is fetched in the background.
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(() => {
@@ -116,7 +145,9 @@ export default function App() {
 
   // Current active playlist object
   const activePlaylist = useMemo(() => {
-    const selected = playlists.find((p) => p.id === activePlaylistIdState) || playlists[0] || INITIAL_PRESETS[0];
+    const selected = activePlaylistIdState === MASTER_PLAYLIST_ID
+      ? masterPlaylist
+      : playlists.find((p) => p.id === activePlaylistIdState) || playlists[0] || INITIAL_PRESETS[0];
     const catalogEntry = CATALOG_PLAYLISTS.find((item) => item.url === selected.url);
     // Catalog guide URLs are maintained centrally; prefer them over stale guide URLs
     // saved by earlier versions. For custom playlists, keep the URL from their M3U header.
@@ -124,7 +155,7 @@ export default function App() {
     return resolvedEpgUrl && selected.epgUrl !== resolvedEpgUrl
       ? { ...selected, epgUrl: resolvedEpgUrl }
       : selected;
-  }, [playlists, activePlaylistIdState]);
+  }, [playlists, activePlaylistIdState, masterPlaylist]);
 
   // Load Samsung TV Plus by default on startup, without opening the playlist picker.
   // The normal playlist menu remains available for users to switch sources.
@@ -319,12 +350,12 @@ export default function App() {
   const handleSelectPlaylist = useCallback((id: string) => {
     setActivePlaylistIdState(id);
     setActivePlaylistId(id);
-    const target = playlists.find((p) => p.id === id);
+    const target = id === MASTER_PLAYLIST_ID ? masterPlaylist : playlists.find((p) => p.id === id);
     if (target && target.channels.length > 0) {
       setSelectedChannel(target.channels[0]);
     }
     setCurrentView('epg');
-  }, [playlists]);
+  }, [playlists, masterPlaylist]);
 
   const handleAddPlaylist = useCallback((newPlaylist: Playlist) => {
     setPlaylists((prev) => {
@@ -687,7 +718,7 @@ export default function App() {
       <PlaylistModal
         isOpen={isPlaylistModalOpen}
         onClose={() => setIsPlaylistModalOpen(false)}
-        playlists={playlists}
+        playlists={[masterPlaylist, ...playlists]}
         activePlaylistId={activePlaylistIdState}
         onSelectPlaylist={handleSelectPlaylist}
         onAddPlaylist={handleAddPlaylist}

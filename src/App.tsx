@@ -54,7 +54,7 @@ function getFirstStreamChannel(channels: Channel[]): Channel | null {
 export default function App() {
   // Playlists and Channels state
   const [playlists, setPlaylists] = useState<Playlist[]>(() => getSavedPlaylists());
-  const [activePlaylistIdState, setActivePlaylistIdState] = useState<string>(() => getActivePlaylistId());
+  const [activePlaylistIdState, setActivePlaylistIdState] = useState<string>(() => MASTER_PLAYLIST_ID);
   const [masterSourceChannels, setMasterSourceChannels] = useState<Channel[]>([]);
   // Temporary visible diagnostics for the master-catalog investigation.
   const [masterDebug, setMasterDebug] = useState({
@@ -77,9 +77,9 @@ export default function App() {
   const masterPlaylist = useMemo<Playlist>(() => {
     const seenUrls = new Set<string>();
     const channels: Channel[] = [];
-    const candidates = masterSourceChannels.length
-      ? [...masterSourceChannels, ...playlists.filter((playlist) => playlist.id !== MASTER_PLAYLIST_ID).flatMap((playlist) => playlist.channels || [])]
-      : playlists.filter((playlist) => playlist.id !== MASTER_PLAYLIST_ID).flatMap((playlist) => playlist.channels || []);
+    // This is intentionally a single catalog: never fall back to a saved individual
+    // playlist (especially Samsung) while master sources are still loading.
+    const candidates = masterSourceChannels;
     for (const channel of candidates) {
       const url = String(channel.url || '').trim();
       if (!/^https?:\/\//i.test(url)) continue;
@@ -393,90 +393,15 @@ export default function App() {
     return () => { cancelled = true; };
   }, [activePlaylistIdState]);
 
-  // Samsung is only a startup fallback. Never let it replace a playlist the user selected.
-  // Re-run on selection changes so an in-flight startup request is cancelled immediately.
+  // Persist the one-and-only active catalog. Do not auto-load or switch to Samsung.
   useEffect(() => {
-    let cancelled = false;
-    const loadDefaultSamsung = async () => {
-      const samsungUrl = 'https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/samsungtvplus_us.m3u';
-      const samsungId = 'default-samsung-tv-plus-us';
-      const savedActiveId = getActivePlaylistId();
-
-      // Master Catalog (and any explicitly selected non-default playlist) wins over Samsung.
-      if (
-        activePlaylistIdState === MASTER_PLAYLIST_ID ||
-        savedActiveId === MASTER_PLAYLIST_ID ||
-        (activePlaylistIdState !== 'preset-world-live' && activePlaylistIdState !== samsungId)
-      ) return;
-
-      // Use the previously downloaded lineup immediately on repeat visits, but only
-      // if this effect still represents the active startup selection.
-      const cached = getSavedPlaylists().find((playlist) => playlist.id === samsungId);
-      if (cached?.channels?.length) {
-        if (cancelled || getActivePlaylistId() === MASTER_PLAYLIST_ID) return;
-        setActivePlaylistIdState(samsungId);
-        setActivePlaylistId(samsungId);
-        const firstStream = getFirstStreamChannel(cached.channels);
-        if (firstStream) setSelectedChannel(firstStream);
-        setCurrentView('epg');
-        setIsSidebarCollapsed(true);
-        return;
-      }
-
-      try {
-        const response = await fetch('/api/parse-playlist', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: samsungUrl }),
-        });
-        if (!response.ok) throw new Error('Unable to load Samsung TV Plus playlist');
-        const data = await response.json();
-        if (!Array.isArray(data.items) || data.items.length === 0) throw new Error('Samsung TV Plus returned no channels');
-        // This request may have started before the user selected Master Catalog.
-        // Never let its late response switch the active playlist back to Samsung.
-        if (cancelled || getActivePlaylistId() === MASTER_PLAYLIST_ID) return;
-
-        const channels: Channel[] = data.items.map((item: any, idx: number) => ({
-          id: `${samsungId}-ch-${idx}`,
-          name: item.name || 'Samsung TV Plus Channel',
-          url: item.url,
-          group: item.group?.title || 'Samsung TV Plus',
-          logo: item.tvg?.logo || undefined,
-          tvgId: item.tvg?.id || undefined,
-          tvgName: item.tvg?.name || undefined,
-          isRadio: item.radio === 'true' || item.url?.endsWith('.mp3'),
-          raw: item.raw,
-        }));
-        const samsungPlaylist: Playlist = {
-          id: samsungId,
-          title: 'Samsung TV Plus US',
-          url: samsungUrl,
-          type: 'm3u-url',
-          channelCount: channels.length,
-          addedAt: Date.now(),
-          lastUpdated: Date.now(),
-          epgUrl: 'https://i.mjh.nz/SamsungTVPlus/us.xml.gz',
-          channels,
-        };
-        setPlaylists((prev) => {
-          const updated = [samsungPlaylist, ...prev.filter((playlist) => playlist.id !== samsungId && playlist.url !== samsungUrl)];
-          savePlaylists(updated);
-          return updated;
-        });
-        setActivePlaylistIdState(samsungId);
-        setActivePlaylistId(samsungId);
-        const firstStream = getFirstStreamChannel(channels);
-        if (firstStream) setSelectedChannel(firstStream);
-        setCurrentView('epg');
-        setIsSidebarCollapsed(true);
-      } catch (error) {
-        // Keep the built-in fallback stream playable if the Pluto playlist endpoint is unavailable.
-        console.warn('Ma9icTV: Could not auto-load Samsung TV Plus; keeping the fallback playlist.', error);
-      }
-    };
-    void loadDefaultSamsung();
-    return () => { cancelled = true; };
-  }, [activePlaylistIdState]);
+    setActivePlaylistIdState(MASTER_PLAYLIST_ID);
+    setActivePlaylistId(MASTER_PLAYLIST_ID);
+    console.info('[Ma9icTV DEBUG] forcing single master catalog as active playlist', {
+      activeId: MASTER_PLAYLIST_ID,
+      savedPreviousId: getActivePlaylistId(),
+    });
+  }, []);
 
   // Set default selected channel on first load or when playlist changes
   useEffect(() => {

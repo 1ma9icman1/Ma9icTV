@@ -191,6 +191,30 @@ export default function App() {
       )));
       const loaded: Playlist[] = [];
       let next = 0;
+      const publishCatalog = async () => {
+        if (cancelled || !loaded.length) return;
+        const catalog = buildMasterCatalog(loaded);
+        // Publish partial results immediately so users see the count grow as sources finish.
+        const channels: Channel[] = catalog.entries.flatMap((entry) => {
+          const variant = entry.variants?.[0];
+          if (!variant?.url) return [];
+          return [{
+            id: entry.id,
+            name: entry.name,
+            url: variant.url,
+            group: entry.group || 'Uncategorized',
+            logo: entry.logo,
+            tvgId: entry.tvgId,
+            tvgName: entry.tvgName,
+            isRadio: entry.isRadio,
+            httpUserAgent: variant.userAgent,
+            httpReferrer: variant.referrer,
+          } as Channel];
+        });
+        setMasterSourceChannels(channels);
+        // Cache each successful batch, not just after every configured source finishes.
+        void writeCachedMasterCatalog(catalog);
+      };
       const worker = async () => {
         while (!cancelled) {
           const index = next++;
@@ -199,13 +223,17 @@ export default function App() {
           try {
             const controller = new AbortController();
             const timeout = setTimeout(() => controller.abort(), 25000);
-            const response = await fetch('/api/parse-playlist', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ url }),
-              signal: controller.signal,
-            });
-            clearTimeout(timeout);
+            let response: Response;
+            try {
+              response = await fetch('/api/parse-playlist', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url }),
+                signal: controller.signal,
+              });
+            } finally {
+              clearTimeout(timeout);
+            }
             if (!response.ok) continue;
             const data = await response.json();
             if (!Array.isArray(data.items) || !data.items.length) continue;
@@ -218,47 +246,34 @@ export default function App() {
               logo: item.tvg?.logo || undefined,
               tvgId: item.tvg?.id || undefined,
               tvgName: item.tvg?.name || undefined,
-              isRadio: item.radio === 'true' || /\.(mp3|aac)(\?|$)/i.test(item.url || ''),
+              isRadio: item.radio === true || item.radio === 'true' || /\.(mp3|aac)(\?|$)/i.test(item.url || ''),
+              httpUserAgent: item.httpUserAgent,
+              httpReferrer: item.httpReferrer,
               raw: item.raw,
             })).filter((channel: Channel) => /^https?:\/\//i.test(String(channel.url || '')));
-            if (channels.length) loaded.push({
-              id: `master-source-${index}`,
-              title: source?.name || url,
-              url,
-              type: 'm3u-url',
-              channelCount: channels.length,
-              addedAt: 0,
-              lastUpdated: Date.now(),
-              epgUrl: source?.epgUrl,
-              channels,
-            });
-          } catch {
-            // A failed or slow source must not block the remaining catalog sources.
+            if (channels.length) {
+              loaded.push({
+                id: `master-source-${index}`,
+                title: source?.name || url,
+                url,
+                type: 'm3u-url',
+                channelCount: channels.length,
+                addedAt: 0,
+                lastUpdated: Date.now(),
+                epgUrl: source?.epgUrl,
+                channels,
+              });
+              await publishCatalog();
+            }
+          } catch (error) {
+            console.warn('[Ma9icTV Master Catalog] Source failed:', url, error);
           }
         }
       };
       await Promise.all([worker(), worker(), worker()]);
-      if (cancelled || !loaded.length) return;
-      const catalog = buildMasterCatalog(loaded);
-      await writeCachedMasterCatalog(catalog);
-      if (cancelled) return;
-      const channels: Channel[] = catalog.entries.flatMap((entry) => {
-        const variant = entry.variants?.[0];
-        if (!variant?.url) return [];
-        return [{
-          id: entry.id,
-          name: entry.name,
-          url: variant.url,
-          group: entry.group || 'Uncategorized',
-          logo: entry.logo,
-          tvgId: entry.tvgId,
-          tvgName: entry.tvgName,
-          isRadio: entry.isRadio,
-          httpUserAgent: variant.userAgent,
-          httpReferrer: variant.referrer,
-        } as Channel];
-      });
-      setMasterSourceChannels(channels);
+      if (!cancelled && !loaded.length) {
+        console.warn('[Ma9icTV Master Catalog] No configured M3U sources loaded successfully.');
+      }
     };
     void loadMasterSources();
     return () => { cancelled = true; };

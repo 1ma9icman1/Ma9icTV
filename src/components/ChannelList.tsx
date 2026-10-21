@@ -315,11 +315,12 @@ export const ChannelList: React.FC<ChannelListProps> = ({
                     <div className="min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span
-                          className={`text-xs font-medium truncate ${
+                          className={`ma9-scroll-viewport text-xs font-medium ${
                             isSelected ? 'text-indigo-200 font-semibold' : 'text-slate-200'
                           }`}
+                          title={channel.name}
                         >
-                          {channel.name}
+                          <span className="ma9-scroll-text">{channel.name}</span>
                         </span>
                         {channel.isRadio && (
                           <span className="px-1 py-0.2 rounded text-[9px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
@@ -327,7 +328,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
                           </span>
                         )}
                       </div>
-                      <p className="text-[10px] text-slate-500 truncate">{channel.group || 'General'}</p>
+                      <p className="ma9-scroll-viewport text-[10px] text-slate-500" title={channel.group || 'General'}><span className="ma9-scroll-text">{channel.group || 'General'}</span></p>
                     </div>
                   </div>
 

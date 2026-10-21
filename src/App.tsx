@@ -837,27 +837,6 @@ export default function App() {
           </div>
         </header>
 
-        <div className="flex-shrink-0 px-3 py-1.5 bg-amber-950/70 border-b border-amber-700/50 text-[10px] sm:text-xs font-mono text-amber-100 overflow-x-auto">
-          <div className="flex flex-wrap gap-x-4 gap-y-1 items-center">
-            <span className="font-bold text-amber-300">DEBUG</span>
-            <span>active={masterDebug.activeId || activePlaylistIdState}</span>
-            <span>saved={masterDebug.savedId || getActivePlaylistId()}</span>
-            <span>shown="{activePlaylist.title}"</span>
-            <span>shownChannels={activePlaylist.channels.length}</span>
-            <span>masterSourceChannels={masterSourceChannels.length}</span>
-            <span>sourcesOK={masterDebug.sourceSucceeded}/{masterDebug.sourceTotal}</span>
-            <span>finished={masterDebug.sourceFinished}</span>
-            <span>failed={masterDebug.sourceFailed}</span>
-            <span>rawLoaded={masterDebug.rawChannels}</span>
-            <span>phase={masterDebug.phase}</span>
-          </div>
-          {(masterDebug.lastSource || masterDebug.lastError) && (
-            <div className="mt-1 break-all text-amber-200">
-              lastSource={masterDebug.lastSource} {masterDebug.lastError ? `error=${masterDebug.lastError}` : ''}
-            </div>
-          )}
-        </div>
-
         {/* Main Body */}
         <main className="flex-1 min-h-0 min-w-0 flex flex-col md:flex-row overflow-hidden relative">
           {currentView === 'player' ? (

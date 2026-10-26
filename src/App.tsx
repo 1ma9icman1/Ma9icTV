@@ -18,7 +18,6 @@ import { Channel, Playlist, AppSettings } from './types';
 import {
   getSavedPlaylists,
   savePlaylists,
-  getActivePlaylistId,
   setActivePlaylistId,
   getFavorites,
   saveFavorites,
@@ -110,6 +109,7 @@ export default function App() {
   const [currentView, setCurrentView] = useState<'player' | 'epg'>('epg');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(true);
   const [isRefreshingPlaylist, setIsRefreshingPlaylist] = useState<boolean>(false);
+  const [samsungReloadToken, setSamsungReloadToken] = useState<number>(0);
   const [isAppFullscreen, setIsAppFullscreen] = useState<boolean>(() => Boolean(document.fullscreenElement));
 
   useEffect(() => {
@@ -272,7 +272,7 @@ export default function App() {
 
     void loadDefaultSamsung();
     return () => { cancelled = true; };
-  }, []);
+  }, [samsungReloadToken]);
 
   // Set default selected channel on first load or when playlist changes
   useEffect(() => {
@@ -475,15 +475,15 @@ export default function App() {
     }
   };
 
-  // Reset all data
+  // Reset all data. Keep the same Samsung TV Plus US startup default after reset.
   const handleResetAllData = useCallback(() => {
     // Reset only Ma9icTV data, not unrelated sites' LocalStorage on this origin.
     resetAppStorage();
-    const resetPlaylists = getSavedPlaylists();
+    const resetPlaylists = [createSamsungPlaylistPlaceholder()];
     setPlaylists(resetPlaylists);
     savePlaylists(resetPlaylists);
-    setActivePlaylistIdState(INITIAL_PRESETS[0].id);
-    setActivePlaylistId(INITIAL_PRESETS[0].id);
+    setActivePlaylistIdState(DEFAULT_SAMSUNG_PLAYLIST_ID);
+    setActivePlaylistId(DEFAULT_SAMSUNG_PLAYLIST_ID);
     setFavorites([]);
     setFavoriteChannels([]);
     window.dispatchEvent(new Event('ma9ictv-storage-reset'));
@@ -491,11 +491,9 @@ export default function App() {
     const defaultSettings = getSettings();
     setSettings(defaultSettings);
     saveSettings(defaultSettings);
-    if (INITIAL_PRESETS[0].channels.length > 0) {
-      setSelectedChannel(getFirstStreamChannel(INITIAL_PRESETS[0].channels) || INITIAL_PRESETS[0].channels[0]);
-    } else {
-      setSelectedChannel(null);
-    }
+    setSelectedChannel(null);
+    // Re-run the Samsung loader; do not select the worldwide demo preset on reset.
+    setSamsungReloadToken((previous) => previous + 1);
   }, []);
 
   // Global keyboard shortcuts

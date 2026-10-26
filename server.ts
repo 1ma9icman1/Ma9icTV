@@ -1,4 +1,6 @@
-import express, { Request, Response } from 'express';
+import express, { NextFunction, Request, Response } from 'express';
+import dns from 'dns/promises';
+import net from 'net';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -56,6 +58,123 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const EPG_RESPONSE_CACHE_TTL_MS = 5 * 60 * 1000;
+
+// Do not let public URL-fetch endpoints reach loopback, private, link-local,
+// multicast, or reserved IP ranges. Redirect destinations are revalidated too.
+function isPublicIpAddress(address: string): boolean {
+  const ipVersion = net.isIP(address);
+  if (ipVersion === 4) {
+    const parts = address.split('.').map(Number);
+    if (parts.length !== 4 || parts.some((part) => !Number.isInteger(part) || part < 0 || part > 255)) return false;
+    const [a, b, c] = parts;
+    return !(
+      a === 0 || a === 10 || a === 127 || a >= 224 ||
+      (a === 169 && b === 254) ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168) ||
+      (a === 100 && b >= 64 && b <= 127) ||
+      (a === 192 && b === 0) ||
+      (a === 192 && b === 88 && c === 99) ||
+      (a === 198 && (b === 18 || b === 19)) ||
+      (a === 198 && b === 51 && c === 100) ||
+      (a === 203 && b === 0 && c === 113)
+    );
+  }
+  if (ipVersion === 6) {
+    const normalized = address.toLowerCase().split('%')[0];
+    // Only accept global-unicast IPv6, excluding documentation/transition blocks.
+    if (!/^[23]/.test(normalized)) return false;
+    if (normalized.startsWith('2001:db8:') || normalized.startsWith('2001:10:') ||
+        normalized.startsWith('2001:20:') || normalized.startsWith('2002:')) return false;
+    return true;
+  }
+  return false;
+}
+
+async function validatePublicHttpUrl(value: string): Promise<URL> {
+  const parsed = new URL(value);
+  if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+    throw new Error('Only public HTTP and HTTPS URLs are supported.');
+  }
+  if (parsed.username || parsed.password) {
+    throw new Error('URLs containing embedded credentials are not supported.');
+  }
+
+  const hostname = parsed.hostname.replace(/^\[|\]$/g, '').toLowerCase();
+  if (!hostname || hostname === 'localhost' || hostname.endsWith('.localhost') || hostname.endsWith('.local')) {
+    throw new Error('Private or local network destinations are not allowed.');
+  }
+
+  const answers = net.isIP(hostname)
+    ? [{ address: hostname, family: net.isIP(hostname) }]
+    : await dns.lookup(hostname, { all: true, verbatim: true });
+  if (answers.length === 0 || answers.some((answer) => !isPublicIpAddress(answer.address))) {
+    throw new Error('The destination must resolve exclusively to public IP addresses.');
+  }
+  return parsed;
+}
+
+type SafeFetchOptions = RequestInit & { dispatcher?: Agent };
+
+async function fetchPublicUrl(value: string, options: SafeFetchOptions = {}): Promise<globalThis.Response> {
+  let currentUrl = await validatePublicHttpUrl(value);
+  const redirectStatuses = new Set([301, 302, 303, 307, 308]);
+
+  for (let redirects = 0; redirects <= 5; redirects += 1) {
+    const response = await fetch(currentUrl.toString(), {
+      ...options,
+      redirect: 'manual',
+    } as RequestInit & { dispatcher?: Agent });
+
+    if (!redirectStatuses.has(response.status)) return response;
+    const location = response.headers.get('location');
+    if (!location) return response;
+
+    if (redirects === 5) {
+      try { await response.body?.cancel(); } catch { /* ignore body cleanup errors */ }
+      throw new Error('Upstream returned too many redirects.');
+    }
+
+    const nextUrl = await validatePublicHttpUrl(new URL(location, currentUrl).toString());
+    try { await response.body?.cancel(); } catch { /* ignore body cleanup errors */ }
+    currentUrl = nextUrl;
+  }
+
+  throw new Error('Unable to follow upstream redirects safely.');
+}
+
+function createRateLimiter(maxRequests: number, windowMs: number) {
+  const clients = new Map<string, { windowStart: number; count: number }>();
+  return (req: Request, res: Response, next: NextFunction) => {
+    const now = Date.now();
+    const clientKey = String(req.get('fly-client-ip') || req.ip || req.socket.remoteAddress || 'unknown');
+    let state = clients.get(clientKey);
+    if (!state || now - state.windowStart >= windowMs) {
+      state = { windowStart: now, count: 0 };
+      clients.set(clientKey, state);
+    }
+    state.count += 1;
+
+    if (clients.size > 5000) {
+      for (const [key, value] of clients) {
+        if (now - value.windowStart >= windowMs) clients.delete(key);
+      }
+    }
+
+    if (state.count > maxRequests) {
+      res.setHeader('Retry-After', String(Math.max(1, Math.ceil((state.windowStart + windowMs - now) / 1000))));
+      res.status(429).json({ error: 'Too many requests. Please slow down and retry shortly.' });
+      return;
+    }
+    next();
+  };
+}
+
+const proxyRateLimit = createRateLimiter(900, 60 * 1000);
+const playlistRateLimit = createRateLimiter(90, 60 * 1000);
+const epgRateLimit = createRateLimiter(30, 60 * 1000);
+const xtreamRateLimit = createRateLimiter(60, 60 * 1000);
+
 const epgResponseCache = new Map<string, { expiresAt: number; payload: any }>();
 
 function parseXmltvTimestampMs(value: unknown): number {
@@ -95,7 +214,7 @@ async function startServer() {
   });
 
   // Proxy endpoint to bypass CORS and stream content / playlists
-  app.get('/api/proxy', async (req: Request, res: Response) => {
+  app.get('/api/proxy', proxyRateLimit, async (req: Request, res: Response) => {
     const targetUrl = req.query.url as string;
     const customUserAgent =
       (req.query.userAgent as string) ||
@@ -108,11 +227,7 @@ async function startServer() {
     }
 
     try {
-      const parsedUrl = new URL(targetUrl);
-      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
-        res.status(400).send('Only HTTP and HTTPS stream URLs are supported');
-        return;
-      }
+      const parsedUrl = await validatePublicHttpUrl(targetUrl);
 
       // Stop upstream downloads if the player navigates away or changes channels.
       const abortController = new AbortController();
@@ -148,10 +263,10 @@ async function startServer() {
       let response: globalThis.Response;
 
       try {
-        response = await fetch(targetUrl, {
+        response = await fetchPublicUrl(targetUrl, {
           ...fetchOptions,
           dispatcher: selectedDispatcher,
-        } as RequestInit & { dispatcher: Agent });
+        });
       } catch (error) {
         // The older app disabled TLS verification globally. Keep secure HTTPS as the
         // default, but preserve compatibility with IPTV providers whose certificates
@@ -171,10 +286,10 @@ async function startServer() {
         });
 
         knownInsecureTlsHosts.add(parsedUrl.host);
-        response = await fetch(targetUrl, {
+        response = await fetchPublicUrl(targetUrl, {
           ...fetchOptions,
           dispatcher: insecureProxyDispatcher,
-        } as RequestInit & { dispatcher: Agent });
+        });
       }
 
       const contentType = response.headers.get('content-type') || '';
@@ -364,7 +479,7 @@ async function startServer() {
   });
 
   // Parse playlist from URL or text
-  app.post('/api/parse-playlist', async (req: Request, res: Response) => {
+  app.post('/api/parse-playlist', playlistRateLimit, async (req: Request, res: Response) => {
     try {
       const { url, content, userAgent } = req.body;
       let rawM3u = content;
@@ -374,7 +489,7 @@ async function startServer() {
           'User-Agent': userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
           'Accept-Encoding': 'gzip, deflate, br',
         };
-        const response = await fetch(url, { headers: fetchHeaders, redirect: 'follow', signal: AbortSignal.timeout(20000) });
+        const response = await fetchPublicUrl(url, { headers: fetchHeaders, signal: AbortSignal.timeout(20000) });
         if (!response.ok) {
           res.status(response.status).json({ error: `Failed to fetch playlist: ${response.statusText}` });
           return;
@@ -483,7 +598,7 @@ async function startServer() {
 
   // Parse XMLTV EPG endpoint. M3U headers can advertise one guide URL or a
   // comma-separated list of guides (the Free-TV curated playlist uses many).
-  app.post('/api/parse-epg', async (req: Request, res: Response) => {
+  app.post('/api/parse-epg', epgRateLimit, async (req: Request, res: Response) => {
     try {
       const { url, content } = req.body;
       if (!url && !content) {
@@ -549,7 +664,7 @@ async function startServer() {
         try {
           let rawXml = source.content;
           if (!rawXml) {
-            const response = await fetch(source.url, {
+            const response = await fetchPublicUrl(source.url, {
               headers: {
                 'User-Agent': 'Ma9icTV/1.0 XMLTV',
                 'Accept-Encoding': 'gzip, deflate',
@@ -686,7 +801,7 @@ async function startServer() {
   });
 
   // Xtream Codes API Proxy
-  app.post('/api/xtream', async (req: Request, res: Response) => {
+  app.post('/api/xtream', xtreamRateLimit, async (req: Request, res: Response) => {
     try {
       const { serverUrl, username, password, action, params } = req.body;
 
@@ -710,7 +825,7 @@ async function startServer() {
         }
       }
 
-      const response = await fetch(targetUrl, {
+      const response = await fetchPublicUrl(targetUrl, {
         headers: {
           'User-Agent': 'IPTVnator/0.25.0',
           'Accept': 'application/json',

@@ -424,12 +424,10 @@ export default function App() {
 
     setIsRefreshingPlaylist(true);
     try {
-      const isStaticPages = window.location.hostname === 'github.io'
-        || window.location.hostname.endsWith('.github.io');
       let channels: Channel[] = [];
       let refreshedEpgUrl = activePlaylist.epgUrl || undefined;
 
-      if (isStaticPages) {
+      if (isStaticClient) {
         const response = await fetch(activePlaylist.url, {
           cache: 'no-store',
           headers: { Accept: 'text/plain' },

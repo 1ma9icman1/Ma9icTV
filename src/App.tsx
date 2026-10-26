@@ -33,6 +33,7 @@ import {
   addBlacklistedChannel,
 } from './utils/storage';
 import { INITIAL_PRESETS, CATALOG_PLAYLISTS } from './data/presetPlaylists';
+import { parseM3uString } from './utils/playlistParser';
 
 import { ChannelList } from './components/ChannelList';
 import { VideoPlayer } from './components/VideoPlayer';
@@ -48,21 +49,44 @@ function getFirstStreamChannel(channels: Channel[]): Channel | null {
   return channels.find((channel) => /^https?:\/\//i.test(String(channel.url || '').trim())) || null;
 }
 
+const DEFAULT_SAMSUNG_PLAYLIST_ID = 'default-samsung-tv-plus-us';
+const DEFAULT_SAMSUNG_PLAYLIST_URL = 'https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/samsungtvplus_us.m3u';
+const DEFAULT_SAMSUNG_EPG_URL = 'https://i.mjh.nz/SamsungTVPlus/us.xml.gz';
+
+// Keep Samsung as the selected startup playlist even before its remote lineup arrives.
+// This prevents an unrelated built-in worldwide preset from showing while Samsung loads.
+function createSamsungPlaylistPlaceholder(): Playlist {
+  return {
+    id: DEFAULT_SAMSUNG_PLAYLIST_ID,
+    title: 'Samsung TV Plus US',
+    url: DEFAULT_SAMSUNG_PLAYLIST_URL,
+    type: 'm3u-url',
+    channelCount: 0,
+    addedAt: Date.now(),
+    lastUpdated: Date.now(),
+    epgUrl: DEFAULT_SAMSUNG_EPG_URL,
+    channels: [],
+  };
+}
+
+function getStartupPlaylists(): Playlist[] {
+  const saved = getSavedPlaylists();
+  if (saved.some((playlist) => playlist.id === DEFAULT_SAMSUNG_PLAYLIST_ID)) return saved;
+  return [
+    createSamsungPlaylistPlaceholder(),
+    ...saved.filter((playlist) => playlist.url !== DEFAULT_SAMSUNG_PLAYLIST_URL),
+  ];
+}
+
 export default function App() {
-  // Playlists and Channels state
-  const [playlists, setPlaylists] = useState<Playlist[]>(() => getSavedPlaylists());
-  const [activePlaylistIdState, setActivePlaylistIdState] = useState<string>(() => getActivePlaylistId());
-  // Select a saved channel immediately so the embedded EPG player can begin
-  // loading while the default Pluto playlist is fetched in the background.
+  // Playlists and Channels state. Samsung is the intended startup playlist;
+  // saved worldwide/custom lists remain available in the playlist picker.
+  const [playlists, setPlaylists] = useState<Playlist[]>(() => getStartupPlaylists());
+  const [activePlaylistIdState, setActivePlaylistIdState] = useState<string>(() => DEFAULT_SAMSUNG_PLAYLIST_ID);
+  // Only start playback from a cached Samsung channel. Do not briefly select a worldwide preset.
   const [selectedChannel, setSelectedChannel] = useState<Channel | null>(() => {
-    const savedPlaylists = getSavedPlaylists();
-    const savedActiveId = getActivePlaylistId();
-    const cachedDefault = savedPlaylists.find((playlist) => playlist.id === 'default-samsung-tv-plus-us');
-    const savedActive = cachedDefault
-      || savedPlaylists.find((playlist) => playlist.id === savedActiveId)
-      || savedPlaylists[0]
-      || INITIAL_PRESETS[0];
-    return savedActive ? getFirstStreamChannel(savedActive.channels) : null;
+    const cachedDefault = getSavedPlaylists().find((playlist) => playlist.id === DEFAULT_SAMSUNG_PLAYLIST_ID);
+    return cachedDefault ? getFirstStreamChannel(cachedDefault.channels) : null;
   });
 
   // Favorites and History
@@ -126,21 +150,23 @@ export default function App() {
       : selected;
   }, [playlists, activePlaylistIdState]);
 
-  // Load Samsung TV Plus by default on startup, without opening the playlist picker.
-  // The normal playlist menu remains available for users to switch sources.
+  // Load Samsung TV Plus US by default. GitHub Pages cannot run the Express API,
+  // so parse the public Samsung M3U directly in the browser on the Pages deployment.
+  // Local/server deployments keep using /api/parse-playlist as before.
   useEffect(() => {
     let cancelled = false;
-    const loadDefaultSamsung = async () => {
-      const samsungUrl = 'https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/samsungtvplus_us.m3u';
-      const samsungId = 'default-samsung-tv-plus-us';
 
-      // Use the previously downloaded lineup immediately on repeat visits.
-      // Re-fetching the same M3U at every startup delayed the first useful guide
-      // and caused a second unnecessary EPG load after the network response.
+    const loadDefaultSamsung = async () => {
+      const samsungUrl = DEFAULT_SAMSUNG_PLAYLIST_URL;
+      const samsungId = DEFAULT_SAMSUNG_PLAYLIST_ID;
+
+      // Select Samsung immediately; never present the worldwide fallback as the startup lineup.
+      setActivePlaylistIdState(samsungId);
+      setActivePlaylistId(samsungId);
+
       const cached = getSavedPlaylists().find((playlist) => playlist.id === samsungId);
       if (cached?.channels?.length) {
-        setActivePlaylistIdState(samsungId);
-        setActivePlaylistId(samsungId);
+        if (cancelled) return;
         const firstStream = getFirstStreamChannel(cached.channels);
         if (firstStream) setSelectedChannel(firstStream);
         setCurrentView('epg');
@@ -149,54 +175,101 @@ export default function App() {
       }
 
       try {
-        const response = await fetch('/api/parse-playlist', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ url: samsungUrl }),
-        });
-        if (!response.ok) throw new Error('Unable to load Samsung TV Plus playlist');
-        const data = await response.json();
-        if (!Array.isArray(data.items) || data.items.length === 0) throw new Error('Samsung TV Plus returned no channels');
+        let channels: Channel[] = [];
+
+        const isGitHubPages = window.location.hostname === 'github.io'
+          || window.location.hostname.endsWith('.github.io');
+
+        if (isGitHubPages) {
+          const response = await fetch(samsungUrl, {
+            headers: { Accept: 'text/plain' },
+            cache: 'no-store',
+          });
+          if (!response.ok) {
+            throw new Error(`Samsung TV Plus M3U request failed (HTTP ${response.status}).`);
+          }
+
+          const rawM3u = await response.text();
+          channels = parseM3uString(rawM3u, samsungId).map((channel, index) => ({
+            ...channel,
+            id: `${samsungId}-ch-${index}`,
+            group: channel.group || 'Samsung TV Plus',
+          }));
+        } else {
+          const response = await fetch('/api/parse-playlist', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url: samsungUrl }),
+          });
+          if (!response.ok) {
+            throw new Error(`Samsung TV Plus request failed (HTTP ${response.status}).`);
+          }
+
+          const data = await response.json();
+          channels = (Array.isArray(data.items) ? data.items : []).map((item: any, idx: number) => ({
+            id: `${samsungId}-ch-${idx}`,
+            name: item.name || 'Samsung TV Plus Channel',
+            url: item.url,
+            group: item.group?.title || 'Samsung TV Plus',
+            logo: item.tvg?.logo || undefined,
+            tvgId: item.tvg?.id || undefined,
+            tvgName: item.tvg?.name || undefined,
+            tvgChno: item.tvg?.chno ? String(item.tvg.chno) : undefined,
+            isRadio: item.radio === 'true' || item.url?.endsWith('.mp3'),
+            raw: item.raw,
+          }));
+        }
+
+        if (channels.length === 0) {
+          throw new Error('Samsung TV Plus returned no valid channels.');
+        }
         if (cancelled) return;
 
-        const channels: Channel[] = data.items.map((item: any, idx: number) => ({
-          id: `${samsungId}-ch-${idx}`,
-          name: item.name || 'Samsung TV Plus Channel',
-          url: item.url,
-          group: item.group?.title || 'Samsung TV Plus',
-          logo: item.tvg?.logo || undefined,
-          tvgId: item.tvg?.id || undefined,
-          tvgName: item.tvg?.name || undefined,
-          isRadio: item.radio === 'true' || item.url?.endsWith('.mp3'),
-          raw: item.raw,
-        }));
         const samsungPlaylist: Playlist = {
           id: samsungId,
           title: 'Samsung TV Plus US',
           url: samsungUrl,
           type: 'm3u-url',
           channelCount: channels.length,
-          addedAt: Date.now(),
+          addedAt: cached?.addedAt || Date.now(),
           lastUpdated: Date.now(),
-          epgUrl: 'https://i.mjh.nz/SamsungTVPlus/us.xml.gz',
+          epgUrl: DEFAULT_SAMSUNG_EPG_URL,
           channels,
         };
+
         setPlaylists((prev) => {
-          const updated = [samsungPlaylist, ...prev.filter((playlist) => playlist.id !== samsungId && playlist.url !== samsungUrl)];
+          const updated = [
+            samsungPlaylist,
+            ...prev.filter((playlist) => playlist.id !== samsungId && playlist.url !== samsungUrl),
+          ];
           savePlaylists(updated);
           return updated;
         });
         setActivePlaylistIdState(samsungId);
         setActivePlaylistId(samsungId);
         const firstStream = getFirstStreamChannel(channels);
-        if (firstStream) setSelectedChannel(firstStream);
+        setSelectedChannel(firstStream);
         setCurrentView('epg');
         setIsSidebarCollapsed(true);
       } catch (error) {
-        // Keep the built-in fallback stream playable if the Pluto playlist endpoint is unavailable.
-        console.warn('Ma9icTV: Could not auto-load Samsung TV Plus; keeping the fallback playlist.', error);
+        console.warn('Ma9icTV: Could not load Samsung TV Plus US.', error);
+        if (cancelled) return;
+
+        // Keep the empty Samsung placeholder selected instead of silently showing
+        // an unrelated Worldwide preset when this remote source is unavailable.
+        const placeholder = createSamsungPlaylistPlaceholder();
+        setPlaylists((prev) => [
+          placeholder,
+          ...prev.filter((playlist) => playlist.id !== samsungId && playlist.url !== samsungUrl),
+        ]);
+        setActivePlaylistIdState(samsungId);
+        setActivePlaylistId(samsungId);
+        setSelectedChannel(null);
+        setCurrentView('epg');
+        setIsSidebarCollapsed(true);
       }
     };
+
     void loadDefaultSamsung();
     return () => { cancelled = true; };
   }, []);

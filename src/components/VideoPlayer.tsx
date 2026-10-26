@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Hls from 'hls.js';
-import { apiUrl, isGitHubPages } from '../utils/api';
+import { apiUrl, isStaticClient } from '../utils/api';
 import {
   Play,
   Pause,
@@ -329,7 +329,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       }
 
       // In web browsers, CORS proxy is required for 95% of IPTV streams unless explicitly forced direct
-      const shouldProxy = !isGitHubPages && (forceProxy !== undefined ? forceProxy : settings.proxyMode !== 'direct');
+      const shouldProxy = !isStaticClient && (forceProxy !== undefined ? forceProxy : settings.proxyMode !== 'direct');
       setIsUsingProxy(shouldProxy);
 
       // Startup deadline: allow up to 9 seconds for initial manifest and first fragment

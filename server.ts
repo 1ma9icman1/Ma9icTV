@@ -1,7 +1,6 @@
 import express, { NextFunction, Request, Response } from 'express';
 import dns from 'dns/promises';
 import net from 'net';
-import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import zlib from 'zlib';
@@ -847,6 +846,10 @@ async function startServer() {
 
   // Mount Vite development middlewares or serve static build
   if (!isProd) {
+    // Do not load Vite or Rolldown in production serverless functions.
+    // Some optional native Rolldown bindings are not included in Vercel's
+    // function bundle; the Vite dev server is needed only for local development.
+    const { createServer: createViteServer } = await import('vite');
     const vite = await createViteServer({
       server: { middlewareMode: true, hmr: process.env.DISABLE_HMR !== 'true' },
       appType: 'spa',

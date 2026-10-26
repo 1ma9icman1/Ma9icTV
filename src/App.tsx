@@ -444,8 +444,8 @@ export default function App() {
           id: `${activePlaylist.id}-ch-${idx}`,
           group: channel.group || 'General',
         }));
-        const header = rawM3u.split(/\\r?\\n/).find((line) => line.trim().startsWith('#EXTM3U')) || '';
-        const epgMatch = header.match(/(?:url-tvg|x-tvg-url|tvg-url)\\s*=\\s*["']([^"']+)["']/i);
+        const header = rawM3u.split(/\r?\n/).find((line) => line.trim().startsWith('#EXTM3U')) || '';
+        const epgMatch = header.match(/(?:url-tvg|x-tvg-url|tvg-url)\s*=\s*["']([^"']+)["']/i);
         refreshedEpgUrl = epgMatch?.[1]?.trim() || refreshedEpgUrl;
       } else {
         const response = await fetch(apiUrl('/api/parse-playlist'), {

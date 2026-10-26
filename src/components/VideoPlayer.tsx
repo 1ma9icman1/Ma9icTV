@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Hls from 'hls.js';
-import { apiUrl } from '../utils/api';
+import { apiUrl, isGitHubPages } from '../utils/api';
 import {
   Play,
   Pause,
@@ -131,7 +131,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [controlsVisible, setControlsVisible] = useState<boolean>(true);
   const controlsHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [isUsingProxy, setIsUsingProxy] = useState<boolean>(true);
+  const [isUsingProxy, setIsUsingProxy] = useState<boolean>(!isGitHubPages);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [aspectRatio, setAspectRatio] = useState<'contain' | 'cover' | '16/9' | '4/3'>('contain');
@@ -329,7 +329,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       }
 
       // In web browsers, CORS proxy is required for 95% of IPTV streams unless explicitly forced direct
-      const shouldProxy = forceProxy !== undefined ? forceProxy : settings.proxyMode !== 'direct';
+      const shouldProxy = !isGitHubPages && (forceProxy !== undefined ? forceProxy : settings.proxyMode !== 'direct');
       setIsUsingProxy(shouldProxy);
 
       // Startup deadline: allow up to 9 seconds for initial manifest and first fragment
@@ -982,13 +982,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                     Skip to Next Channel
                   </button>
                 )}
-                <button
-                  onClick={() => initPlayer(!isUsingProxy)}
-                  className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-all border border-slate-700"
-                >
-                  <Zap className="w-3.5 h-3.5 text-amber-400" />
-                  {isUsingProxy ? 'Try Direct Connection' : 'Retry via Proxy'}
-                </button>
+{!isGitHubPages && (
+                  <button
+                    onClick={() => initPlayer(!isUsingProxy)}
+                    className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-all border border-slate-700"
+                  >
+                    <Zap className="w-3.5 h-3.5 text-amber-400" />
+                    {isUsingProxy ? 'Try Direct Connection' : 'Retry via Proxy'}
+                  </button>
+                )}
                 <button
                   onClick={() => initPlayer(true)}
                   className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-medium flex items-center gap-1.5 transition-colors border border-slate-800"

@@ -848,7 +848,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 : 'aspect-[4/3] object-fill'
             }`}
             playsInline
-            autoPlay
             preload="auto"
             onPlaying={() => {
               console.info('[Ma9icTV playback] media playing', {

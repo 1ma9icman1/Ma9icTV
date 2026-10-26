@@ -15,7 +15,7 @@
     "m3u:check:apply": "node scripts/check-m3u.cjs --apply",
     "desktop:installer": "npm run build && electron-builder --win nsis",
     "start": "tsx server.ts",
-    "build:vercel": "npm run build && node scripts/prepare-vercel-public.cjs"
+    "build:vercel": "npm run lint && npm run build && node scripts/prepare-vercel-public.cjs"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

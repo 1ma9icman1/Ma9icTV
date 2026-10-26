@@ -13,7 +13,8 @@
     "desktop:pack": "npm run build && electron-builder --win portable",
     "m3u:check": "node scripts/check-m3u.cjs",
     "m3u:check:apply": "node scripts/check-m3u.cjs --apply",
-    "desktop:installer": "npm run build && electron-builder --win nsis"
+    "desktop:installer": "npm run build && electron-builder --win nsis",
+    "start": "tsx server.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

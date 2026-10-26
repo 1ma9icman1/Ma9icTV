@@ -99,7 +99,43 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
     try {
       const playlistId = `pl-${Date.now()}`;
       const urls = Array.from(new Set([targetUrl, ...(sourceUrls || [])].map((value) => value.trim()).filter(Boolean)));
-      const results = await Promise.all(urls.map(async (sourceUrl) => {
+      const results = await Promise.all(urls.map(async (sourceUrl, sourceIndex) => {
+        // GitHub Pages is static hosting and cannot run /api/parse-playlist.
+        // Parse Ma9icTV's own public GitHub-hosted catalog files in the browser.
+        const isMa9icTvCatalogFile = (() => {
+          try {
+            const parsedUrl = new URL(sourceUrl);
+            return parsedUrl.protocol === 'https:'
+              && parsedUrl.hostname === 'raw.githubusercontent.com'
+              && /^\/1ma9icman1\/Ma9icTV\/main\/m3u_lists\/[^/]+\.m3u$/i.test(parsedUrl.pathname);
+          } catch {
+            return false;
+          }
+        })();
+
+        if (isMa9icTvCatalogFile) {
+          const response = await fetch(sourceUrl, {
+            headers: { Accept: 'text/plain' },
+            cache: 'no-store',
+          });
+          if (!response.ok) {
+            throw new Error(`Failed to fetch GitHub M3U file (HTTP ${response.status}): ${sourceUrl}`);
+          }
+
+          const content = await response.text();
+          const sourceChannels = parseM3uString(content, `${playlistId}-source-${sourceIndex}`);
+          if (sourceChannels.length === 0) {
+            throw new Error(`The GitHub M3U file contained no valid channels: ${sourceUrl}`);
+          }
+
+          return {
+            channels: sourceChannels,
+            header: { urlTvg: extractM3uEpgUrl(content) },
+          };
+        }
+
+        // Keep the existing API-based loader for local/server deployments and
+        // arbitrary providers whose M3U URLs may not permit browser CORS access.
         const response = await fetch('/api/parse-playlist', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -115,35 +151,37 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
           }
           throw new Error(`Failed to load ${sourceUrl} (HTTP ${response.status}): ${reason}`);
         }
-        return response.json();
+
+        const result = await response.json();
+        const sourceChannels: Channel[] = dedupeChannels(
+          (Array.isArray(result.items) ? result.items : []).map((item: any, idx: number) => ({
+            id: `${playlistId}-source-${sourceIndex}-ch-${idx}`,
+            name: item.name || 'Unnamed Channel',
+            url: item.url,
+            // M3U group-title values can contain semicolon-separated labels.
+            // Display those as clean category names instead of raw delimiters.
+            group: String(item.group?.title || 'General')
+              .split(';')
+              .map((part: string) => part.trim())
+              .filter(Boolean)
+              .join(' / ') || 'General',
+            logo: item.tvg?.logo || undefined,
+            tvgId: item.tvg?.id || undefined,
+            tvgName: item.tvg?.name || undefined,
+            isRadio: item.radio === 'true' || item.url?.endsWith('.mp3'),
+            httpUserAgent: item.httpUserAgent || undefined,
+            httpReferrer: item.httpReferrer || undefined,
+            raw: item.raw,
+          })),
+        );
+
+        return { channels: sourceChannels, header: result.header || {} };
       }));
-      const data = {
-        items: results.flatMap((result: any) => Array.isArray(result.items) ? result.items : []),
-        header: results.find((result: any) => result.header?.urlTvg)?.header || results[0]?.header || {},
-      };
-      if (!data.items || data.items.length === 0) {
+
+      const channels: Channel[] = dedupeChannels(results.flatMap((result) => result.channels));
+      if (channels.length === 0) {
         throw new Error('The selected collection returned no valid stream entries.');
       }
-
-      const channels: Channel[] = dedupeChannels(data.items.map((item: any, idx: number) => ({
-        id: `${playlistId}-ch-${idx}`,
-        name: item.name || 'Unnamed Channel',
-        url: item.url,
-        // M3U group-title values can contain semicolon-separated labels.
-        // Display those as clean category names instead of raw delimiters.
-        group: String(item.group?.title || 'General')
-          .split(';')
-          .map((part: string) => part.trim())
-          .filter(Boolean)
-          .join(' / ') || 'General',
-        logo: item.tvg?.logo || undefined,
-        tvgId: item.tvg?.id || undefined,
-        tvgName: item.tvg?.name || undefined,
-        isRadio: item.radio === 'true' || item.url?.endsWith('.mp3'),
-        httpUserAgent: item.httpUserAgent || undefined,
-        httpReferrer: item.httpReferrer || undefined,
-        raw: item.raw,
-      })));
 
       const newPlaylist: Playlist = {
         id: playlistId,
@@ -154,7 +192,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
         addedAt: Date.now(),
         lastUpdated: Date.now(),
         userAgent: customUA?.trim() || undefined,
-        epgUrl: data.header?.urlTvg || targetEpgUrl || undefined,
+        epgUrl: results.find((result) => result.header?.urlTvg)?.header?.urlTvg || targetEpgUrl || undefined,
         channels,
       };
 

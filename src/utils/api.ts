@@ -14,7 +14,7 @@ export const API_BASE_URL = configuredApiBase.replace(/\/+$/, '');
 
 // A Capacitor APK has no local Express process. Use browser-side playlist/EPG
 // loaders in the native shell unless a remote API base URL is explicitly configured.
-export const isStaticClient = isGitHubPages || Capacitor.isNativePlatform();
+export const isStaticClient = isGitHubPages || (Capacitor.isNativePlatform() && !API_BASE_URL);
 
 export function apiUrl(path: string): string {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;

@@ -427,41 +427,60 @@ export default function App() {
 
     setIsRefreshingPlaylist(true);
     try {
-      const response = await fetch(apiUrl('/api/parse-playlist'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          url: activePlaylist.url,
-          userAgent: activePlaylist.userAgent,
-        }),
-      });
+      const isStaticPages = window.location.hostname === 'github.io'
+        || window.location.hostname.endsWith('.github.io');
+      let channels: Channel[] = [];
+      let refreshedEpgUrl = activePlaylist.epgUrl || undefined;
 
-      if (!response.ok) {
-        throw new Error('Failed to refresh playlist.');
+      if (isStaticPages) {
+        const response = await fetch(activePlaylist.url, {
+          cache: 'no-store',
+          headers: { Accept: 'text/plain' },
+        });
+        if (!response.ok) throw new Error(`Failed to refresh playlist (HTTP ${response.status}).`);
+        const rawM3u = await response.text();
+        channels = parseM3uString(rawM3u, activePlaylist.id).map((channel, idx) => ({
+          ...channel,
+          id: `${activePlaylist.id}-ch-${idx}`,
+          group: channel.group || 'General',
+        }));
+        const header = rawM3u.split(/\\r?\\n/).find((line) => line.trim().startsWith('#EXTM3U')) || '';
+        const epgMatch = header.match(/(?:url-tvg|x-tvg-url|tvg-url)\\s*=\\s*["']([^"']+)["']/i);
+        refreshedEpgUrl = epgMatch?.[1]?.trim() || refreshedEpgUrl;
+      } else {
+        const response = await fetch(apiUrl('/api/parse-playlist'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            url: activePlaylist.url,
+            userAgent: activePlaylist.userAgent,
+          }),
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data?.error || 'Failed to refresh playlist.');
+        channels = (Array.isArray(data.items) ? data.items : []).map((item: any, idx: number) => ({
+          id: `${activePlaylist.id}-ch-${idx}`,
+          name: item.name || 'Channel',
+          url: item.url,
+          group: item.group?.title || 'General',
+          logo: item.tvg?.logo || undefined,
+          tvgId: item.tvg?.id || undefined,
+          tvgName: item.tvg?.name || undefined,
+          isRadio: item.radio === 'true' || item.url?.endsWith('.mp3'),
+          raw: item.raw,
+        }));
+        refreshedEpgUrl = data.header?.urlTvg || refreshedEpgUrl;
       }
 
-      const data = await response.json();
-      if (!data.items || data.items.length === 0) {
-        throw new Error('Remote playlist returned no channels.');
+      if (channels.length === 0) {
+        throw new Error('Remote playlist returned no channels. If this is a cross-origin source, the provider may block browser access.');
       }
-
-      const channels: Channel[] = data.items.map((item: any, idx: number) => ({
-        id: `${activePlaylist.id}-ch-${idx}`,
-        name: item.name || 'Channel',
-        url: item.url,
-        group: item.group?.title || 'General',
-        logo: item.tvg?.logo || undefined,
-        tvgId: item.tvg?.id || undefined,
-        tvgName: item.tvg?.name || undefined,
-        isRadio: item.radio === 'true' || item.url?.endsWith('.mp3'),
-        raw: item.raw,
-      }));
 
       const refreshed: Playlist = {
         ...activePlaylist,
         channelCount: channels.length,
         lastUpdated: Date.now(),
-        epgUrl: data.header?.urlTvg || activePlaylist.epgUrl || undefined,
+        epgUrl: refreshedEpgUrl,
         channels,
       };
 

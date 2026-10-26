@@ -139,10 +139,23 @@ export const INITIAL_PRESETS: Playlist[] = [
 // in EpgGuide also help Free-TV entries whose IDs differ or are absent.
 const WORLD_EPG_URLS = [
   'https://iptv-org.github.io/epg/guides/us/tvtv.us.epg.xml',
-  'https://iptv-org.github.io/epg/guides/us/directv.com.epg.xml',
-  'https://iptv-org.github.io/epg/guides/us/tvguide.com.epg.xml',
+  'https://iptv-org.github.io/epg/guides/ca/tvtv.us.epg.xml',
+  'https://iptv-org.github.io/epg/guides/mx/gatotv.com.epg.xml',
+  'https://iptv-org.github.io/epg/guides/br/mi.tv.epg.xml',
+  'https://iptv-org.github.io/epg/guides/ar/mi.tv.epg.xml',
   'https://iptv-org.github.io/epg/guides/uk/ontvtonight.com.epg.xml',
+  'https://iptv-org.github.io/epg/guides/fr/programme-tv.net.epg.xml',
+  'https://iptv-org.github.io/epg/guides/de/hd-plus.de.epg.xml',
+  'https://iptv-org.github.io/epg/guides/es/programacion-tv.elpais.com.epg.xml',
+  'https://iptv-org.github.io/epg/guides/it/guidatv.sky.it.epg.xml',
+  'https://iptv-org.github.io/epg/guides/pt/meo.pt.epg.xml',
+  'https://iptv-org.github.io/epg/guides/pl/programtv.onet.pl.epg.xml',
   'https://iptv-org.github.io/epg/guides/au/ontvtonight.com.epg.xml',
+  'https://iptv-org.github.io/epg/guides/in/dishtv.in.epg.xml',
+  'https://iptv-org.github.io/epg/guides/cn/tv.cctv.com.epg.xml',
+  'https://iptv-org.github.io/epg/guides/ng/dstv.com.epg.xml',
+  'https://iptv-org.github.io/epg/guides/eg/osn.com.epg.xml',
+  'https://iptv-org.github.io/epg/guides/ae/osn.com.epg.xml',
 ].join(',');
 
 export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [

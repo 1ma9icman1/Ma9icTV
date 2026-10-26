@@ -32,7 +32,7 @@ jobs:
       - name: Build project for the GitHub Pages subpath
         env:
           VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL }}
-        run: npm run build -- --base=/Ma9icTV/
+        run: npm run lint && npm run build -- --base=/Ma9icTV/
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact

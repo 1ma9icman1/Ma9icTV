@@ -21,7 +21,7 @@ import {
 import { Playlist, Channel } from '../types';
 import { dedupeChannels, parseM3uString } from '../utils/playlistParser';
 import { CATALOG_PLAYLISTS, CatalogPlaylist } from '../data/presetPlaylists';
-import { apiUrl } from '../utils/api';
+import { apiUrl, isGitHubPages } from '../utils/api';
 
 function extractM3uEpgUrl(text: string): string | undefined {
   const header = text.split(/\r?\n/).find((line) => line.trim().startsWith('#EXTM3U')) || '';
@@ -114,7 +114,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
           }
         })();
 
-        if (isMa9icTvCatalogFile) {
+        if (isMa9icTvCatalogFile || isGitHubPages) {
           const response = await fetch(sourceUrl, {
             headers: { Accept: 'text/plain' },
             cache: 'no-store',

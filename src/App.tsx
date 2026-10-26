@@ -33,7 +33,7 @@ import {
 } from './utils/storage';
 import { INITIAL_PRESETS, CATALOG_PLAYLISTS } from './data/presetPlaylists';
 import { parseM3uString } from './utils/playlistParser';
-import { apiUrl, isStaticClient } from './utils/api';
+import { apiUrl, isStaticClient, networkUrl } from './utils/api';
 
 import { ChannelList } from './components/ChannelList';
 import { VideoPlayer } from './components/VideoPlayer';
@@ -179,7 +179,7 @@ export default function App() {
         let channels: Channel[] = [];
 
         if (isStaticClient) {
-          const response = await fetch(samsungUrl, {
+          const response = await fetch(networkUrl(samsungUrl), {
             headers: { Accept: 'text/plain' },
             cache: 'no-store',
           });
@@ -428,7 +428,7 @@ export default function App() {
       let refreshedEpgUrl = activePlaylist.epgUrl || undefined;
 
       if (isStaticClient) {
-        const response = await fetch(activePlaylist.url, {
+        const response = await fetch(networkUrl(activePlaylist.url, activePlaylist.userAgent), {
           cache: 'no-store',
           headers: { Accept: 'text/plain' },
         });

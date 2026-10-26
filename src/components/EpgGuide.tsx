@@ -25,7 +25,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { Channel, EpgProgram, AppSettings } from '../types';
-import { apiUrl, isGitHubPages } from '../utils/api';
+import { apiUrl, useBrowserFallback } from '../utils/api';
 import { XMLParser } from 'fast-xml-parser';
 import { VideoPlayer } from './VideoPlayer';
 import { getEpgExcludedChannels, saveEpgExcludedChannels } from '../utils/storage';
@@ -578,7 +578,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     setEpgLoadError('');
     try {
       let data: any;
-      if (isGitHubPages) {
+      if (useBrowserFallback) {
         data = await parseXmltvInBrowser(sourceUrl);
         if (data.loadedSourceCount === 0) {
           throw new Error('The browser could not load any XMLTV sources. A source may block cross-origin browser access; sources with that restriction need a local/server connection.');

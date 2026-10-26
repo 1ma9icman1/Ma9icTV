@@ -21,6 +21,7 @@ import {
 import { Playlist, Channel } from '../types';
 import { dedupeChannels, parseM3uString } from '../utils/playlistParser';
 import { CATALOG_PLAYLISTS, CatalogPlaylist } from '../data/presetPlaylists';
+import { apiUrl } from '../utils/api';
 
 function extractM3uEpgUrl(text: string): string | undefined {
   const header = text.split(/\r?\n/).find((line) => line.trim().startsWith('#EXTM3U')) || '';
@@ -136,7 +137,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
 
         // Keep the existing API-based loader for local/server deployments and
         // arbitrary providers whose M3U URLs may not permit browser CORS access.
-        const response = await fetch('/api/parse-playlist', {
+        const response = await fetch(apiUrl('/api/parse-playlist', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: sourceUrl, userAgent: customUA?.trim() || undefined }),
@@ -303,7 +304,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
     setErrorMsg(null);
 
     try {
-      const response = await fetch('/api/xtream', {
+      const response = await fetch(apiUrl('/api/xtream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

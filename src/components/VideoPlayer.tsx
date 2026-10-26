@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Hls from 'hls.js';
+import { apiUrl } from '../utils/api';
 import {
   Play,
   Pause,
@@ -375,7 +376,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       const streamUserAgent = channel.httpUserAgent?.trim() || settings.customUserAgent;
       const proxyParams = `url=${encodeURIComponent(channel.url)}&userAgent=${encodeURIComponent(streamUserAgent)}${channel.httpReferrer?.trim() ? `&referer=${encodeURIComponent(channel.httpReferrer.trim())}` : ''}`;
       const streamUrl = shouldProxy
-        ? `/api/proxy?${proxyParams}`
+        ? apiUrl(`/api/proxy?${proxyParams}`)
         : channel.url;
 
       let originalPath = channel.url;

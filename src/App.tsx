@@ -33,6 +33,7 @@ import {
 } from './utils/storage';
 import { INITIAL_PRESETS, CATALOG_PLAYLISTS } from './data/presetPlaylists';
 import { parseM3uString } from './utils/playlistParser';
+import { apiUrl } from './utils/api';
 
 import { ChannelList } from './components/ChannelList';
 import { VideoPlayer } from './components/VideoPlayer';
@@ -196,7 +197,7 @@ export default function App() {
             group: channel.group || 'Samsung TV Plus',
           }));
         } else {
-          const response = await fetch('/api/parse-playlist', {
+          const response = await fetch(apiUrl('/api/parse-playlist', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ url: samsungUrl }),
@@ -426,7 +427,7 @@ export default function App() {
 
     setIsRefreshingPlaylist(true);
     try {
-      const response = await fetch('/api/parse-playlist', {
+      const response = await fetch(apiUrl('/api/parse-playlist', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

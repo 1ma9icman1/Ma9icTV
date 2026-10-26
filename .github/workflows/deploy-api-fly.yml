@@ -1,0 +1,42 @@
+name: Deploy Ma9icTV API to Fly.io
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "server.ts"
+      - "package.json"
+      - "bun.lock"
+      - "Dockerfile"
+      - ".dockerignore"
+      - "fly.toml"
+      - ".github/workflows/deploy-api-fly.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-api:
+    name: Deploy Express API and stream proxy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Set up Fly CLI
+        uses: superfly/flyctl-actions/setup-flyctl@master
+
+      - name: Check Fly API token
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+        run: |
+          if [ -z "$FLY_API_TOKEN" ]; then
+            echo "::error::Missing repository secret FLY_API_TOKEN. Add a Fly.io deploy token in GitHub Settings > Secrets and variables > Actions."
+            exit 1
+          fi
+
+      - name: Deploy Ma9icTV backend
+        run: flyctl deploy --remote-only --app ma9ictv
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

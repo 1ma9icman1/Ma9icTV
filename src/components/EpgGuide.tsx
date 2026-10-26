@@ -25,6 +25,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { Channel, EpgProgram, AppSettings } from '../types';
+import { apiUrl } from '../utils/api';
 import { VideoPlayer } from './VideoPlayer';
 import { getEpgExcludedChannels, saveEpgExcludedChannels } from '../utils/storage';
 
@@ -451,7 +452,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     setIsLoadingEpg(true);
     setEpgLoadError('');
     try {
-      const response = await fetch('/api/parse-epg', {
+      const response = await fetch(apiUrl('/api/parse-epg', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: sourceUrl }),

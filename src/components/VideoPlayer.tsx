@@ -131,7 +131,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [controlsVisible, setControlsVisible] = useState<boolean>(true);
   const controlsHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [isUsingProxy, setIsUsingProxy] = useState<boolean>(!isGitHubPages);
+  const [isUsingProxy, setIsUsingProxy] = useState<boolean>(!isStaticClient);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [aspectRatio, setAspectRatio] = useState<'contain' | 'cover' | '16/9' | '4/3'>('contain');
@@ -982,7 +982,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                     Skip to Next Channel
                   </button>
                 )}
-{!isGitHubPages && (
+{!isStaticClient && (
                   <button
                     onClick={() => initPlayer(!isUsingProxy)}
                     className="px-3.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold flex items-center gap-1.5 transition-all border border-slate-700"

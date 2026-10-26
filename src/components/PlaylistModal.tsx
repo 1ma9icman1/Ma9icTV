@@ -137,7 +137,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
 
         // Keep the existing API-based loader for local/server deployments and
         // arbitrary providers whose M3U URLs may not permit browser CORS access.
-        const response = await fetch(apiUrl('/api/parse-playlist', {
+        const response = await fetch(apiUrl('/api/parse-playlist'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ url: sourceUrl, userAgent: customUA?.trim() || undefined }),
@@ -304,7 +304,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
     setErrorMsg(null);
 
     try {
-      const response = await fetch(apiUrl('/api/xtream', {
+      const response = await fetch(apiUrl('/api/xtream'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

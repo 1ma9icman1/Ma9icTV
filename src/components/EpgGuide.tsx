@@ -452,7 +452,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     setIsLoadingEpg(true);
     setEpgLoadError('');
     try {
-      const response = await fetch(apiUrl('/api/parse-epg', {
+      const response = await fetch(apiUrl('/api/parse-epg'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ url: sourceUrl }),

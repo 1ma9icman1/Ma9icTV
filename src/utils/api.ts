@@ -1,3 +1,5 @@
+import { Capacitor } from '@capacitor/core';
+
 /**
  * URL builder for Ma9icTV server APIs.
  * Local/server deployments use same-origin /api paths. A separately hosted API
@@ -9,6 +11,10 @@ export const isGitHubPages = typeof window !== 'undefined'
   && (window.location.hostname === 'github.io' || window.location.hostname.endsWith('.github.io'));
 
 export const API_BASE_URL = configuredApiBase.replace(/\/+$/, '');
+
+// A Capacitor APK has no local Express process. Use browser-side playlist/EPG
+// loaders in the native shell unless a remote API base URL is explicitly configured.
+export const isStaticClient = isGitHubPages || Capacitor.isNativePlatform();
 
 export function apiUrl(path: string): string {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;

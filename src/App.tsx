@@ -33,7 +33,7 @@ import {
 } from './utils/storage';
 import { INITIAL_PRESETS, CATALOG_PLAYLISTS } from './data/presetPlaylists';
 import { parseM3uString } from './utils/playlistParser';
-import { apiUrl } from './utils/api';
+import { apiUrl, useBrowserFallback } from './utils/api';
 
 import { ChannelList } from './components/ChannelList';
 import { VideoPlayer } from './components/VideoPlayer';
@@ -178,10 +178,7 @@ export default function App() {
       try {
         let channels: Channel[] = [];
 
-        const isGitHubPages = window.location.hostname === 'github.io'
-          || window.location.hostname.endsWith('.github.io');
-
-        if (isGitHubPages) {
+        if (useBrowserFallback) {
           const response = await fetch(samsungUrl, {
             headers: { Accept: 'text/plain' },
             cache: 'no-store',
@@ -427,12 +424,10 @@ export default function App() {
 
     setIsRefreshingPlaylist(true);
     try {
-      const isStaticPages = window.location.hostname === 'github.io'
-        || window.location.hostname.endsWith('.github.io');
       let channels: Channel[] = [];
       let refreshedEpgUrl = activePlaylist.epgUrl || undefined;
 
-      if (isStaticPages) {
+      if (useBrowserFallback) {
         const response = await fetch(activePlaylist.url, {
           cache: 'no-store',
           headers: { Accept: 'text/plain' },

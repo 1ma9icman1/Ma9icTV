@@ -10,6 +10,10 @@ export const isGitHubPages = typeof window !== 'undefined'
 
 export const API_BASE_URL = configuredApiBase.replace(/\/+$/, '');
 
+// When GitHub Pages is paired with a configured Node API, use the backend instead
+// of browser-only fetching, which cannot bypass upstream CORS restrictions.
+export const useBrowserFallback = isGitHubPages && !API_BASE_URL;
+
 export function apiUrl(path: string): string {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
   return API_BASE_URL ? `${API_BASE_URL}${normalizedPath}` : normalizedPath;

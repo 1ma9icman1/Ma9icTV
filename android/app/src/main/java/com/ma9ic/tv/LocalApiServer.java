@@ -18,9 +18,59 @@ public final class LocalApiServer extends NanoHTTPD {
     @Override public Response serve(IHTTPSession session) {
         Map<String, String> params = session.getParms();
         String path = session.getUri();
+        if (Method.OPTIONS.equals(session.getMethod())) {
+            return cors(newFixedLengthResponse(Response.Status.OK, "text/plain", ""));
+        }
         if ("/api/health".equals(path)) {
             return cors(newFixedLengthResponse(Response.Status.OK, "application/json",
                 "{\"status\":\"ok\",\"name\":\"Ma9icTV embedded Android API\"}"));
+        }
+        if ("/api/xtream".equals(path) && Method.POST.equals(session.getMethod())) {
+            try {
+                java.util.Map<String, String> files = new java.util.HashMap<>();
+                session.parseBody(files);
+                String raw = files.get("postData");
+                if (raw == null) raw = "";
+                org.json.JSONObject body = new org.json.JSONObject(raw);
+                String serverUrl = body.optString("serverUrl", "").replaceAll("/+$", "");
+                String username = body.optString("username", "");
+                String password = body.optString("password", "");
+                if (serverUrl.isEmpty() || username.isEmpty() || password.isEmpty()) {
+                    return cors(newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json",
+                        "{\"error\":\"Missing Xtream serverUrl, username, or password\"}"));
+                }
+                StringBuilder target = new StringBuilder(serverUrl).append("/player_api.php?username=")
+                    .append(URLEncoder.encode(username, "UTF-8")).append("&password=")
+                    .append(URLEncoder.encode(password, "UTF-8"));
+                String action = body.optString("action", "");
+                if (!action.isEmpty()) target.append("&action=").append(URLEncoder.encode(action, "UTF-8"));
+                org.json.JSONObject extra = body.optJSONObject("params");
+                if (extra != null) {
+                    java.util.Iterator<String> keys = extra.keys();
+                    while (keys.hasNext()) {
+                        String key = keys.next();
+                        Object value = extra.opt(key);
+                        if (value != null && value != org.json.JSONObject.NULL) {
+                            target.append("&").append(URLEncoder.encode(key, "UTF-8")).append("=")
+                                .append(URLEncoder.encode(String.valueOf(value), "UTF-8"));
+                        }
+                    }
+                }
+                HttpURLConnection xtream = (HttpURLConnection) new URL(target.toString()).openConnection();
+                xtream.setConnectTimeout(15000);
+                xtream.setReadTimeout(30000);
+                xtream.setRequestProperty("User-Agent", "IPTVnator/0.25.0");
+                xtream.setRequestProperty("Accept", "application/json");
+                int status = xtream.getResponseCode();
+                InputStream data = status >= 400 ? xtream.getErrorStream() : xtream.getInputStream();
+                String json = data == null ? "{}" : readText(data);
+                xtream.disconnect();
+                if (status >= 400) return cors(newFixedLengthResponse(Response.Status.BAD_GATEWAY, "application/json", "{\"error\":\"Xtream API request failed\"}"));
+                return cors(newFixedLengthResponse(Response.Status.OK, "application/json", json));
+            } catch (Exception error) {
+                return cors(newFixedLengthResponse(Response.Status.BAD_GATEWAY, "application/json",
+                    "{\"error\":\"Xtream request failed\"}"));
+            }
         }
         if (!"/api/proxy".equals(path)) {
             return cors(newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "Not found"));

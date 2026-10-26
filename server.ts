@@ -8,6 +8,26 @@ import parser from 'iptv-playlist-parser';
 import { XMLParser } from 'fast-xml-parser';
 import { Agent } from 'undici';
 
+// Persistent Undici agents with HTTP keep-alive connection pooling to reuse TCP connections
+// and TLS handshakes across frequent media segment requests.
+const proxyDispatcher = new Agent({
+  keepAliveTimeout: 60000,
+  keepAliveMaxTimeout: 120000,
+  connections: 64,
+  pipelining: 1,
+});
+
+const insecureProxyDispatcher = new Agent({
+  keepAliveTimeout: 60000,
+  keepAliveMaxTimeout: 120000,
+  connections: 64,
+  pipelining: 1,
+  connect: { rejectUnauthorized: false },
+});
+
+// Cache hostnames known to have broken TLS certificates so subsequent segments bypass initial failure
+const knownInsecureTlsHosts = new Set<string>();
+
 const TLS_CERTIFICATE_ERROR_CODES = new Set([
   'CERT_HAS_EXPIRED',
   'CERT_NOT_YET_VALID',
@@ -123,18 +143,24 @@ async function startServer() {
         redirect: 'follow' as const,
         signal: abortController.signal,
       };
+      const useInsecureTls = parsedUrl.protocol === 'https:' && knownInsecureTlsHosts.has(parsedUrl.host);
+      let selectedDispatcher = useInsecureTls ? insecureProxyDispatcher : proxyDispatcher;
       let response: globalThis.Response;
-      let insecureTlsDispatcher: Agent | null = null;
 
       try {
-        response = await fetch(targetUrl, fetchOptions);
+        response = await fetch(targetUrl, {
+          ...fetchOptions,
+          dispatcher: selectedDispatcher,
+        } as RequestInit & { dispatcher: Agent });
       } catch (error) {
         // The older app disabled TLS verification globally. Keep secure HTTPS as the
         // default, but preserve compatibility with IPTV providers whose certificates
         // are broken by retrying only recognized certificate-validation failures.
-        if (parsedUrl.protocol !== 'https:' || !isTlsCertificateError(error)) throw error;
+        if (parsedUrl.protocol !== 'https:' || !isTlsCertificateError(error) || selectedDispatcher === insecureProxyDispatcher) {
+          throw error;
+        }
 
-        console.warn('[Ma9icTV proxy] TLS certificate validation failed; retrying this stream only with relaxed validation', {
+        console.warn('[Ma9icTV proxy] TLS certificate validation failed; caching host and retrying with relaxed validation', {
           host: parsedUrl.host,
           path: parsedUrl.pathname,
           code: (() => {
@@ -144,22 +170,11 @@ async function startServer() {
           })(),
         });
 
-        insecureTlsDispatcher = new Agent({ connect: { rejectUnauthorized: false } });
-        try {
-          response = await fetch(targetUrl, {
-            ...fetchOptions,
-            dispatcher: insecureTlsDispatcher,
-          } as RequestInit & { dispatcher: Agent });
-        } catch (retryError) {
-          await insecureTlsDispatcher.close();
-          insecureTlsDispatcher = null;
-          throw retryError;
-        }
-      }
-
-      if (insecureTlsDispatcher) {
-        const dispatcherToClose = insecureTlsDispatcher;
-        res.once('close', () => { void dispatcherToClose.close().catch(() => {}); });
+        knownInsecureTlsHosts.add(parsedUrl.host);
+        response = await fetch(targetUrl, {
+          ...fetchOptions,
+          dispatcher: insecureProxyDispatcher,
+        } as RequestInit & { dispatcher: Agent });
       }
 
       const contentType = response.headers.get('content-type') || '';

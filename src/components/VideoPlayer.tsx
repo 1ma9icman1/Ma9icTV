@@ -331,11 +331,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       const shouldProxy = forceProxy !== undefined ? forceProxy : settings.proxyMode !== 'direct';
       setIsUsingProxy(shouldProxy);
 
-      // Hard startup deadline: after four seconds without actual playback, mark
-      // this URL dead and let the app blacklist it and select the next channel.
+      // Startup deadline: allow up to 9 seconds for initial manifest and first fragment
+      // download before reporting timeout, avoiding premature skips on slower CDNs.
       // Fallback attempts share the original deadline rather than resetting it.
       if (!startupStartedAtRef.current) startupStartedAtRef.current = Date.now();
-      const startupRemainingMs = Math.max(0, 4000 - (Date.now() - startupStartedAtRef.current));
+      const startupRemainingMs = Math.max(0, 9000 - (Date.now() - startupStartedAtRef.current));
       startupTimeoutRef.current = setTimeout(() => {
         startupTimeoutRef.current = null;
         if (videoRef.current !== video || !channel) return;
@@ -355,7 +355,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         }
         if (failedStartupRef.current === channel.url) return;
         failedStartupRef.current = channel.url;
-        console.warn('[Ma9icTV playback] marked stream unavailable after 4 seconds; removing and moving on', {
+        console.warn('[Ma9icTV playback] stream startup timed out after 9 seconds', {
           channel: channel.name,
           source: describeStreamUrl(channel.url),
         });
@@ -366,10 +366,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         video.pause();
         video.removeAttribute('src');
         video.load();
-        setErrorMsg('No playback after 4 seconds. Stream marked unavailable and skipped.');
+        setErrorMsg('Stream startup timed out. Host may be offline or geo-restricted.');
         setIsLoading(false);
         setIsPlaying(false);
-        onStreamFailed?.(channel, 'No playback began within 4 seconds.');
+        onStreamFailed?.(channel, 'No playback began within timeout window.');
       }, startupRemainingMs);
 
       const streamUserAgent = channel.httpUserAgent?.trim() || settings.customUserAgent;
@@ -399,20 +399,34 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       // Treat known file formats as native media instead of trying to parse them as HLS.
       // Many IPTV playlists mix .m3u8 live streams with direct MP4/audio URLs.
       if (isHlsStream && Hls.isSupported()) {
-        const configuredBuffer = Number(settings.bufferLengthSeconds) || 20;
+        const configuredBuffer = Number(settings.bufferLengthSeconds) || 30;
+        const targetBuffer = Math.max(10, Math.min(configuredBuffer, 60));
         const hls = new Hls({
-          // Favor first picture quickly: start with the lowest rendition, then
-          // let ABR climb toward the 720p cap once playback is underway.
+          // Favor first picture quickly: start with the lowest rendition, prefetch
+          // the first fragment, and use progressive demuxing for faster time-to-first-frame.
           startLevel: 0,
           abrEwmaDefaultEstimate: 500000,
-          maxBufferLength: Math.max(6, Math.min(configuredBuffer, 12)),
-          maxMaxBufferLength: 24,
-          maxBufferSize: 32 * 1000 * 1000,
-          liveSyncDurationCount: 2,
-          liveMaxLatencyDurationCount: 5,
+          startFragPrefetch: true,
+          progressive: true,
+          maxBufferLength: targetBuffer,
+          maxMaxBufferLength: Math.max(30, targetBuffer * 2),
+          maxBufferSize: 64 * 1024 * 1024,
+          liveSyncDurationCount: 3,
+          liveMaxLatencyDurationCount: 8,
+          maxLiveSyncPlaybackRate: 1.1,
           enableWorker: true,
           lowLatencyMode: false,
-          backBufferLength: 5,
+          backBufferLength: 10,
+          nudgeMaxRetry: 5,
+          nudgeOffset: 0.1,
+          liveSyncOnStallIncrease: 1,
+          maxStarvationDelay: 3,
+          manifestLoadingTimeOut: 10000,
+          manifestLoadingMaxRetry: 3,
+          levelLoadingTimeOut: 10000,
+          levelLoadingMaxRetry: 3,
+          fragLoadingTimeOut: 12000,
+          fragLoadingMaxRetry: 4,
         });
 
         hlsRef.current = hls;
@@ -533,7 +547,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 break;
               case Hls.ErrorTypes.MEDIA_ERROR:
                 mediaRetries++;
-                if (mediaRetries <= 2) {
+                if (mediaRetries === 1) {
+                  hls.recoverMediaError();
+                } else if (mediaRetries === 2) {
+                  hls.swapAudioCodec();
                   hls.recoverMediaError();
                 } else {
                   hls.destroy();

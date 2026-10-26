@@ -121,6 +121,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
+  const [needsUserPlay, setNeedsUserPlay] = useState<boolean>(false);
+  const onNextChannelRef = useRef(onNextChannel);
+  const onStreamFailedRef = useRef(onStreamFailed);
+
+  useEffect(() => {
+    onNextChannelRef.current = onNextChannel;
+    onStreamFailedRef.current = onStreamFailed;
+  }, [onNextChannel, onStreamFailed]);
+
   // Keep audio enabled by default across channel changes. Browser autoplay rules may
   // require a user click, but we never silently switch the player into muted mode.
   const [volume, setVolume] = useState<number>(settings.volume > 0 ? settings.volume : 0.8);
@@ -316,6 +325,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       video.volume = Math.max(0.01, volumeRef.current);
       setIsMuted(false);
       setIsPlaying(false);
+      setNeedsUserPlay(false);
       setErrorMsg(null);
       setIsLoading(true);
       setQualities([]);
@@ -370,7 +380,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         setErrorMsg('Stream startup timed out. Host may be offline or geo-restricted.');
         setIsLoading(false);
         setIsPlaying(false);
-        onStreamFailed?.(channel, 'No playback began within timeout window.');
+        onStreamFailedRef.current?.(channel, 'No playback began within timeout window.');
       }, startupRemainingMs);
 
       const streamUserAgent = channel.httpUserAgent?.trim() || settings.customUserAgent;
@@ -480,14 +490,20 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           if (playPromise !== undefined) {
             playPromise
               .then(() => setIsPlaying(true))
-              .catch(() => {
-                // Never silently fall back to muted playback. Keep the requested
-                // volume enabled; browsers that block audible autoplay can start
-                // playback after the viewer presses Play.
+              .catch((error) => {
+                // Browsers can block audible autoplay until the viewer interacts.
+                // Stop the endless spinner and offer a direct user-gesture retry.
+                console.warn('[Ma9icTV playback] Initial play request was blocked or failed', {
+                  channel: channel.name,
+                  errorName: error?.name,
+                  error: error?.message,
+                });
                 video.muted = false;
                 video.volume = Math.max(0.01, volumeRef.current);
                 setIsMuted(false);
                 setIsPlaying(false);
+                setIsLoading(false);
+                setNeedsUserPlay(true);
               });
           }
         });
@@ -541,7 +557,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                   hls.destroy();
                   setErrorMsg('Stream host may be offline, geo-restricted, or blocking direct access.');
                   setIsLoading(false);
-                  if (settings.autoPlayNext && onNextChannel) {
+                  if (settings.autoPlayNext && onNextChannelRef.current) {
                     setAutoSkipCountdown(4);
                   }
                 }
@@ -557,7 +573,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                   hls.destroy();
                   setErrorMsg(`Media format incompatibility (${data.details})`);
                   setIsLoading(false);
-                  if (settings.autoPlayNext && onNextChannel) {
+                  if (settings.autoPlayNext && onNextChannelRef.current) {
                     setAutoSkipCountdown(4);
                   }
                 }
@@ -566,7 +582,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 hls.destroy();
                 setErrorMsg(`Stream playback encountered an error (${data.details || 'Unknown'})`);
                 setIsLoading(false);
-                if (settings.autoPlayNext && onNextChannel) {
+                if (settings.autoPlayNext && onNextChannelRef.current) {
                   setAutoSkipCountdown(4);
                 }
                 break;
@@ -589,12 +605,18 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           // Metadata only means the stream was found; wait for the playing event.
           const playPromise = video.play();
           if (playPromise !== undefined) {
-            playPromise.then(() => setIsPlaying(true)).catch(() => {
-              // Keep audio enabled if autoplay is blocked; do not start muted.
+            playPromise.then(() => setIsPlaying(true)).catch((error) => {
+              console.warn('[Ma9icTV playback] Native play request was blocked or failed', {
+                channel: channel.name,
+                errorName: error?.name,
+                error: error?.message,
+              });
               video.muted = false;
               video.volume = Math.max(0.01, volumeRef.current);
               setIsMuted(false);
               setIsPlaying(false);
+              setIsLoading(false);
+              setNeedsUserPlay(true);
             });
           }
         };
@@ -607,7 +629,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           } else {
             setErrorMsg('Host may be blocking access or the stream link has expired.');
             setIsLoading(false);
-            if (settings.autoPlayNext && onNextChannel) {
+            if (settings.autoPlayNext && onNextChannelRef.current) {
               setAutoSkipCountdown(4);
             }
           }
@@ -617,7 +639,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         setIsLoading(false);
       }
     },
-    [channel, settings.bufferLengthSeconds, settings.proxyMode, settings.customUserAgent, settings.autoPlayNext, onNextChannel, onStreamFailed]
+    [channel, settings.bufferLengthSeconds, settings.proxyMode, settings.customUserAgent, settings.autoPlayNext]
   );
 
   useEffect(() => {
@@ -718,9 +740,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       video.muted = false;
       video.volume = Math.max(0.01, volumeRef.current);
       setIsMuted(false);
+      setNeedsUserPlay(false);
       video.play().then(() => setIsPlaying(true)).catch((error) => {
         console.warn('[Ma9icTV playback] Play with sound was blocked or failed', error);
         setIsPlaying(false);
+        setIsLoading(false);
+        setNeedsUserPlay(true);
       });
     }
   };
@@ -848,7 +873,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 : 'aspect-[4/3] object-fill'
             }`}
             playsInline
-            autoPlay
             preload="auto"
             onPlaying={() => {
               console.info('[Ma9icTV playback] media playing', {
@@ -863,6 +887,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               }
               setIsPlaying(true);
               setIsLoading(false);
+              setNeedsUserPlay(false);
               setErrorMsg(null);
               // A late successful start cancels any pending error auto-advance.
               setAutoSkipCountdown(null);
@@ -913,6 +938,26 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           />
 
 
+
+          {needsUserPlay && !errorMsg && (
+            <div className="absolute inset-0 z-30 flex items-center justify-center bg-slate-950/75 p-4 backdrop-blur-sm">
+              <div className="max-w-sm rounded-2xl border border-indigo-400/40 bg-slate-900/95 p-5 text-center shadow-2xl">
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-indigo-500/20 text-indigo-300">
+                  <Play className="h-6 w-6 fill-current" />
+                </div>
+                <h3 className="mb-1 text-sm font-bold text-white">Start playback with sound</h3>
+                <p className="mb-4 text-xs leading-relaxed text-slate-300">
+                  Your browser did not allow the stream to start automatically. Press Play to start it with audio.
+                </p>
+                <button
+                  onClick={togglePlay}
+                  className="rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white transition-colors hover:bg-indigo-500"
+                >
+                  Play with sound
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Radio Audio Visualizer */}
           {channel.isRadio && (

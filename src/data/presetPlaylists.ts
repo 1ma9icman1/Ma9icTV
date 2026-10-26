@@ -133,6 +133,18 @@ export const INITIAL_PRESETS: Playlist[] = [
   },
 ];
 
+// Public XMLTV guides used by the worldwide catalog. iptv-org/epg is the
+// guide-generation toolkit; these are published XMLTV feeds, not the toolkit repo.
+// IDs in iptv-org playlists follow the iptv-org database convention. Name aliases
+// in EpgGuide also help Free-TV entries whose IDs differ or are absent.
+const WORLD_EPG_URLS = [
+  'https://iptv-org.github.io/epg/guides/us/tvtv.us.epg.xml',
+  'https://iptv-org.github.io/epg/guides/us/directv.com.epg.xml',
+  'https://iptv-org.github.io/epg/guides/us/tvguide.com.epg.xml',
+  'https://iptv-org.github.io/epg/guides/uk/ontvtonight.com.epg.xml',
+  'https://iptv-org.github.io/epg/guides/au/ontvtonight.com.epg.xml',
+].join(',');
+
 export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
   // --- 1. Worldwide Complete Playlists ---
   {
@@ -141,6 +153,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
     category: 'Worldwide',
     description: 'Quality-focused, tested public television channels with high availability.',
     channelEstimate: '~1,200 channels',
+    epgUrl: WORLD_EPG_URLS,
   },
   {
     name: 'All Worldwide Channels (iptv-org)',
@@ -148,6 +161,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
     category: 'Worldwide',
     description: 'Comprehensive global collection of publicly available TV channels.',
     channelEstimate: '~8,000 channels',
+    epgUrl: WORLD_EPG_URLS,
   },
   {
     name: 'Worldwide Channels (Grouped by Country)',
@@ -155,6 +169,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
     category: 'Worldwide',
     description: 'Global channels with country names formatted as group categories.',
     channelEstimate: '~8,000 channels',
+    epgUrl: WORLD_EPG_URLS,
   },
   {
     name: 'Worldwide Channels (Grouped by Category)',
@@ -162,6 +177,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
     category: 'Worldwide',
     description: 'Channels organized by genre (News, Sports, Movies, Animation, etc.).',
     channelEstimate: '~8,000 channels',
+    epgUrl: WORLD_EPG_URLS,
   },
   {
     name: 'Worldwide Channels (Grouped by Language)',
@@ -169,6 +185,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
     category: 'Worldwide',
     description: 'Channels organized by broadcast language (English, Spanish, French, etc.).',
     channelEstimate: '~8,000 channels',
+    epgUrl: WORLD_EPG_URLS,
   },
 
   // --- 2. FAST Streaming Services (BuddyChewChew App M3U Generator) ---

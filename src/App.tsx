@@ -169,7 +169,16 @@ export default function App() {
       if (cached?.channels?.length) {
         if (cancelled) return;
         const firstStream = getFirstStreamChannel(cached.channels);
-        if (firstStream) setSelectedChannel(firstStream);
+        if (firstStream) {
+          // The initial state may already contain this same cached channel from a
+          // separate localStorage read. Preserve it when URL + id match; swapping
+          // to a duplicate object restarts HLS during its first startup.
+          setSelectedChannel((current) => (
+            current?.id === firstStream.id && current?.url === firstStream.url
+              ? current
+              : firstStream
+          ));
+        }
         setCurrentView('epg');
         setIsSidebarCollapsed(true);
         return;

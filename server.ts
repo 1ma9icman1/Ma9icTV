@@ -188,7 +188,6 @@ function parseXmltvTimestampMs(value: unknown): number {
 
 async function startServer() {
   const app = express();
-  const PORT = Number(process.env.PORT) || 3000;
   const isProd = process.env.NODE_ENV === 'production';
 
   // Large playlist/XMLTV payloads are supported, but bounded to reduce memory-exhaustion risk.
@@ -861,12 +860,22 @@ async function startServer() {
     });
   }
 
+  return app;
+}
+
+// Vercel detects this file as the Express entrypoint and needs the app instance
+// exported to its Node.js function runtime. Keep the normal listener for local
+// development and desktop/server deployments.
+const app = await startServer().catch((err) => {
+  console.error('[Ma9icTV] Failed to initialize server:', err);
+  process.exit(1);
+});
+
+export default app;
+
+if (!process.env.VERCEL) {
+  const PORT = Number(process.env.PORT) || 3000;
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`[Ma9icTV] Server listening on http://0.0.0.0:${PORT}`);
   });
 }
-
-startServer().catch((err) => {
-  console.error('[Ma9icTV] Failed to start server:', err);
-  process.exit(1);
-});

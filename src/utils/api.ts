@@ -1,14 +1,14 @@
 /**
- * URL builder for server-side Ma9icTV APIs.
- * GitHub Pages can only host static assets, so its browser UI uses the dedicated
- * Fly.io Express service for playlist parsing, EPG fetching, and HLS proxying.
- * Local and same-origin deployments continue using relative /api paths.
+ * URL builder for Ma9icTV server APIs.
+ * Local/server deployments use same-origin /api paths. A separately hosted API
+ * can be configured explicitly with VITE_API_BASE_URL; no provider is assumed.
  */
 const configuredApiBase = (import.meta.env.VITE_API_BASE_URL || '').trim();
-const isGitHubPages = typeof window !== 'undefined'
+
+export const isGitHubPages = typeof window !== 'undefined'
   && (window.location.hostname === 'github.io' || window.location.hostname.endsWith('.github.io'));
 
-export const API_BASE_URL = (configuredApiBase || (isGitHubPages ? 'https://ma9ictv.fly.dev' : '')).replace(/\/+$/, '');
+export const API_BASE_URL = configuredApiBase.replace(/\/+$/, '');
 
 export function apiUrl(path: string): string {
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;

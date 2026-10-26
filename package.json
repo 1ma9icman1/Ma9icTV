@@ -12,7 +12,8 @@
     "desktop:dev": "npm run build && electron .",
     "desktop:pack": "npm run build && electron-builder --win portable",
     "m3u:check": "node scripts/check-m3u.cjs",
-    "m3u:check:apply": "node scripts/check-m3u.cjs --apply"
+    "m3u:check:apply": "node scripts/check-m3u.cjs --apply",
+    "desktop:installer": "npm run build && electron-builder --win nsis"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
@@ -60,8 +61,17 @@
     ],
     "win": {
       "target": [
-        "portable"
-      ],
+        "nsis"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "artifactName": "Ma9icTV-${version}-Setup.${ext}"
+    },
+    "portable": {
       "artifactName": "Ma9icTV-${version}-portable.${ext}"
     }
   }

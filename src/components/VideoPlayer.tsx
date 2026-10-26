@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import Hls from 'hls.js';
-import { apiUrl, isStaticClient } from '../utils/api';
+import { apiUrl, isNativeAndroid, isStaticClient } from '../utils/api';
 import {
   Play,
   Pause,
@@ -131,7 +131,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
   const [controlsVisible, setControlsVisible] = useState<boolean>(true);
   const controlsHideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const [isUsingProxy, setIsUsingProxy] = useState<boolean>(!isStaticClient);
+  const [isUsingProxy, setIsUsingProxy] = useState<boolean>(!isStaticClient || isNativeAndroid);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [aspectRatio, setAspectRatio] = useState<'contain' | 'cover' | '16/9' | '4/3'>('contain');
@@ -329,7 +329,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       }
 
       // In web browsers, CORS proxy is required for 95% of IPTV streams unless explicitly forced direct
-      const shouldProxy = !isStaticClient && (forceProxy !== undefined ? forceProxy : settings.proxyMode !== 'direct');
+      const shouldProxy = (isNativeAndroid || !isStaticClient) && (isNativeAndroid || (forceProxy !== undefined ? forceProxy : settings.proxyMode !== 'direct'));
       setIsUsingProxy(shouldProxy);
 
       // Startup deadline: allow up to 9 seconds for initial manifest and first fragment

@@ -25,7 +25,7 @@ import {
   Zap,
 } from 'lucide-react';
 import { Channel, EpgProgram, AppSettings } from '../types';
-import { apiUrl, isStaticClient } from '../utils/api';
+import { apiUrl, isStaticClient, networkUrl } from '../utils/api';
 import { XMLParser } from 'fast-xml-parser';
 import { VideoPlayer } from './VideoPlayer';
 import { getEpgExcludedChannels, saveEpgExcludedChannels } from '../utils/storage';
@@ -77,7 +77,7 @@ async function parseXmltvInBrowser(sourceValue: string) {
 
   const parseSource = async (url: string, sourceIndex: number) => {
     try {
-      const response = await fetch(url, {
+      const response = await fetch(networkUrl(url), {
         cache: 'no-store',
         signal: AbortSignal.timeout(20000),
         headers: { Accept: 'application/xml,text/xml,*/*' },

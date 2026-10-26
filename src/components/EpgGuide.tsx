@@ -25,7 +25,8 @@ import {
   Zap,
 } from 'lucide-react';
 import { Channel, EpgProgram, AppSettings } from '../types';
-import { apiUrl } from '../utils/api';
+import { apiUrl, isGitHubPages } from '../utils/api';
+import { XMLParser } from 'fast-xml-parser';
 import { VideoPlayer } from './VideoPlayer';
 import { getEpgExcludedChannels, saveEpgExcludedChannels } from '../utils/storage';
 
@@ -41,6 +42,130 @@ function parseXmltvDate(value: string): Date {
   const [, year, month, day, hour, minute, second, zone] = match;
   const iso = `${year}-${month}-${day}T${hour}:${minute}:${second}${zone ? `${zone.slice(0, 3)}:${zone.slice(3)}` : 'Z'}`;
   return new Date(iso);
+}
+
+
+// Read public XMLTV guides in a browser when deployed as a static GitHub Pages
+// site. Sources that block CORS still require running the local/server app.
+function readXmltvText(value: any): string {
+  if (typeof value === 'string' || typeof value === 'number') return String(value);
+  if (Array.isArray(value)) return value.map(readXmltvText).filter(Boolean).join(' ');
+  if (value && typeof value === 'object' && typeof value['#text'] === 'string') return value['#text'];
+  return '';
+}
+
+function asXmltvArray(value: any): any[] {
+  if (value == null) return [];
+  return Array.isArray(value) ? value : [value];
+}
+
+async function parseXmltvInBrowser(sourceValue: string) {
+  const urls = Array.from(new Set(
+    sourceValue.split(/,\s*(?=https?:\/\/)/i).map((url) => url.trim()).filter(Boolean)
+  )).slice(0, 32);
+  if (urls.length === 0) throw new Error('No valid XMLTV URLs were provided.');
+
+  const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
+  const channelsById = new Map<string, any>();
+  const programmesByKey = new Map<string, any>();
+  const failedSources: string[] = [];
+  let loadedSourceCount = 0;
+
+  const nowMs = Date.now();
+  const windowStartMs = nowMs - 3 * 60 * 60 * 1000;
+  const windowEndMs = nowMs + 9 * 60 * 60 * 1000;
+
+  const parseSource = async (url: string, sourceIndex: number) => {
+    try {
+      const response = await fetch(url, {
+        cache: 'no-store',
+        signal: AbortSignal.timeout(20000),
+        headers: { Accept: 'application/xml,text/xml,*/*' },
+      });
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+
+      const buffer = await response.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      let rawXml: string;
+      if (bytes.length > 2 && bytes[0] === 0x1f && bytes[1] === 0x8b) {
+        if (typeof DecompressionStream === 'undefined') {
+          throw new Error('This browser cannot decompress the gzipped XMLTV guide.');
+        }
+        const stream = new Blob([buffer]).stream().pipeThrough(new DecompressionStream('gzip'));
+        rawXml = await new Response(stream).text();
+      } else {
+        rawXml = new TextDecoder('utf-8').decode(buffer);
+      }
+
+      const tvData = parser.parse(rawXml)?.tv;
+      if (!tvData) throw new Error('The response is not valid XMLTV data.');
+
+      const sourceChannels = asXmltvArray(tvData.channel);
+      const sourceProgrammes = asXmltvArray(tvData.programme);
+
+      for (const channel of sourceChannels) {
+        const id = String(channel?.['@_id'] || '').trim();
+        if (!id) continue;
+        const names = asXmltvArray(channel['display-name']).map(readXmltvText).filter(Boolean);
+        const iconEntries = asXmltvArray(channel.icon);
+        const icon = iconEntries.find((entry) => entry?.['@_src'])?.['@_src'] || '';
+        const old = channelsById.get(id);
+        channelsById.set(id, {
+          id,
+          name: names[0] || old?.name || id,
+          names: Array.from(new Set([...(old?.names || []), ...names])),
+          icon: icon || old?.icon || '',
+        });
+      }
+
+      for (const programme of sourceProgrammes) {
+        const channel = String(programme?.['@_channel'] || '').trim();
+        const start = String(programme?.['@_start'] || '').trim();
+        const stop = String(programme?.['@_stop'] || '').trim();
+        const showTitle = readXmltvText(programme?.title).trim();
+        const episodeTitle = readXmltvText(programme?.['sub-title']).trim();
+        const title = showTitle && episodeTitle
+          && episodeTitle.toLocaleLowerCase() !== showTitle.toLocaleLowerCase()
+          ? `${showTitle} — ${episodeTitle}`
+          : (showTitle || episodeTitle);
+        if (!channel || !start || !stop || !title) continue;
+
+        const startMs = parseXmltvDate(start).getTime();
+        const stopMs = parseXmltvDate(stop).getTime();
+        if (!Number.isFinite(startMs) || !Number.isFinite(stopMs) || stopMs <= startMs) continue;
+        if (stopMs < windowStartMs || startMs > windowEndMs) continue;
+
+        const key = `${channel}| ${start}| ${stop}| ${title}`;
+        if (!programmesByKey.has(key)) {
+          programmesByKey.set(key, {
+            channel,
+            start,
+            stop,
+            title,
+            desc: readXmltvText(programme?.desc),
+            category: readXmltvText(programme?.category),
+          });
+        }
+      }
+      loadedSourceCount += 1;
+    } catch (error: any) {
+      // Do not echo complete source URLs; some custom guides use private query tokens.
+      failedSources.push(`Guide source ${sourceIndex + 1}: ${error?.message || 'fetch/parse failed'}`);
+    }
+  };
+
+  for (let i = 0; i < urls.length; i += 4) {
+    await Promise.all(urls.slice(i, i + 4).map((url, offset) => parseSource(url, i + offset)));
+  }
+
+  return {
+    channels: Array.from(channelsById.values()),
+    programmes: Array.from(programmesByKey.values()),
+    sourceCount: urls.length,
+    loadedSourceCount,
+    failedSourceCount: failedSources.length,
+    failedSources: failedSources.slice(0, 10),
+  };
 }
 
 interface EpgGuideProps {
@@ -452,14 +577,22 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     setIsLoadingEpg(true);
     setEpgLoadError('');
     try {
-      const response = await fetch(apiUrl('/api/parse-epg'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url: sourceUrl }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data?.error || `EPG server returned HTTP ${response.status}`);
+      let data: any;
+      if (isGitHubPages) {
+        data = await parseXmltvInBrowser(sourceUrl);
+        if (data.loadedSourceCount === 0) {
+          throw new Error('The browser could not load any XMLTV sources. A source may block cross-origin browser access; sources with that restriction need a local/server connection.');
+        }
+      } else {
+        const response = await fetch(apiUrl('/api/parse-epg'), {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: sourceUrl }),
+        });
+        data = await response.json();
+        if (!response.ok) {
+          throw new Error(data?.error || `EPG server returned HTTP ${response.status}`);
+        }
       }
       if (!Array.isArray(data.programmes) || data.programmes.length === 0) {
         throw new Error('The EPG server returned no programme data for the selected source(s).');

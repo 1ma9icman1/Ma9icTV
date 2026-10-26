@@ -11,7 +11,7 @@ export const isGitHubPages = typeof window !== 'undefined'
   && (window.location.hostname === 'github.io' || window.location.hostname.endsWith('.github.io'));
 
 export const isNativeAndroid = Capacitor.isNativePlatform();
-export const API_BASE_URL = (configuredApiBase || (isNativeAndroid ? 'http://127.0.0.1:8765' : '')).replace(/\\/+$/, '');
+export const API_BASE_URL = (configuredApiBase || (isNativeAndroid ? 'http://127.0.0.1:8765' : '')).replace(/\/+$/, '');
 
 // Android keeps parsing in the bundled frontend, but cross-origin downloads use
 // the loopback API so IPTV providers do not have to enable WebView CORS.

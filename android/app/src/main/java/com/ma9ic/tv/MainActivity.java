@@ -11,7 +11,7 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         try {
             localApiServer = new LocalApiServer();
-            localApiServer.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
+            localApiServer.start(LocalApiServer.SOCKET_READ_TIMEOUT, false);
         } catch (Exception error) {
             android.util.Log.e("Ma9icTV", "Could not start embedded API", error);
         }

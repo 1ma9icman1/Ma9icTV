@@ -1023,15 +1023,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
       {/* Top Right Quick Controls */}
       <div className={`absolute top-2 right-2 z-20 flex items-center gap-1.5 transition-opacity duration-300 ${isFullscreen && !controlsVisible ? 'opacity-0 pointer-events-none' : 'opacity-100'}`}>
-        {onExpandPlayer && isEpgPreview && (
-          <button
-            onClick={onExpandPlayer}
-            className="p-1.5 rounded-lg bg-black/60 hover:bg-indigo-600 text-white/80 hover:text-white backdrop-blur-md border border-white/10 transition-colors shadow-md"
-            title="Expand to Full Player"
-          >
-            <Maximize2 className="w-3.5 h-3.5" />
-          </button>
-        )}
         <button
           onClick={toggleFullscreen}
           className="p-1.5 rounded-lg bg-black/60 hover:bg-indigo-600 text-white/80 hover:text-white backdrop-blur-md border border-white/10 transition-colors shadow-md"

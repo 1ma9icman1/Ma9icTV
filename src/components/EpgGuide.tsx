@@ -822,9 +822,8 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   // Load the guide after the first successful stream; channel changes must not
   // restart large XMLTV downloads. Changing the playlist guide still reloads it.
   const rawPlaylistEpgSource = activePlaylistEpgUrl?.trim() || '';
-  // World Channels loads only the guide for the currently selected country.
-  // Never fan out the full multi-country bundle: it is large and overwhelms
-  // mobile devices. Other playlists retain their existing EPG source behavior.
+  // World Channels loads only the selected country's EPG source. Do not load
+  // the full bundle on mobile; other playlists keep their existing behavior.
   const playlistEpgSource = (() => {
     if (!/world/i.test(activePlaylistTitle)) return rawPlaylistEpgSource;
     const sources = WORLD_EPG_URLS.split(',').map((url) => url.trim()).filter(Boolean);
@@ -839,10 +838,11 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       australia: 'AU1', 'new zealand': 'NZ1', india: 'IN1', mexico: 'MX1',
       'south africa': 'ZA1',
     };
-    const selected = selectedCategory.trim().toLocaleLowerCase();
-    const code = sourceCodes[selected] || sourceCodes[selected.replace(/\\s*[:|–—-].*$/, '').trim()];
-    const wantedCode = code || 'UK1';
-    return sources.find((url) => new RegExp('epg_ripper_' + wantedCode + '\\.xml\\.gz  useEffect(() => {
+    const selected = selectedCategory.trim().toLocaleLowerCase().replace(/\s*[:|–—-].*$/, '').trim();
+    const wantedCode = sourceCodes[selected] || 'UK1';
+    return sources.find((url) => url.toLowerCase().endsWith('epg_ripper_' + wantedCode.toLowerCase() + '.xml.gz')) || '';
+  })();
+  useEffect(() => {
     // Load programme data as soon as the active playlist is known. Guide
     // availability must not depend on a stream successfully connecting.
     let manualUrl = localStorage.getItem('ma9ictv-manual-epg-url')?.trim() || '';
@@ -854,7 +854,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       legacyEpgResolved.current = true;
     }
 
-    const sourceUrl = playlistEpgSource || manualUrl;
+    const sourceUrl = /world/i.test(activePlaylistTitle) ? playlistEpgSource : (playlistEpgSource || manualUrl);
     setXmltvProgrammes([]);
     setXmltvChannelAliases({});
     setEpgUrlInput(sourceUrl);

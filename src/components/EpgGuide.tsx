@@ -855,6 +855,15 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
             placeholder="Search channels & shows..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              // Android keyboards send the Go/Search action as Enter. Filtering
+              // is live, so consume the action and dismiss the keyboard cleanly.
+              if (e.key === 'Enter' || e.key === 'Go' || e.key === 'Search') {
+                e.preventDefault();
+                e.currentTarget.blur();
+              }
+            }}
+            enterKeyHint="search"
             className="w-full h-7 bg-slate-900 border border-slate-800 rounded-md pl-6 pr-1.5 py-0.5 text-[10px] text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
           />
         </div>

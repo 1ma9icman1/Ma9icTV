@@ -567,9 +567,9 @@ export default function App() {
               <span className="font-semibold truncate max-w-[88px] sm:max-w-[140px]">{activePlaylist.title}</span>
               {selectedChannel?.tvgChno && <span className="text-[10px] font-bold text-cyan-200 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-700 whitespace-nowrap">CH {selectedChannel.tvgChno}</span>}
             </div>
-            <div className="hidden lg:flex items-center bg-slate-900 rounded-md border border-slate-800 p-0.5 flex-shrink-0">
-              <button onClick={() => { setCurrentView('player'); setIsSidebarCollapsed(false); }} className={`px-2 py-1.5 rounded text-[10px] font-semibold ${currentView === 'player' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`} aria-pressed={currentView === 'player'}>Player</button>
-              <button onClick={() => setCurrentView('epg')} className={`px-2 py-1.5 rounded text-[10px] font-semibold ${currentView === 'epg' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`} aria-pressed={currentView === 'epg'}>EPG</button>
+            <div className="flex items-center gap-0.5 bg-slate-900 rounded-md border border-slate-700 p-0.5 flex-shrink-0">
+              <button type="button" onClick={() => { setCurrentView('player'); setIsSidebarCollapsed(false); }} className={`px-2 py-1.5 rounded text-[10px] sm:text-xs font-bold whitespace-nowrap ${currentView === 'player' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:text-white'}`} aria-pressed={currentView === 'player'} aria-label="Open channels and player">Channels</button>
+              <button type="button" onClick={() => { setCurrentView('epg'); setIsSidebarCollapsed(true); }} className={`px-2 py-1.5 rounded text-[10px] sm:text-xs font-bold whitespace-nowrap ${currentView === 'epg' ? 'bg-indigo-600 text-white' : 'text-slate-300 hover:text-white'}`} aria-pressed={currentView === 'epg'} aria-label="Open electronic programme guide">EPG Guide</button>
             </div>
 
           </div>

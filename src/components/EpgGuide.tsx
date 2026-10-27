@@ -814,7 +814,6 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     const target = event.target as HTMLElement;
     const isInteractive = !!target.closest('button, input, textarea, select, a, [role="button"]');
     if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
-      if (isInteractive && !target.closest('[data-tune-channel="true"]')) return;
       event.preventDefault();
       event.stopPropagation();
       const delta = event.key === 'ArrowDown' ? 1 : -1;

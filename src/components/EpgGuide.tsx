@@ -1183,28 +1183,31 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                           </button>
                         </div>
 
-                        {/* Logo */}
-                        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-950 border border-slate-700 p-0.5 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
-                          {channel.logo ? (
-                            <img
-                              src={channel.logo}
-                              alt=""
-                              className="w-full h-full object-contain rounded-full"
-                              onError={(e) => {
-                                (e.target as HTMLElement).style.display = 'none';
-                              }}
-                            />
-                          ) : (
-                            <Tv className="w-4 h-4 text-slate-500" />
-                          )}
-                        </div>
-
-                        {/* Name and Group */}
-                        <div className="min-w-0">
-                          <h4 className="text-[10px] sm:text-[11px] font-semibold truncate leading-tight">{channel.name}</h4>
-                          <span className="text-[8px] text-slate-500 truncate block">
-                            {channel.group || 'General'}
+                        {/* Channel logo, number and title grouped in one visible pill */}
+                        <div className="flex items-center gap-1.5 min-w-0 max-w-full rounded-full px-1.5 py-1 bg-slate-900/90 border border-slate-700/90 shadow-sm">
+                          <span className="text-[9px] sm:text-[10px] font-mono font-bold text-cyan-200 flex-shrink-0">
+                            {channel.tvgChno || cIdx + 1}
                           </span>
+                          <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-950 border border-slate-600 p-0.5 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
+                            {channel.logo ? (
+                              <img
+                                src={channel.logo}
+                                alt=""
+                                className="w-full h-full object-contain rounded-full"
+                                onError={(e) => {
+                                  (e.target as HTMLElement).style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <Tv className="w-4 h-4 text-slate-500" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="text-[10px] sm:text-[11px] font-semibold truncate leading-tight">{channel.name}</h4>
+                            <span className="text-[8px] text-slate-500 truncate block">
+                              {channel.group || 'General'}
+                            </span>
+                          </div>
                         </div>
                       </div>
 

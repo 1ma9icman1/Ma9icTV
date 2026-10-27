@@ -8,7 +8,6 @@ import {
   Sparkles,
   Grid,
   List as ListIcon,
-  Play,
   ChevronDown,
 } from 'lucide-react';
 import { Channel } from '../types';
@@ -303,8 +302,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
                       : 'bg-slate-950/40 border-slate-800/60 hover:bg-slate-800/70 hover:border-slate-700 text-slate-300'
                   }`}
                 >
-                  <div className="flex items-center gap-2 min-w-0 rounded-full px-2 py-1 bg-slate-900/90 border border-slate-700/90 shadow-sm">
-                    <span className="text-[10px] font-mono font-bold text-cyan-200 flex-shrink-0">{channel.tvgChno || channels.indexOf(channel) + 1}</span>
+                  <div className="flex items-center gap-2 min-w-0">
                     <div className="w-8 h-8 rounded-full bg-slate-950 border border-slate-600 p-1 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
                       {channel.logo ? (
                         <img
@@ -342,12 +340,6 @@ export const ChannelList: React.FC<ChannelListProps> = ({
                   </div>
 
                   <div className="flex items-center gap-1.5 flex-shrink-0">
-                    {isSelected ? (
-                      <div className="flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 text-[10px] font-bold">
-                        <Play className="w-2.5 h-2.5 fill-current" />
-                      </div>
-                    ) : null}
-
                     <button
                       onClick={(e) => {
                         e.stopPropagation();

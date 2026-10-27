@@ -29,7 +29,7 @@ import { VideoPlayer } from './VideoPlayer';
 import { getEpgExcludedChannels, saveEpgExcludedChannels } from '../utils/storage';
 import { WORLD_EPG_URLS } from '../data/presetPlaylists';
 
-const EpgProgramTitle: React.FC<{ title: string }> = ({ title }) => {
+const EpgProgramTitle: React.FC<{ title: string; active: boolean }> = ({ title, active }) => {
   const titleRef = useRef<HTMLSpanElement | null>(null);
   const windowRef = useRef<HTMLDivElement | null>(null);
   const [overflows, setOverflows] = useState(false);
@@ -51,7 +51,7 @@ const EpgProgramTitle: React.FC<{ title: string }> = ({ title }) => {
   }, [title]);
   return (
     <div ref={windowRef} className="epg-title-window flex h-[18px] min-w-0 items-center" title={title}>
-      <span ref={titleRef} className={overflows ? 'epg-title-marquee' : 'truncate'}
+      <span ref={titleRef} className={active && overflows ? 'epg-title-marquee' : 'truncate'}
         style={overflows ? ({ '--epg-title-distance': '-' + scrollDistance + 'px' } as React.CSSProperties) : undefined}>
         {title}
       </span>
@@ -1266,8 +1266,8 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                           </button>
                         </div>
 
-                        {/* Channel logo, number and title grouped in one visible pill */}
-                        <div className="flex items-center gap-1.5 min-w-0 max-w-full rounded-full px-1.5 py-1 bg-slate-900/90 border border-slate-700/90 shadow-sm">
+                        {/* Plain channel logo and title; no surrounding pill/button */}
+                        <div className="flex items-center gap-1.5 min-w-0 max-w-full">
                           <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-950 border border-slate-600 p-0.5 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
                             {channel.logo ? (
                               <img
@@ -1385,7 +1385,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                                 ></span>
                               )}
                             </div>
-                            <EpgProgramTitle title={prog.title} />
+                            <EpgProgramTitle title={prog.title} active={isSelected} />
                           </div>
                         );
                       })}

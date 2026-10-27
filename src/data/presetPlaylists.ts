@@ -138,24 +138,27 @@ export const INITIAL_PRESETS: Playlist[] = [
 // IDs in iptv-org playlists follow the iptv-org database convention. Name aliases
 // in EpgGuide also help Free-TV entries whose IDs differ or are absent.
 const WORLD_EPG_URLS = [
-  'https://iptv-org.github.io/epg/guides/us/tvtv.us.epg.xml',
-  'https://iptv-org.github.io/epg/guides/ca/tvtv.us.epg.xml',
-  'https://iptv-org.github.io/epg/guides/mx/gatotv.com.epg.xml',
-  'https://iptv-org.github.io/epg/guides/br/mi.tv.epg.xml',
-  'https://iptv-org.github.io/epg/guides/ar/mi.tv.epg.xml',
-  'https://iptv-org.github.io/epg/guides/uk/ontvtonight.com.epg.xml',
-  'https://iptv-org.github.io/epg/guides/fr/programme-tv.net.epg.xml',
-  'https://iptv-org.github.io/epg/guides/de/hd-plus.de.epg.xml',
-  'https://iptv-org.github.io/epg/guides/es/programacion-tv.elpais.com.epg.xml',
-  'https://iptv-org.github.io/epg/guides/it/guidatv.sky.it.epg.xml',
-  'https://iptv-org.github.io/epg/guides/pt/meo.pt.epg.xml',
-  'https://iptv-org.github.io/epg/guides/pl/programtv.onet.pl.epg.xml',
-  'https://iptv-org.github.io/epg/guides/au/ontvtonight.com.epg.xml',
-  'https://iptv-org.github.io/epg/guides/in/dishtv.in.epg.xml',
-  'https://iptv-org.github.io/epg/guides/cn/tv.cctv.com.epg.xml',
-  'https://iptv-org.github.io/epg/guides/ng/dstv.com.epg.xml',
-  'https://iptv-org.github.io/epg/guides/eg/osn.com.epg.xml',
-  'https://iptv-org.github.io/epg/guides/ae/osn.com.epg.xml',
+  // Start with US guides so the global EPG has useful data immediately.
+  'https://iptv-org.github.io/epg/guides/us/directv.com.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/us/tvguide.com.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/us/gatotv.com.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/us/ontvtonight.com.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/uk/sky.com.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/uk/tv24.co.uk.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/ca/tvhebdo.com.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/ca/watch.sportsnet.ca.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/au/foxtel.com.au.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/au/abc.net.au.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/fr/chaines-tv.orange.fr.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/fr/tv.sfr.fr.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/de/web.magentatv.de.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/it/guidatv.sky.it.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/it/superguidatv.it.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/pt/vodafone.pt.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/nl/tvgids.nl.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/za/dstv.com.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/in/tataplay.com.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/br/claro.com.br.epg.xml.gz',
 ].join(',');
 
 export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
@@ -545,7 +548,8 @@ for (const playlist of CATALOG_PLAYLISTS) {
   if (playlist.epgUrl || playlist.category === 'Streaming Services') continue;
   if (playlist.category === 'Countries') {
     const code = COUNTRY_EPG_CODES[playlist.name];
-    if (code) playlist.epgUrl = `https://iptv-org.github.io/epg/guides/${code}.xml.gz`;
+    if (code === 'us') playlist.epgUrl = WORLDWIDE_EPG_SOURCES.slice(0, 4).join(',');
+    else if (code) playlist.epgUrl = `https://iptv-org.github.io/epg/guides/${code}.xml.gz`;
   } else if (playlist.category === 'Worldwide' || playlist.category === 'Categories') {
     playlist.epgUrl = WORLDWIDE_EPG_SOURCES.join(',');
   }

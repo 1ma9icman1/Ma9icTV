@@ -360,8 +360,25 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
     }
   };
 
+  const handleCatalogDpad = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    if (!['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+    const target = event.target as HTMLElement;
+    if (target.closest('input, textarea, select')) return;
+    const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)'))
+      .filter((button) => button.offsetParent !== null);
+    if (!buttons.length) return;
+    const current = buttons.indexOf(target.closest('button') as HTMLButtonElement);
+    const step = event.key === 'ArrowUp' ? -2 : event.key === 'ArrowDown' ? 2 : event.key === 'ArrowLeft' ? -1 : 1;
+    const nextIndex = current < 0
+      ? 0
+      : Math.max(0, Math.min(buttons.length - 1, current + step));
+    event.preventDefault();
+    buttons[nextIndex]?.focus();
+    buttons[nextIndex]?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-sm animate-fade-in select-none">
+    <div onKeyDown={handleCatalogDpad} className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-sm animate-fade-in select-none">
       <div className="bg-slate-900 border border-slate-800 rounded-xl sm:rounded-2xl w-full max-w-3xl min-w-0 overflow-hidden shadow-2xl flex flex-col h-[96dvh] max-h-[96dvh] sm:h-auto sm:max-h-[90vh]">
         {/* Modal Header */}
         <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-slate-800 flex items-center justify-between gap-2 flex-shrink-0">

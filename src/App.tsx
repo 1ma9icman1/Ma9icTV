@@ -573,7 +573,7 @@ export default function App() {
             </div>
 
           </div>
-          {currentView === 'epg' && <div className="absolute left-1/2 -translate-x-1/2 w-[clamp(150px,26vw,320px)] max-w-[32%]">
+          {currentView === 'epg' && <div className="absolute left-1/2 -translate-x-1/2 w-[clamp(150px,26vw,320px)] max-w-[32%] max-md:left-auto max-md:right-[9.5rem] max-md:translate-x-0 max-md:w-[min(30vw,190px)] max-md:max-w-none">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input type="search" placeholder="Search channels & shows" value={epgSearchQuery} onChange={(e) => setEpgSearchQuery(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Go' || e.key === 'Search') { e.preventDefault(); e.currentTarget.blur(); } }} enterKeyHint="search" aria-label="Search channels and shows" className="w-full h-8 bg-slate-900 border border-slate-800 rounded-md pl-7 pr-2 text-[10px] sm:text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
           </div>}

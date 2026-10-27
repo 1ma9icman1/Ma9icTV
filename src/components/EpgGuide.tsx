@@ -334,15 +334,27 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     if (categoryScrollRef.current) categoryScrollRef.current.scrollLeft = 0;
   }, [activePlaylistTitle]);
 
-  // The worldwide country-sorted lineup should open on the United Kingdom,
-  // rather than showing every country at once. Match the real group label so
-  // both "United Kingdom" and common "UK" naming variants are supported.
+  // World Channels must reliably open on the UK, even when playlist providers
+  // decorate country group names (for example "United Kingdom - News" or
+  // "UK: Entertainment"). Prefer an exact country group, then a safe prefix.
+  // Wait until the M3U categories exist; never leave the guide stuck on "All".
   useEffect(() => {
     if (!/world channels/i.test(activePlaylistTitle) || showFavoritePlaylist) return;
-    const ukCategory = categories.find((category) =>
-      category !== 'All' && /^(united kingdom|uk|great britain|gb)$/i.test(category.trim())
-    );
-    if (ukCategory) setSelectedCategory(ukCategory);
+    const normalized = (value: string) => value.trim().toLocaleLowerCase().replace(/\\s+/g, ' ');
+    const exactNames = new Set(['united kingdom', 'uk', 'great britain', 'gb']);
+    const available = categories.filter((category) => category !== 'All');
+    const ukCategory =
+      available.find((category) => exactNames.has(normalized(category))) ||
+      available.find((category) => /^(united kingdom|great britain|uk|gb)(?:\\s*[:|–—-]|\\s+)/i.test(category.trim()));
+    if (ukCategory) {
+      setSelectedCategory((current) => current === ukCategory ? current : ukCategory);
+    } else if (available.length > 0) {
+      // Country-sorted IPTV-org lists normally contain "United Kingdom".
+      // If a feed uses an unexpected label, choose a UK-labelled group only;
+      // never silently pick the first (often US) category.
+      const fallback = available.find((category) => /united kingdom|great britain|\\buk\\b/i.test(category));
+      if (fallback) setSelectedCategory(fallback);
+    }
   }, [activePlaylistTitle, categories, showFavoritePlaylist]);
 
   // Filter channels by category and search

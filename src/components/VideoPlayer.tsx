@@ -146,6 +146,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     bitrate: 'Auto',
     buffer: '0s',
   });
+  // HTMLMediaElement can fire timeupdate several times per second. Keep buffer
+  // telemetry useful without forcing the entire player UI to rerender on every tick.
+  const lastBufferStatsUpdateRef = useRef(0);
 
   const embedInfo = channel ? getThirdPartyEmbed(channel.url) : { type: null, embedUrl: '' };
 
@@ -903,12 +906,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               if (videoRef.current?.ended) setIsLoading(false);
             }}
             onTimeUpdate={() => {
-              if (videoRef.current && videoRef.current.buffered.length > 0) {
-                const buf =
-                  videoRef.current.buffered.end(videoRef.current.buffered.length - 1) -
-                  videoRef.current.currentTime;
-                setStats((prev) => ({ ...prev, buffer: `${Math.max(0, Math.round(buf))}s` }));
-              }
+              const video = videoRef.current;
+              if (!video || video.buffered.length === 0) return;
+              const now = Date.now();
+              // Refresh the displayed buffer estimate at most once every 2 seconds.
+              if (now - lastBufferStatsUpdateRef.current < 2000) return;
+              lastBufferStatsUpdateRef.current = now;
+              const buf = video.buffered.end(video.buffered.length - 1) - video.currentTime;
+              const nextBuffer = `${Math.max(0, Math.round(buf))}s`;
+              setStats((prev) => prev.buffer === nextBuffer ? prev : { ...prev, buffer: nextBuffer });
             }}
           />
 

@@ -333,8 +333,10 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     } else {
       values.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }));
     }
-    // Do not cap this list: every group remains reachable by scrolling.
-    return ['All', ...values];
+    // On World Channels, show UK first, Europe next, other countries after,
+    // and put the "All" option last rather than ahead of the UK.
+    // Other playlists keep the familiar "All" option first.
+    return /world/i.test(activePlaylistTitle) ? [...values, 'All'] : ['All', ...values];
   }, [guideChannels, activePlaylistTitle]);
 
   // Switching between Plex, Samsung, Pluto, and World must discard the
@@ -350,8 +352,17 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     if (categoryScrollRef.current) categoryScrollRef.current.scrollLeft = 0;
   }, [activePlaylistTitle]);
 
-  // World Channels intentionally starts with "All" so every country remains
-  // visible in one list; the country sort below places the UK first, then Europe.
+  // World Channels defaults to the UK category when its M3U groups arrive.
+  // This makes the first visible guide UK-first while retaining every country
+  // in the ordered category strip and the combined EPG source bundle.
+  useEffect(() => {
+    if (!/world/i.test(activePlaylistTitle) || showFavoritePlaylist) return;
+    const available = categories.filter((category) => category !== 'All');
+    const isUk = (category: string) => /^(united kingdom|great britain|uk|gb)(?:\s*[:|–—-]|\s|$)/i.test(category.trim());
+    const ukCategory = available.find((category) => ['united kingdom', 'great britain', 'uk', 'gb'].includes(category.trim().toLowerCase()))
+      || available.find(isUk);
+    if (ukCategory) setSelectedCategory((current) => current === ukCategory ? current : ukCategory);
+  }, [activePlaylistTitle, categories, showFavoritePlaylist]);
   // Filter channels by category and search
   const excludedChannelKeys = useMemo(() => {
     const keys = new Set<string>();

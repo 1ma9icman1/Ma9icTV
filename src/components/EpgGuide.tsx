@@ -318,6 +318,17 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     return ['All', ...Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }))];
   }, [guideChannels]);
 
+  // The worldwide country-sorted lineup should open on the United Kingdom,
+  // rather than showing every country at once. Match the real group label so
+  // both "United Kingdom" and common "UK" naming variants are supported.
+  useEffect(() => {
+    if (!/world channels/i.test(activePlaylistTitle) || showFavoritePlaylist) return;
+    const ukCategory = categories.find((category) =>
+      category !== 'All' && /^(united kingdom|uk|great britain|gb)$/i.test(category.trim())
+    );
+    if (ukCategory) setSelectedCategory(ukCategory);
+  }, [activePlaylistTitle, categories, showFavoritePlaylist]);
+
   // Filter channels by category and search
   const excludedChannelKeys = useMemo(() => {
     const keys = new Set<string>();

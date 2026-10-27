@@ -1,11 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-  Tv,
-  Calendar,
   Layers,
   Heart,
-  Settings as SettingsIcon,
-  HelpCircle,
   ChevronLeft,
   Sparkles,
   RefreshCw,

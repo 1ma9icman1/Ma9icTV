@@ -845,9 +845,74 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   return (
     <div className="flex-1 min-h-0 min-w-0 flex flex-col h-full bg-[#0a0e17] text-slate-100 overflow-hidden select-none">
       {/* =========================================================================
+          TOP MENU: SEARCH & EPG STATUS
+          ========================================================================= */}
+      <div className="order-first flex-shrink-0 bg-slate-950 border-b border-slate-800/80 px-2 py-1 flex flex-nowrap items-center gap-2 z-30 overflow-x-auto">
+        {/* Favorites playlist toggle sits immediately before the EPG loading indicator. */}
+        <button type="button"
+          onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); }}
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setShowFavoritePlaylist((value) => !value);
+            setShowExcludedEpgChannels(false);
+            setSelectedCategory('All');
+          }}
+          aria-pressed={showFavoritePlaylist}
+          title={showFavoritePlaylist ? 'Return to the active playlist EPG' : `Load favorite channels in the EPG guide (${favoriteChannels.length})`}
+          disabled={favoriteChannels.length === 0}
+          className={`min-h-7 min-w-7 rounded-md border flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${showFavoritePlaylist ? 'border-amber-400/60 bg-amber-400/15 text-amber-300' : 'border-slate-800 bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-amber-300'}`}
+          aria-label={showFavoritePlaylist ? 'Show active playlist EPG' : 'Load favorite playlist in EPG guide'}>
+          <Star className={`h-3.5 w-3.5 ${showFavoritePlaylist ? 'fill-current' : ''}`} />
+        </button>
+
+        {/* EPG loading indicator */}
+        <div className="flex min-w-[105px] max-w-[190px] flex-shrink-0 flex-col justify-center gap-0.5 px-1" role="status" aria-live="polite" aria-label={isLoadingEpg ? "Loading EPG guide" : xmltvProgrammes.length > 0 ? `EPG loaded: ${xmltvProgrammes.length} programmes` : "EPG guide waiting"}>
+          <div className="flex items-center justify-between gap-2 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider">
+            <span className={isLoadingEpg ? "text-indigo-300" : xmltvProgrammes.length > 0 ? "text-emerald-400" : "text-slate-500"}>
+              {showFavoritePlaylist ? 'Favorite Playlist' : isLoadingEpg ? "Loading EPG" : xmltvProgrammes.length > 0 ? `EPG Loaded · ${xmltvProgrammes.length.toLocaleString()} programmes` : "EPG Guide"}
+            </span>
+            {isLoadingEpg && <RefreshCw className="h-3 w-3 animate-spin text-indigo-400" />}
+          </div>
+          <div className="h-1 w-full overflow-hidden rounded-full bg-slate-800" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={isLoadingEpg ? undefined : xmltvProgrammes.length > 0 ? 100 : 0}>
+            <div className={`h-full rounded-full transition-all duration-300 ${isLoadingEpg ? "w-1/3 animate-pulse bg-indigo-400" : xmltvProgrammes.length > 0 ? "w-full bg-emerald-500" : "w-0 bg-indigo-500"}`} />
+          </div>
+        </div>
+
+        {/* EPG loading indicator */}
+        <div className="flex min-w-[66px] flex-1 flex-col justify-center gap-0.5 px-1" role="status" aria-live="polite" aria-label={isLoadingEpg ? "Loading EPG guide" : xmltvProgrammes.length > 0 ? `EPG loaded: ${xmltvProgrammes.length} programmes` : "EPG guide waiting"}>
+          <div className="flex items-center justify-between gap-2 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider">
+            <span className={isLoadingEpg ? "text-indigo-300" : xmltvProgrammes.length > 0 ? "text-emerald-400" : "text-slate-500"}>
+              {showFavoritePlaylist ? 'Favorite Playlist' : isLoadingEpg ? "Loading EPG" : xmltvProgrammes.length > 0 ? `EPG Loaded · ${xmltvProgrammes.length.toLocaleString()} programmes` : "EPG Guide"}
+            </span>
+            {isLoadingEpg && <RefreshCw className="h-3 w-3 animate-spin text-indigo-400" />}
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={isLoadingEpg ? undefined : xmltvProgrammes.length > 0 ? 100 : 0}>
+            <div className={`h-full rounded-full transition-all duration-300 ${isLoadingEpg ? "w-1/3 animate-pulse bg-indigo-400" : xmltvProgrammes.length > 0 ? "w-full bg-emerald-500" : "w-0 bg-indigo-500"}`} />
+          </div>
+        </div>
+
+        {/* Center: Search */}
+        <div className="relative flex-1 min-w-[120px] max-w-none order-first">
+          <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2" />
+          <input
+            type="text"
+            placeholder="Search channels & shows..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full min-h-8 bg-slate-900 border border-slate-800 rounded-md pl-6 pr-1.5 py-1 text-[10px] text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+          />
+        </div>
+
+
+      </div>
+
+
+
+      {/* =========================================================================
           STAGE 1: TOP HERO SECTION (LIVE VIDEO PLAYER + PROGRAM INFO PANE)
           ========================================================================= */}
-      <section className="h-[clamp(150px,28dvh,340px)] flex-shrink-0 bg-black border-b border-slate-800/80 p-2 sm:p-3 flex flex-col gap-2 items-stretch z-20 shadow-lg">
+      <section className="h-[clamp(190px,35dvh,420px)] flex-shrink-0 bg-black border-b border-slate-800/80 p-2 sm:p-3 flex flex-col gap-2 items-stretch z-20 shadow-lg">
         {/* Left: Live Video Player Preview Stage */}
         <div className="w-full h-full min-h-0 flex-shrink-0 relative">
           <VideoPlayer
@@ -987,87 +1052,6 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
           )}
         </div>
       </section>
-
-      {/* =========================================================================
-          STAGE 2: FILTER & CONTROLS TOOLBAR
-          ========================================================================= */}
-      <div className="bg-slate-950 border-b border-slate-800/80 px-1.5 py-1 flex flex-nowrap items-center gap-1.5 z-10 overflow-x-auto">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={scrollToNow}
-            className="min-h-7 px-2 py-1 rounded-md bg-slate-900 hover:bg-slate-800 text-indigo-300 border border-slate-800 text-[10px] font-semibold flex items-center justify-center gap-1 transition-colors touch-manipulation whitespace-nowrap"
-          >
-            <Clock className="w-3 h-3 text-indigo-400" />
-            <span>Jump</span>
-          </button>
-        </div>
-
-        {/* Favorites playlist toggle sits immediately before the EPG loading indicator. */}
-        <button type="button"
-          onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); }}
-          onClick={(event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            setShowFavoritePlaylist((value) => !value);
-            setShowExcludedEpgChannels(false);
-            setSelectedCategory('All');
-          }}
-          aria-pressed={showFavoritePlaylist}
-          title={showFavoritePlaylist ? 'Return to the active playlist EPG' : `Load favorite channels in the EPG guide (${favoriteChannels.length})`}
-          disabled={favoriteChannels.length === 0}
-          className={`min-h-7 min-w-7 rounded-md border flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${showFavoritePlaylist ? 'border-amber-400/60 bg-amber-400/15 text-amber-300' : 'border-slate-800 bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-amber-300'}`}
-          aria-label={showFavoritePlaylist ? 'Show active playlist EPG' : 'Load favorite playlist in EPG guide'}>
-          <Star className={`h-3.5 w-3.5 ${showFavoritePlaylist ? 'fill-current' : ''}`} />
-        </button>
-
-        {/* EPG loading indicator */}
-        <div className="flex min-w-[66px] flex-1 flex-col justify-center gap-0.5 px-1" role="status" aria-live="polite" aria-label={isLoadingEpg ? "Loading EPG guide" : xmltvProgrammes.length > 0 ? `EPG loaded: ${xmltvProgrammes.length} programmes` : "EPG guide waiting"}>
-          <div className="flex items-center justify-between gap-2 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider">
-            <span className={isLoadingEpg ? "text-indigo-300" : xmltvProgrammes.length > 0 ? "text-emerald-400" : "text-slate-500"}>
-              {showFavoritePlaylist ? 'Favorite Playlist' : isLoadingEpg ? "Loading EPG" : xmltvProgrammes.length > 0 ? `EPG Loaded · ${xmltvProgrammes.length.toLocaleString()} programmes` : "EPG Guide"}
-            </span>
-            {isLoadingEpg && <RefreshCw className="h-3 w-3 animate-spin text-indigo-400" />}
-          </div>
-          <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={isLoadingEpg ? undefined : xmltvProgrammes.length > 0 ? 100 : 0}>
-            <div className={`h-full rounded-full transition-all duration-300 ${isLoadingEpg ? "w-1/3 animate-pulse bg-indigo-400" : xmltvProgrammes.length > 0 ? "w-full bg-emerald-500" : "w-0 bg-indigo-500"}`} />
-          </div>
-        </div>
-
-        {/* Center: Search */}
-        <div className="relative flex-1 min-w-[92px] max-w-[220px]">
-          <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search channels & shows..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full min-h-7 bg-slate-900 border border-slate-800 rounded-md pl-6 pr-1.5 py-1 text-[10px] text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-          />
-        </div>
-        <div className="flex items-center gap-1.5 flex-shrink-0">
-          <input ref={favoriteFileInputRef} type="file" accept=".txt,text/plain,.json,application/json"
-            className="hidden" onChange={importFavoritesText} aria-label="Import favorites and personal EPG file" />
-          <button type="button" onClick={exportFavoritesText}
-            disabled={favoriteChannels.length === 0 && excludedEpgChannels.length === 0}
-            title="Export favorites and personal EPG exclusions to a reloadable text file"
-            className="min-h-7 px-1.5 rounded-md border border-slate-800 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 text-slate-300 text-[10px] font-semibold flex items-center gap-1">
-            <Download className="w-3.5 h-3.5" /><span className="hidden md:inline">Export</span>
-          </button>
-          <button type="button" onClick={() => favoriteFileInputRef.current?.click()}
-            title="Reload favorites and personal EPG from text file"
-            className="min-h-7 px-1.5 rounded-md border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300 text-[10px] font-semibold flex items-center gap-1">
-            <FileUp className="w-3.5 h-3.5" /><span className="hidden md:inline">Import</span>
-          </button>
-          <button type="button" onClick={() => setShowExcludedEpgChannels((value) => !value)}
-            aria-pressed={showExcludedEpgChannels}
-            title={showExcludedEpgChannels ? 'Return to personal EPG channels' : 'Manage channels removed from personal EPG'}
-            className={`min-h-7 px-1.5 rounded-md border text-[10px] font-semibold flex items-center gap-1 ${showExcludedEpgChannels ? 'border-amber-500/50 bg-amber-500/10 text-amber-200' : 'border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300'}`}>
-            {showExcludedEpgChannels ? <Plus className="w-3.5 h-3.5" /> : <Minus className="w-3.5 h-3.5" />}
-            <span className="hidden sm:inline">{showExcludedEpgChannels ? 'Restore channels' : 'Personal EPG'}</span>
-            <span>({excludedEpgChannels.length})</span>
-          </button>
-        </div>
-      </div>
 
       {/* Category Pills Bar */}
       <div ref={categoryScrollRef} onPointerDown={handleDragPointerDown} onPointerMove={handleDragPointerMove} onPointerUp={handleDragPointerUp} onPointerCancel={handleDragPointerUp} onClickCapture={handleDragClickCapture} className="bg-slate-950/60 border-b border-slate-800/60 px-2 py-1 overflow-x-auto overflow-y-hidden flex flex-nowrap items-center gap-1 cursor-grab active:cursor-grabbing select-none" style={{ touchAction: "pan-x", WebkitOverflowScrolling: "touch", scrollbarWidth: "thin", scrollbarColor: "#6366f1 #0f172a" }} aria-label="Scrollable channel categories">

@@ -51,7 +51,7 @@ const EpgProgramTitle: React.FC<{ title: string; active: boolean }> = ({ title, 
   }, [title]);
   return (
     <div ref={windowRef} className="epg-title-window flex h-[18px] min-w-0 items-center" title={title}>
-      <span ref={titleRef} className={active && overflows ? 'epg-title-marquee' : 'truncate'}
+      <span ref={titleRef} className={overflows ? 'epg-title-marquee' : 'truncate'}
         style={overflows ? ({ '--epg-title-distance': '-' + scrollDistance + 'px' } as React.CSSProperties) : undefined}>
         {title}
       </span>
@@ -1167,7 +1167,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       </section>
 
       {/* Category Pills Bar */}
-      <div ref={categoryScrollRef} onPointerDown={handleDragPointerDown} onPointerMove={handleDragPointerMove} onPointerUp={handleDragPointerUp} onPointerCancel={handleDragPointerUp} onClickCapture={handleDragClickCapture} className="w-full max-w-full min-w-0 flex-shrink-0 bg-slate-950/60 border-b border-slate-800/60 px-1 py-0.5 overflow-x-auto overflow-y-hidden flex flex-nowrap items-center gap-0.5 cursor-grab active:cursor-grabbing select-none" style={{ touchAction: "pan-x", WebkitOverflowScrolling: "touch", scrollbarWidth: "auto", scrollbarColor: "#6366f1 #0f172a", overscrollBehaviorX: "contain" }} aria-label="Scrollable channel categories. Swipe or scroll horizontally to see every category.">
+      <div ref={categoryScrollRef} onPointerDown={handleDragPointerDown} onPointerMove={handleDragPointerMove} onPointerUp={handleDragPointerUp} onPointerCancel={handleDragPointerUp} onClickCapture={handleDragClickCapture} className="bg-slate-950/60 border-b border-slate-800/60 px-1 py-0.5 overflow-x-auto overflow-y-hidden flex flex-nowrap items-center gap-0.5 cursor-grab active:cursor-grabbing select-none" style={{ touchAction: "pan-x", WebkitOverflowScrolling: "touch", scrollbarWidth: "thin", scrollbarColor: "#6366f1 #0f172a" }} aria-label="Scrollable channel categories">
         {categories.map((cat) => (
           <button
             key={cat}

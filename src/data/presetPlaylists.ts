@@ -15,6 +15,8 @@ export const INITIAL_PRESETS: Playlist[] = [
   {
     id: 'preset-world-live',
     title: 'Featured World Live Channels',
+    // Start the worldwide guide with US data, then merge additional regions.
+    epgUrl: 'https://iptv-org.github.io/epg/guides/us/directv.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/us/tvguide.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/us/gatotv.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/us/ontvtonight.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/uk/sky.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/ca/tvhebdo.com.epg.xml.gz',
     type: 'preset',
     channelCount: 12,
     addedAt: Date.now(),

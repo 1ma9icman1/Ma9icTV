@@ -2,6 +2,8 @@ import React, { useState, useMemo, useEffect } from 'react';
 import {
   Search,
   Heart,
+  Star,
+  Play,
   Radio,
   Tv,
   Clock,
@@ -460,17 +462,34 @@ export const ChannelList: React.FC<ChannelListProps> = ({
 
                   <div className="flex items-center gap-1.5 flex-shrink-0">
                     <button
+                      aria-label={isFav ? `Remove ${channel.name} from favorites` : `Favorite ${channel.name}`}
+                      title={isFav ? 'Remove favorite' : 'Add to favorites'}
                       onClick={(e) => {
                         e.stopPropagation();
                         onToggleFavorite(channel.id);
                       }}
-                      className={`p-1.5 rounded-lg transition-colors ${
+                      className={`w-7 h-7 rounded-full border flex items-center justify-center transition-colors ${
                         isFav
-                          ? 'text-rose-400'
-                          : 'text-slate-600 opacity-0 group-hover:opacity-100 hover:text-rose-400'
+                          ? 'text-amber-300 border-amber-400/40 bg-amber-400/10'
+                          : 'text-slate-400 border-slate-700 hover:text-amber-300 hover:border-amber-400/50'
                       }`}
                     >
-                      <Heart className={`w-3.5 h-3.5 ${isFav ? 'fill-current' : ''}`} />
+                      <Star className={`w-3.5 h-3.5 ${isFav ? 'fill-current' : ''}`} />
+                    </button>
+                    <button
+                      aria-label={`Play ${channel.name}`}
+                      title="Play channel"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onSelectChannel(channel);
+                      }}
+                      className={`w-7 h-7 rounded-full border flex items-center justify-center transition-colors ${
+                        isSelected
+                          ? 'text-emerald-300 border-emerald-400/50 bg-emerald-400/10'
+                          : 'text-slate-300 border-slate-700 hover:text-emerald-300 hover:border-emerald-400/50'
+                      }`}
+                    >
+                      <Play className="w-3.5 h-3.5 fill-current" />
                     </button>
                   </div>
                 </div>

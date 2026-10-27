@@ -352,7 +352,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       // Country-sorted IPTV-org lists normally contain "United Kingdom".
       // If a feed uses an unexpected label, choose a UK-labelled group only;
       // never silently pick the first (often US) category.
-      const fallback = available.find((category) => /united kingdom|great britain|\\buk\\b/i.test(category));
+      const fallback = available.find((category) => /united kingdom|great britain|\buk\b/i.test(category));
       if (fallback) setSelectedCategory(fallback);
     }
   }, [activePlaylistTitle, categories, showFavoritePlaylist]);

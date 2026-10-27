@@ -25,7 +25,6 @@ import {
 } from 'lucide-react';
 import { Channel, EpgProgram, AppSettings } from '../types';
 import { apiUrl, isStaticClient, networkUrl } from '../utils/api';
-import { XMLParser } from 'fast-xml-parser';
 import { VideoPlayer } from './VideoPlayer';
 import { getEpgExcludedChannels, saveEpgExcludedChannels } from '../utils/storage';
 
@@ -73,6 +72,23 @@ function parseXmltvDate(value: string): Date {
 }
 
 
+async function parseXmltvOffMainThread(xml: string): Promise<any> {
+  return new Promise((resolve, reject) => {
+    const worker = new Worker(new URL('../workers/xmltvParser.worker.ts', import.meta.url), { type: 'module' });
+    const cleanup = () => worker.terminate();
+    worker.onmessage = (event: MessageEvent<{ tv?: any; error?: string }>) => {
+      cleanup();
+      if (event.data.error) reject(new Error(event.data.error));
+      else resolve(event.data.tv);
+    };
+    worker.onerror = () => {
+      cleanup();
+      reject(new Error('The background XMLTV parser failed.'));
+    };
+    worker.postMessage({ id: 1, xml });
+  });
+}
+
 // Read public XMLTV guides in a browser when deployed as a static GitHub Pages
 // site. Sources that block CORS still require running the local/server app.
 function readXmltvText(value: any): string {
@@ -93,7 +109,6 @@ async function parseXmltvInBrowser(sourceValue: string) {
   )).slice(0, 32);
   if (urls.length === 0) throw new Error('No valid XMLTV URLs were provided.');
 
-  const parser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: '@_' });
   const channelsById = new Map<string, any>();
   const programmesByKey = new Map<string, any>();
   const failedSources: string[] = [];
@@ -125,7 +140,8 @@ async function parseXmltvInBrowser(sourceValue: string) {
         rawXml = new TextDecoder('utf-8').decode(buffer);
       }
 
-      const tvData = parser.parse(rawXml)?.tv;
+      // XML parsing is CPU-heavy for large XMLTV feeds; keep it off the UI thread.
+      const tvData = await parseXmltvOffMainThread(rawXml);
       if (!tvData) throw new Error('The response is not valid XMLTV data.');
 
       const sourceChannels = asXmltvArray(tvData.channel);

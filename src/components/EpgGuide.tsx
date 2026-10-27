@@ -866,6 +866,34 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
           <Star className={`h-3.5 w-3.5 ${showFavoritePlaylist ? 'fill-current' : ''}`} />
         </button>
 
+
+
+        {/* EPG loading indicator */}
+        <div className="flex min-w-[105px] max-w-[190px] flex-shrink-0 flex-col justify-center gap-0.5 px-1" role="status" aria-live="polite" aria-label={isLoadingEpg ? "Loading EPG guide" : xmltvProgrammes.length > 0 ? `EPG loaded: ${xmltvProgrammes.length} programmes` : "EPG guide waiting"}>
+          <div className="flex items-center justify-between gap-2 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider">
+            <span className={isLoadingEpg ? "text-indigo-300" : xmltvProgrammes.length > 0 ? "text-emerald-400" : "text-slate-500"}>
+              {showFavoritePlaylist ? 'Favorite Playlist' : isLoadingEpg ? "Loading EPG" : xmltvProgrammes.length > 0 ? `EPG Loaded · ${xmltvProgrammes.length.toLocaleString()} programmes` : "EPG Guide"}
+            </span>
+            {isLoadingEpg && <RefreshCw className="h-3 w-3 animate-spin text-indigo-400" />}
+          </div>
+          <div className="h-1 w-full overflow-hidden rounded-full bg-slate-800" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={isLoadingEpg ? undefined : xmltvProgrammes.length > 0 ? 100 : 0}>
+            <div className={`h-full rounded-full transition-all duration-300 ${isLoadingEpg ? "w-1/3 animate-pulse bg-indigo-400" : xmltvProgrammes.length > 0 ? "w-full bg-emerald-500" : "w-0 bg-indigo-500"}`} />
+          </div>
+        </div>
+
+        {/* EPG loading indicator */}
+        <div className="flex min-w-[66px] flex-1 flex-col justify-center gap-0.5 px-1" role="status" aria-live="polite" aria-label={isLoadingEpg ? "Loading EPG guide" : xmltvProgrammes.length > 0 ? `EPG loaded: ${xmltvProgrammes.length} programmes` : "EPG guide waiting"}>
+          <div className="flex items-center justify-between gap-2 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider">
+            <span className={isLoadingEpg ? "text-indigo-300" : xmltvProgrammes.length > 0 ? "text-emerald-400" : "text-slate-500"}>
+              {showFavoritePlaylist ? 'Favorite Playlist' : isLoadingEpg ? "Loading EPG" : xmltvProgrammes.length > 0 ? `EPG Loaded · ${xmltvProgrammes.length.toLocaleString()} programmes` : "EPG Guide"}
+            </span>
+            {isLoadingEpg && <RefreshCw className="h-3 w-3 animate-spin text-indigo-400" />}
+          </div>
+          <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-800" role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={isLoadingEpg ? undefined : xmltvProgrammes.length > 0 ? 100 : 0}>
+            <div className={`h-full rounded-full transition-all duration-300 ${isLoadingEpg ? "w-1/3 animate-pulse bg-indigo-400" : xmltvProgrammes.length > 0 ? "w-full bg-emerald-500" : "w-0 bg-indigo-500"}`} />
+          </div>
+        </div>
+
         {/* EPG loading indicator */}
         <div className="flex min-w-[105px] max-w-[190px] flex-shrink-0 flex-col justify-center gap-0.5 px-1" role="status" aria-live="polite" aria-label={isLoadingEpg ? "Loading EPG guide" : xmltvProgrammes.length > 0 ? `EPG loaded: ${xmltvProgrammes.length} programmes` : "EPG guide waiting"}>
           <div className="flex items-center justify-between gap-2 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider">

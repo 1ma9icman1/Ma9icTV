@@ -10,6 +10,7 @@ import {
   Minimize2,
   Search,
   Star,
+  Tv,
 } from 'lucide-react';
 
 import { Channel, Playlist, AppSettings } from './types';
@@ -567,33 +568,31 @@ export default function App() {
       </div>}
       {/* 2. Main Content Layout with Top Status Header */}
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-        {/* Top Header Bar: navigation left, search truly centered, playlist/status right */}
+        {/* Top Header Bar: services first, active service/channel, centered search, utilities on right */}
         <header className="relative min-h-11 bg-slate-950/95 border-b border-slate-800/80 px-2 sm:px-3 py-1 flex flex-nowrap gap-2 items-center text-xs select-none z-20">
-          <div className="flex items-center gap-1.5 flex-shrink-0">
-            <div className="flex items-center bg-slate-900 rounded-md border border-slate-800 p-0.5">
-              <button onClick={() => { setCurrentView('player'); setIsSidebarCollapsed(false); }} className={`px-2.5 py-1.5 rounded text-[11px] font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-300 ${currentView === 'player' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`} aria-pressed={currentView === 'player'}>Player</button>
-              <button onClick={() => setCurrentView('epg')} className={`px-2.5 py-1.5 rounded text-[11px] font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-300 ${currentView === 'epg' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`} aria-pressed={currentView === 'epg'}>EPG Guide</button>
+          <div className="flex items-center gap-1.5 flex-shrink-0 min-w-0">
+            <button onClick={() => setIsPlaylistModalOpen(true)} className="flex flex-shrink-0 items-center gap-1.5 px-2 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-200 hover:text-white border border-indigo-500/40 text-[10px] sm:text-xs font-bold transition-all shadow-sm" title="Choose a streaming service or playlist">
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" /><span>Services</span>
+            </button>
+            <div className="flex items-center gap-1.5 min-w-0 px-2 py-1.5 rounded-lg bg-slate-900 border border-slate-800" title="Active service and selected channel">
+              <Tv className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
+              <span className="font-semibold truncate max-w-[88px] sm:max-w-[140px]">{activePlaylist.title}</span>
+              {selectedChannel?.tvgChno && <span className="text-[10px] font-bold text-cyan-200 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-700 whitespace-nowrap">CH {selectedChannel.tvgChno}</span>}
             </div>
-            {currentView === 'epg' && <div className="flex items-center gap-1 text-[10px] font-semibold uppercase" role="status" aria-live="polite"><span className={isEpgLoading ? 'text-indigo-300' : 'text-slate-400'}>EPG</span>{isEpgLoading && <RefreshCw className="h-3.5 w-3.5 animate-spin text-indigo-400" />}</div>}
+            <div className="hidden lg:flex items-center bg-slate-900 rounded-md border border-slate-800 p-0.5 flex-shrink-0">
+              <button onClick={() => { setCurrentView('player'); setIsSidebarCollapsed(false); }} className={`px-2 py-1.5 rounded text-[10px] font-semibold ${currentView === 'player' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`} aria-pressed={currentView === 'player'}>Player</button>
+              <button onClick={() => setCurrentView('epg')} className={`px-2 py-1.5 rounded text-[10px] font-semibold ${currentView === 'epg' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`} aria-pressed={currentView === 'epg'}>EPG</button>
+            </div>
+            {currentView === 'epg' && <div className="hidden sm:flex items-center gap-1 text-[10px] font-semibold uppercase" role="status" aria-live="polite"><span className={isEpgLoading ? 'text-indigo-300' : 'text-slate-400'}>EPG</span>{isEpgLoading && <RefreshCw className="h-3.5 w-3.5 animate-spin text-indigo-400" />}</div>}
           </div>
-
           {currentView === 'epg' && <div className="absolute left-1/2 -translate-x-1/2 w-[clamp(150px,26vw,320px)] max-w-[32%]">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input type="search" placeholder="Search channels & shows" value={epgSearchQuery} onChange={(e) => setEpgSearchQuery(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Go' || e.key === 'Search') { e.preventDefault(); e.currentTarget.blur(); } }} enterKeyHint="search" aria-label="Search channels and shows" className="w-full h-8 bg-slate-900 border border-slate-800 rounded-md pl-7 pr-2 text-[10px] sm:text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
           </div>}
-
           <div className="ml-auto flex items-center justify-end gap-1.5 min-w-0">
-            <button onClick={() => setIsPlaylistModalOpen(true)} className="flex flex-shrink-0 items-center gap-1.5 px-2 py-1.5 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-200 hover:text-white border border-indigo-500/40 text-[10px] sm:text-xs font-bold transition-all shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-300" title="Choose a streaming service or playlist">
-              <Sparkles className="w-3.5 h-3.5 text-amber-300" /><span className="hidden sm:inline">CHOOSE SERVICE</span>
-            </button>
-            <button onClick={() => setIsPlaylistModalOpen(true)} className="flex items-center gap-1.5 min-w-0 px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 transition-colors" title="Active channel list: change playlist">
-              <FolderOpen className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
-              <span className="font-semibold truncate max-w-[90px] sm:max-w-[150px]">{activePlaylist.title}</span>
-              <span className="text-[10px] text-slate-300 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 whitespace-nowrap">{activePlaylist.channels.length || activePlaylist.channelCount} channels loaded</span>
-            </button>
-            {activePlaylist.url && <button disabled={isRefreshingPlaylist} onClick={handleRefreshActivePlaylist} className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-400" title="Refresh current playlist" aria-label="Refresh current playlist"><RefreshCw className={`w-3.5 h-3.5 ${isRefreshingPlaylist ? 'animate-spin text-indigo-400' : ''}`} /></button>}
-            {currentView === 'epg' && <button type="button" onClick={() => setShowFavoriteEpg((value) => !value)} aria-pressed={showFavoriteEpg} title={showFavoriteEpg ? 'Return to active playlist' : 'Show favorite channels'} aria-label={showFavoriteEpg ? 'Return to active playlist' : 'Show favorite channels'} className={`h-8 w-8 flex-shrink-0 rounded-md border flex items-center justify-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-300 ${showFavoriteEpg ? 'border-amber-400/60 bg-amber-400/15 text-amber-300' : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-amber-300'}`}><Star className={`h-3.5 w-3.5 ${showFavoriteEpg ? 'fill-current' : ''}`} /></button>}
-            <button onClick={toggleAppFullscreen} className="flex items-center justify-center min-w-8 min-h-8 px-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-800 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-400" title={isAppFullscreen ? 'Exit fullscreen' : 'Fullscreen'} aria-label={isAppFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}>{isAppFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}</button>
+            {activePlaylist.url && <button disabled={isRefreshingPlaylist} onClick={handleRefreshActivePlaylist} className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 transition-colors" title="Refresh current playlist" aria-label="Refresh current playlist"><RefreshCw className={`w-3.5 h-3.5 ${isRefreshingPlaylist ? 'animate-spin text-indigo-400' : ''}`} /></button>}
+            {currentView === 'epg' && <button type="button" onClick={() => setShowFavoriteEpg((value) => !value)} aria-pressed={showFavoriteEpg} title={showFavoriteEpg ? 'Return to active playlist' : 'Show favorite channels'} aria-label={showFavoriteEpg ? 'Return to active playlist' : 'Show favorite channels'} className={`h-8 w-8 flex-shrink-0 rounded-md border flex items-center justify-center ${showFavoriteEpg ? 'border-amber-400/60 bg-amber-400/15 text-amber-300' : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-amber-300'}`}><Star className={`h-3.5 w-3.5 ${showFavoriteEpg ? 'fill-current' : ''}`} /></button>}
+            <button onClick={toggleAppFullscreen} className="flex items-center justify-center min-w-8 min-h-8 px-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-800 transition-colors" title={isAppFullscreen ? 'Exit fullscreen' : 'Fullscreen'} aria-label={isAppFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}>{isAppFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}</button>
           </div>
         </header>
 

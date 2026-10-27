@@ -317,9 +317,24 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     guideChannels.forEach((c) => {
       if (c.group && c.group.trim()) set.add(c.group.trim());
     });
-    // Do not cap this list: genre playlists can include dozens of countries
-    // and regional groups, and every one must remain reachable by scrolling.
-    return ['All', ...Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }))];
+    // World country groups are intentionally ordered UK first, then Europe,
+    // then the remaining countries. Keep genre groups alphabetical for other lists.
+    const values = Array.from(set);
+    if (/world/i.test(activePlaylistTitle)) {
+      const countryRank = (value: string) => {
+        const label = value.trim().toLocaleLowerCase();
+        const country = (name: string) => new RegExp('^(?:' + name + ')(?:\\s*[:|–—-]|\\s|$)', 'i').test(label);
+        if (/^(united kingdom|great britain|uk|gb)(?:\\s*[:|–—-]|\\s|$)/i.test(label)) return 0;
+        const europe = ['ireland', 'france', 'germany', 'italy', 'spain', 'portugal', 'netherlands', 'switzerland', 'austria', 'denmark', 'finland', 'greece', 'croatia', 'hungary', 'norway', 'poland', 'romania', 'serbia', 'sweden', 'slovakia', 'czechia', 'czech republic', 'ukraine', 'turkey', 'belgium', 'luxembourg', 'iceland', 'bulgaria', 'slovenia', 'bosnia', 'montenegro', 'north macedonia', 'estonia', 'latvia', 'lithuania', 'malta', 'cyprus'];
+        const index = europe.findIndex((name) => country(name));
+        return index >= 0 ? index + 1 : 1000;
+      };
+      values.sort((a, b) => countryRank(a) - countryRank(b) || a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }));
+    } else {
+      values.sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }));
+    }
+    // Do not cap this list: every group remains reachable by scrolling.
+    return ['All', ...values];
   }, [guideChannels]);
 
   // Switching between Plex, Samsung, Pluto, and World must discard the
@@ -369,7 +384,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   }, [excludedEpgChannels]);
 
   const filteredChannels = useMemo(() => {
-    return guideChannels.filter((c) => {
+    const filtered = guideChannels.filter((c) => {
       const isExcluded = excludedChannelKeys.has(`id:${c.id}`) ||
         excludedChannelKeys.has(`url:${String(c.url || '').trim().toLowerCase()}`);
       if (!showFavoritePlaylist && showExcludedEpgChannels !== isExcluded) return false;
@@ -384,7 +399,23 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
         c.tvgName?.toLowerCase().includes(q)
       );
     });
-  }, [guideChannels, selectedCategory, searchQuery, excludedChannelKeys, showExcludedEpgChannels, showFavoritePlaylist]);
+    // The worldwide M3U is country-grouped but its source order can be
+    // alphabetic. Stable-sort by country priority so the full list starts UK,
+    // continues through Europe, and only then shows other regions.
+    if (/world/i.test(activePlaylistTitle)) {
+      const rank = (value: string | undefined) => {
+        const label = String(value || '').trim().toLocaleLowerCase();
+        if (/^(united kingdom|great britain|uk|gb)(?:\s*[:|–—-]|\s|$)/i.test(label)) return 0;
+        const europe = ['ireland', 'france', 'germany', 'italy', 'spain', 'portugal', 'netherlands', 'switzerland', 'austria', 'denmark', 'finland', 'greece', 'croatia', 'hungary', 'norway', 'poland', 'romania', 'serbia', 'sweden', 'slovakia', 'czechia', 'czech republic', 'ukraine', 'turkey', 'belgium', 'luxembourg', 'iceland', 'bulgaria', 'slovenia', 'bosnia', 'montenegro', 'north macedonia', 'estonia', 'latvia', 'lithuania', 'malta', 'cyprus'];
+        const index = europe.findIndex((name) => label === name || label.startsWith(name + ' ') || label.startsWith(name + ':') || label.startsWith(name + '-'));
+        return index >= 0 ? index + 1 : 1000;
+      };
+      return filtered.map((channel, index) => ({ channel, index }))
+        .sort((a, b) => rank(a.channel.group) - rank(b.channel.group) || a.index - b.index)
+        .map(({ channel }) => channel);
+    }
+    return filtered;
+  }, [guideChannels, activePlaylistTitle, selectedCategory, searchQuery, excludedChannelKeys, showExcludedEpgChannels, showFavoritePlaylist]);
 
   const lastVisibleGuideRow = Math.min(
     Math.min(filteredChannels.length, epgPageLimit),

@@ -27,6 +27,7 @@ import { Channel, EpgProgram, AppSettings } from '../types';
 import { apiUrl, isStaticClient, networkUrl } from '../utils/api';
 import { VideoPlayer } from './VideoPlayer';
 import { getEpgExcludedChannels, saveEpgExcludedChannels } from '../utils/storage';
+import { WORLD_EPG_URLS } from '../data/presetPlaylists';
 
 const EpgProgramTitle: React.FC<{ title: string }> = ({ title }) => {
   const titleRef = useRef<HTMLSpanElement | null>(null);
@@ -800,7 +801,13 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
 
   // Load the guide after the first successful stream; channel changes must not
   // restart large XMLTV downloads. Changing the playlist guide still reloads it.
-  const playlistEpgSource = activePlaylistEpgUrl?.trim() || '';
+  const rawPlaylistEpgSource = activePlaylistEpgUrl?.trim() || '';
+  // Existing installs may have the retired iptv-org URLs saved in their World
+  // playlist. Migrate automatically without asking users to clear app storage.
+  const playlistEpgSource = /world/i.test(activePlaylistTitle) &&
+    /iptv-org\.github\.io\/epg\/guides/i.test(rawPlaylistEpgSource)
+      ? WORLD_EPG_URLS
+      : rawPlaylistEpgSource;
   useEffect(() => {
     // Load programme data as soon as the active playlist is known. Guide
     // availability must not depend on a stream successfully connecting.

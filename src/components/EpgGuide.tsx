@@ -1044,14 +1044,14 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
         <div ref={gridScrollRef} onPointerDown={handleDragPointerDown} onPointerMove={handleDragPointerMove} onPointerUp={handleDragPointerUp} onPointerCancel={handleDragPointerUp} onClickCapture={handleDragClickCapture} onKeyDown={handleGuideRemoteKeyDown} className="flex-1 min-h-0 min-w-0 relative overscroll-contain cursor-grab active:cursor-grabbing" style={{ height: 0, overflowX: "auto", overflowY: "scroll", WebkitOverflowScrolling: "touch", touchAction: "pan-x pan-y", overscrollBehavior: "contain", scrollbarWidth: "auto", scrollbarColor: "#6366f1 #0f172a", userSelect: "none" }} aria-label="Scrollable TV guide. Click and drag horizontally for times and vertically for channels, or use TV remote arrows." tabIndex={0}>
           <div
             className="min-w-max flex flex-col relative"
-            style={{ width: `${(typeof window !== "undefined" && window.innerWidth < 640 ? 112 : 190) + (timeSlots.length - 1) * 30 * minuteWidthPx}px` }}
+            style={{ width: `${(typeof window !== "undefined" && window.innerWidth < 640 ? 112 : 190) + timeSlots.length * 30 * minuteWidthPx}px` }}
           >
             {/* Current-time marker spans the complete EPG schedule, not just the time ruler. */}
             {currentTimeMs >= timelineStartMs && (
               <div
                 className="absolute top-0 bottom-0 z-20 pointer-events-none"
                 style={{
-                  left: `${(typeof window !== "undefined" && window.innerWidth < 640 ? 150 : 260) + ((currentTimeMs - timelineStartMs) / 60000) * minuteWidthPx}px`,
+                  left: `${(typeof window !== "undefined" && window.innerWidth < 640 ? 112 : 190) + ((currentTimeMs - timelineStartMs) / 60000) * minuteWidthPx}px`,
                 }}
                 aria-hidden="true"
               >
@@ -1188,7 +1188,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                     {/* Timeline Program Blocks */}
                     <div
                       className="relative flex-shrink-0 py-0.5"
-                      style={{ width: `${(timeSlots.length - 1) * 30 * minuteWidthPx}px`, height: '48px' }}
+                      style={{ width: `${timeSlots.length * 30 * minuteWidthPx}px`, height: '48px' }}
                     >
                       {programs.length === 0 && (
                         <div
@@ -1201,7 +1201,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                       {programs.map((prog) => {
                         const startMin = (prog.startTime.getTime() - timelineStartMs) / 60000;
                         const durationMin = (prog.stopTime.getTime() - prog.startTime.getTime()) / 60000;
-                        const visibleEndMin = (timeSlots.length - 1) * 30;
+                        const visibleEndMin = timeSlots.length * 30;
 
                         // Place each programme at its actual clock-time position. Previously
                         // blocks flowed next to one another, hiding schedule gaps and shifting

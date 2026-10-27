@@ -423,7 +423,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
                       : 'bg-slate-950/40 border-slate-800/60 hover:bg-slate-800/70 hover:border-slate-700 text-slate-300'
                   }`}
                 >
-                  <div className="flex items-center gap-2 min-w-0">
+                  <div className="flex flex-1 items-center gap-2.5 min-w-0">
                     <div className="w-8 h-8 rounded-full bg-slate-950 border border-slate-600 p-1 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
                       {channel.logo ? (
                         <img
@@ -441,10 +441,10 @@ export const ChannelList: React.FC<ChannelListProps> = ({
                       )}
                     </div>
 
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5">
+                    <div className="flex-1 min-w-0 pr-1">
+                      <div className="flex items-center gap-1.5 min-w-0">
                         <span
-                          className={`text-xs font-medium truncate ${
+                          className={`text-[13px] sm:text-sm font-medium leading-snug truncate ${
                             isSelected ? 'text-indigo-200 font-semibold' : 'text-slate-200'
                           }`}
                         >

@@ -118,7 +118,8 @@ const LIVE_FEEDS: LiveFeed[] = [
 {name:'Naturist Beaches & Resorts Directory (18+)',region:'Worldwide',category:'Naturist Beaches (18+)',description:'Adult-only directory for legal naturist beaches and resorts; destination listings, not explicit video.',url:'https://www.naturistdirectory.com/'},
 {name:'Naturism Destinations (18+)',region:'Worldwide',category:'Naturist Beaches (18+)',description:'Find designated clothing-optional beaches and naturist destinations; check local laws and access rules.',url:'https://www.naturism.com/'},
 {name:'American Association for Nude Recreation (18+)',region:'United States',category:'Naturist Beaches (18+)',description:'Information about naturist recreation, etiquette and affiliated locations for adults.',url:'https://www.aanr.com/'},
-];\nconst LIVE_FEED_CATEGORIES = ['All feeds', ...Array.from(new Set(LIVE_FEEDS.map((feed) => feed.category)))];
+];
+const LIVE_FEED_CATEGORIES = ['All feeds', ...Array.from(new Set(LIVE_FEEDS.map((feed) => feed.category)))];
 
 export const ChannelList: React.FC<ChannelListProps> = ({
   channels,

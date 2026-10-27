@@ -114,13 +114,6 @@ export default function App() {
   const [isEpgLoading, setIsEpgLoading] = useState(false);
   const [samsungReloadToken, setSamsungReloadToken] = useState<number>(0);
   const [isAppFullscreen, setIsAppFullscreen] = useState<boolean>(() => Boolean(document.fullscreenElement));
-  const [showStartupLogo, setShowStartupLogo] = useState(true);
-
-  useEffect(() => {
-    const timer = window.setTimeout(() => setShowStartupLogo(false), 3000);
-    return () => window.clearTimeout(timer);
-  }, []);
-
   useEffect(() => {
     const syncFullscreenState = () => setIsAppFullscreen(Boolean(document.fullscreenElement));
     document.addEventListener('fullscreenchange', syncFullscreenState);
@@ -561,9 +554,6 @@ export default function App() {
 
   return (
     <div className={`flex h-[100dvh] w-full overflow-hidden ${themeClasses} font-sans`}>
-      {showStartupLogo && <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-[#070b14]" role="status" aria-label="Ma9icTV starting">
-        <img src="/favicon.png" alt="Ma9icTV" className="pointer-events-none h-[min(72vw,72vh)] w-[min(72vw,72vh)] object-contain animate-pulse drop-shadow-[0_0_28px_rgba(34,211,238,0.45)]" />
-      </div>}
       {/* 2. Main Content Layout with Top Status Header */}
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         {/* Top Header Bar: services first, active service/channel, centered search, utilities on right */}

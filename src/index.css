@@ -257,19 +257,25 @@ button, [role="button"] {
 
 
 
-/* TV-friendly long programme titles: slowly reveal full movie/show names. */
-.epg-title-window { min-width: 0; overflow: hidden; white-space: nowrap; }
+/* EPG titles stay vertically centered and only animate when JS measures overflow. */
+.epg-title-window {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  align-items: center;
+}
 .epg-title-marquee {
   display: inline-block;
+  flex: 0 0 auto;
+  width: max-content;
   max-width: none;
   white-space: nowrap;
-  padding-right: 1.5rem;
-  animation: epg-title-scroll 12s linear infinite;
+  animation: epg-title-bounce 8s ease-in-out infinite alternate;
   will-change: transform;
 }
-@keyframes epg-title-scroll {
-  0%, 12% { transform: translateX(0); }
-  88%, 100% { transform: translateX(-100%); }
+@keyframes epg-title-bounce {
+  from { transform: translateX(0); }
+  to { transform: translateX(var(--epg-title-distance, 0px)); }
 }
 @media (prefers-reduced-motion: reduce) {
   .epg-title-marquee { animation: none; white-space: normal; }

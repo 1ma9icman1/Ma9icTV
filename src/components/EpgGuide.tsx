@@ -1074,7 +1074,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                   return (
                     <div
                       key={index}
-                      className="flex-shrink-0 border-r border-slate-800/80 px-2 py-2 text-xs font-mono font-semibold text-slate-400 flex items-center"
+                      className="flex-shrink-0 border-r border-slate-800/80 px-1.5 py-1 text-[10px] font-mono font-semibold text-slate-400 flex items-center"
                       style={{ width: `${30 * minuteWidthPx}px` }}
                     >
                       <span>{timeLabel}</span>
@@ -1115,7 +1115,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                         onSelectChannel(channel);
                         setSelectedProgram(null);
                       }}
-                      className={`sticky left-0 z-20 w-[150px] sm:w-[260px] flex-shrink-0 px-1 sm:px-1.5 py-1 border-r border-slate-700 flex items-center justify-between gap-1 sm:gap-3 cursor-pointer select-none transition-colors ${
+                      className={`sticky left-0 z-20 w-[112px] sm:w-[190px] flex-shrink-0 px-1 sm:px-1.5 py-1 border-r border-slate-700 flex items-center justify-between gap-1 sm:gap-3 cursor-pointer select-none transition-colors ${
                         isSelected ? 'bg-[#1b1b46] text-white' : remoteFocusedChannelIndex === cIdx ? 'bg-[#10263b] text-white ring-1 ring-inset ring-sky-400/70' : 'bg-[#070b12] text-slate-300'
                       }`}
                     >
@@ -1261,13 +1261,13 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                 );
               })}
               {filteredChannels.length > epgPageLimit && (
-                <div className="sticky left-0 flex items-center justify-center gap-3 p-4 bg-slate-950 border-t border-slate-800">
+                <div className="sticky left-0 flex items-center justify-center gap-2 p-2 bg-slate-950 border-t border-slate-800">
                   <span className="text-xs text-slate-400">
                     Showing {Math.min(epgPageLimit, filteredChannels.length).toLocaleString()} of {filteredChannels.length.toLocaleString()} channels
                   </span>
                   <button
                     onClick={() => setEpgPageLimit((limit) => Math.min(limit + 100, filteredChannels.length))}
-                    className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+                    className="px-2 py-1 rounded-md bg-indigo-600 hover:bg-indigo-500 text-[10px] font-semibold"
                   >
                     Load 100 More Channels
                   </button>

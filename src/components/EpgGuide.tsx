@@ -1268,9 +1268,6 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
 
                         {/* Channel logo, number and title grouped in one visible pill */}
                         <div className="flex items-center gap-1.5 min-w-0 max-w-full rounded-full px-1.5 py-1 bg-slate-900/90 border border-slate-700/90 shadow-sm">
-                          <span className="text-[9px] sm:text-[10px] font-mono font-bold text-cyan-200 flex-shrink-0">
-                            {channel.tvgChno || cIdx + 1}
-                          </span>
                           <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-950 border border-slate-600 p-0.5 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
                             {channel.logo ? (
                               <img

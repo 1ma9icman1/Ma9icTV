@@ -875,6 +875,16 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       event.stopPropagation();
       const delta = event.key === 'ArrowDown' ? 1 : -1;
       const nextIndex = Math.max(0, Math.min(filteredChannels.length - 1, remoteFocusedChannelIndex + delta));
+
+      // At the first EPG row, Up returns to the top navigation. Otherwise,
+      // vertical arrows stay inside the guide and move one channel at a time.
+      if (event.key === 'ArrowUp' && remoteFocusedChannelIndex === 0) {
+        const topStop = document.querySelector<HTMLElement>('header button[aria-pressed="true"]')
+          || document.querySelector<HTMLElement>('header button');
+        topStop?.focus();
+        return;
+      }
+
       setRemoteFocusedChannelIndex(nextIndex);
       const row = grid.querySelector<HTMLElement>('[data-channel-index="' + nextIndex + '"]');
       if (row) {

@@ -164,18 +164,18 @@ const WORLD_EPG_URLS = [
 ].join(',');
 
 export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
-  // --- 1. Worldwide channels: one list, starting with the UK ---
-  // Start with the UK playlist so the first guide loaded is relevant to the
-  // first channels shown. Expand this single World catalog to other countries
-  // after UK stream/EPG matching is verified.
+  // --- 1. Worldwide channels: one country-sorted lineup + multi-country EPG ---
+  // The country-grouped master M3U keeps every country in one channel list.
+  // The EPG loader merges country guides in batches and matches IDs first,
+  // then display names. UK is first so it is the initial guide to be loaded.
   {
-    name: 'World Channels — United Kingdom',
-    url: 'https://iptv-org.github.io/iptv/countries/uk.m3u',
+    name: 'World Channels (Sorted by Country)',
+    url: 'https://iptv-org.github.io/iptv/index.country.m3u',
     category: 'Worldwide',
-    description: 'Single World channel list, starting with UK streams and UK programme data.',
-    flag: '🇬🇧',
-    channelEstimate: 'UK channels',
-    epgUrl: 'https://iptv-org.github.io/epg/guides/uk/sky.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/uk/tv24.co.uk.epg.xml.gz',
+    description: 'One global channel list grouped by country, with merged EPG guides for the most-used regions.',
+    flag: '🌍',
+    channelEstimate: '~8,000 channels',
+    epgUrl: 'https://iptv-org.github.io/epg/guides/uk/sky.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/uk/tv24.co.uk.epg.xml.gz,https://iptv-org.github.io/epg/guides/us/directv.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/us/tvguide.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/us/gatotv.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/us/ontvtonight.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/ca/tvhebdo.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/ca/watch.sportsnet.ca.epg.xml.gz,https://iptv-org.github.io/epg/guides/au/foxtel.com.au.epg.xml.gz,https://iptv-org.github.io/epg/guides/au/abc.net.au.epg.xml.gz,https://iptv-org.github.io/epg/guides/nz/sky.co.nz.epg.xml.gz,https://iptv-org.github.io/epg/guides/ie/sky.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/fr/chaines-tv.orange.fr.epg.xml.gz,https://iptv-org.github.io/epg/guides/fr/tv.sfr.fr.epg.xml.gz,https://iptv-org.github.io/epg/guides/de/web.magentatv.de.epg.xml.gz,https://iptv-org.github.io/epg/guides/it/guidatv.sky.it.epg.xml.gz,https://iptv-org.github.io/epg/guides/it/superguidatv.it.epg.xml.gz,https://iptv-org.github.io/epg/guides/es/guia-tv.es.epg.xml.gz,https://iptv-org.github.io/epg/guides/pt/vodafone.pt.epg.xml.gz,https://iptv-org.github.io/epg/guides/nl/tvgids.nl.epg.xml.gz,https://iptv-org.github.io/epg/guides/za/dstv.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/in/tataplay.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/br/claro.com.br.epg.xml.gz,https://iptv-org.github.io/epg/guides/jp/tvguide.or.jp.epg.xml.gz,https://iptv-org.github.io/epg/guides/kr/skylife.co.kr.epg.xml.gz,https://iptv-org.github.io/epg/guides/ph/sky.com.ph.epg.xml.gz,https://iptv-org.github.io/epg/guides/mx/totalplay.com.mx.epg.xml.gz',
   },
 
   // --- 2. FAST Streaming Services (BuddyChewChew App M3U Generator) ---
@@ -250,161 +250,6 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
     flag: '🍿',
     channelEstimate: '~250 channels',
     epgUrl: 'https://raw.githubusercontent.com/BuddyChewChew/app-m3u-generator/main/playlists/tubi_epg.xml',
-  },
-
-  // --- 3. Popular Country Playlists ---
-  {
-    name: 'United States',
-    url: 'https://iptv-org.github.io/iptv/countries/us.m3u',
-    category: 'Countries',
-    description: 'Free public TV stations and online networks from the USA.',
-    flag: '🇺🇸',
-    channelEstimate: '~500 channels',
-  },
-  {
-    name: 'United Kingdom',
-    url: 'https://iptv-org.github.io/iptv/countries/uk.m3u',
-    category: 'Countries',
-    description: 'Live channels, regional news, and community broadcasts from the UK.',
-    flag: '🇬🇧',
-    channelEstimate: '~220 channels',
-    epgUrl: 'https://iptv-org.github.io/epg/guides/uk/sky.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/uk/tv24.co.uk.epg.xml.gz',
-  },
-  {
-    name: 'Canada',
-    url: 'https://iptv-org.github.io/iptv/countries/ca.m3u',
-    category: 'Countries',
-    description: 'Canadian English and French public streaming channels.',
-    flag: '🇨🇦',
-    channelEstimate: '~180 channels',
-  },
-  {
-    name: 'Australia',
-    url: 'https://iptv-org.github.io/iptv/countries/au.m3u',
-    category: 'Countries',
-    description: 'Australian national and regional broadcasts.',
-    flag: '🇦🇺',
-    channelEstimate: '~150 channels',
-  },
-  {
-    name: 'New Zealand',
-    url: 'https://iptv-org.github.io/iptv/countries/nz.m3u',
-    category: 'Countries',
-    description: 'New Zealand live channels, news, and Maori television.',
-    flag: '🇳🇿',
-    channelEstimate: '~40 channels',
-  },
-  {
-    name: 'Ireland',
-    url: 'https://iptv-org.github.io/iptv/countries/ie.m3u',
-    category: 'Countries',
-    description: 'Irish broadcasting channels and regional feeds.',
-    flag: '🇮🇪',
-    channelEstimate: '~35 channels',
-  },
-  {
-    name: 'France',
-    url: 'https://iptv-org.github.io/iptv/countries/fr.m3u',
-    category: 'Countries',
-    description: 'French news, entertainment, and cultural channels.',
-    flag: '🇫🇷',
-    channelEstimate: '~280 channels',
-  },
-  {
-    name: 'Germany',
-    url: 'https://iptv-org.github.io/iptv/countries/de.m3u',
-    category: 'Countries',
-    description: 'German national, regional public, and local broadcast feeds.',
-    flag: '🇩🇪',
-    channelEstimate: '~310 channels',
-  },
-  {
-    name: 'Spain',
-    url: 'https://iptv-org.github.io/iptv/countries/es.m3u',
-    category: 'Countries',
-    description: 'Spanish national and regional television channels.',
-    flag: '🇪🇸',
-    channelEstimate: '~250 channels',
-  },
-  {
-    name: 'Italy',
-    url: 'https://iptv-org.github.io/iptv/countries/it.m3u',
-    category: 'Countries',
-    description: 'Italian national TV, sports news, and cultural stations.',
-    flag: '🇮🇹',
-    channelEstimate: '~290 channels',
-  },
-  {
-    name: 'Portugal',
-    url: 'https://iptv-org.github.io/iptv/countries/pt.m3u',
-    category: 'Countries',
-    description: 'Portuguese public and regional channels.',
-    flag: '🇵🇹',
-    channelEstimate: '~60 channels',
-  },
-  {
-    name: 'Netherlands',
-    url: 'https://iptv-org.github.io/iptv/countries/nl.m3u',
-    category: 'Countries',
-    description: 'Dutch national and provincial television stations.',
-    flag: '🇳🇱',
-    channelEstimate: '~90 channels',
-  },
-  {
-    name: 'South Africa',
-    url: 'https://iptv-org.github.io/iptv/countries/za.m3u',
-    category: 'Countries',
-    description: 'South African public broadcasting and news streams.',
-    flag: '🇿🇦',
-    channelEstimate: '~45 channels',
-  },
-  {
-    name: 'India',
-    url: 'https://iptv-org.github.io/iptv/countries/in.m3u',
-    category: 'Countries',
-    description: 'Indian multilingual news, regional entertainment, and music.',
-    flag: '🇮🇳',
-    channelEstimate: '~380 channels',
-  },
-  {
-    name: 'Japan',
-    url: 'https://iptv-org.github.io/iptv/countries/jp.m3u',
-    category: 'Countries',
-    description: 'Japanese news, cultural, weather, and community streams.',
-    flag: '🇯🇵',
-    channelEstimate: '~75 channels',
-  },
-  {
-    name: 'South Korea',
-    url: 'https://iptv-org.github.io/iptv/countries/kr.m3u',
-    category: 'Countries',
-    description: 'South Korean live news, music, and K-culture stations.',
-    flag: '🇰🇷',
-    channelEstimate: '~95 channels',
-  },
-  {
-    name: 'Philippines',
-    url: 'https://iptv-org.github.io/iptv/countries/ph.m3u',
-    category: 'Countries',
-    description: 'Philippine national news and entertainment broadcasts.',
-    flag: '🇵🇭',
-    channelEstimate: '~70 channels',
-  },
-  {
-    name: 'Brazil',
-    url: 'https://iptv-org.github.io/iptv/countries/br.m3u',
-    category: 'Countries',
-    description: 'Brazilian Portuguese news, music, sports, and religious feeds.',
-    flag: '🇧🇷',
-    channelEstimate: '~260 channels',
-  },
-  {
-    name: 'Mexico',
-    url: 'https://iptv-org.github.io/iptv/countries/mx.m3u',
-    category: 'Countries',
-    description: 'Mexican national, regional, and university channels.',
-    flag: '🇲🇽',
-    channelEstimate: '~110 channels',
   },
 
   // --- Curated combined categories: fewer choices, broader subject coverage ---

@@ -702,6 +702,11 @@ export default function App() {
               onExpandPlayer={() => setCurrentView('player')}
               activePlaylistTitle={activePlaylist.title}
               activePlaylistEpgUrl={activePlaylist.epgUrl}
+              searchQuery={epgSearchQuery}
+              onSearchQueryChange={setEpgSearchQuery}
+              showFavoritePlaylist={showFavoriteEpg}
+              onToggleFavoritePlaylist={() => setShowFavoriteEpg((current) => !current)}
+              onEpgLoadingChange={setIsEpgLoading}
             />
           )}
         </main>

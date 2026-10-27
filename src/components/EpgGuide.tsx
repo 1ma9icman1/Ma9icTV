@@ -848,6 +848,12 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
           TOP MENU: SEARCH & EPG STATUS
           ========================================================================= */}
       <div className="order-first flex-shrink-0 bg-slate-950 border-b border-slate-800/80 px-2 py-1 flex flex-nowrap items-center gap-2 z-30 overflow-x-auto">
+
+        {/* Search stays first in the single top menu bar. */}
+        <div className="relative flex-1 min-w-[120px] max-w-none">
+          <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2" />
+          <input type="text" placeholder="Search channels & shows..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full min-h-8 bg-slate-900 border border-slate-800 rounded-md pl-6 pr-1.5 py-1 text-[10px] text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500" />
+        </div>
         {/* Favorites playlist toggle sits immediately before the EPG loading indicator. */}
         <button type="button"
           onPointerDown={(event) => { event.preventDefault(); event.stopPropagation(); }}
@@ -920,17 +926,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
           </div>
         </div>
 
-        {/* Center: Search */}
-        <div className="relative flex-1 min-w-[120px] max-w-none order-first">
-          <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search channels & shows..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full min-h-8 bg-slate-900 border border-slate-800 rounded-md pl-6 pr-1.5 py-1 text-[10px] text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-          />
-        </div>
+
 
 
       </div>

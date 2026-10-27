@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Upload,
   Link,
@@ -70,6 +70,16 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  // TV remotes need a focused control as soon as the catalogue opens.
+  useEffect(() => {
+    if (!isOpen) return;
+    const timer = window.setTimeout(() => {
+      const root = document.querySelector<HTMLElement>('[data-playlist-modal="true"]');
+      root?.querySelector<HTMLElement>('button:not(:disabled), input:not(:disabled)')?.focus();
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [isOpen, activeTab]);
+
 
   // Filter catalog items
   const filteredCatalog = useMemo(() => {
@@ -378,7 +388,7 @@ export const PlaylistModal: React.FC<PlaylistModalProps> = ({
   };
 
   return (
-    <div onKeyDown={handleCatalogDpad} className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-sm animate-fade-in select-none">
+    <div data-playlist-modal="true" onKeyDown={handleCatalogDpad} className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/75 backdrop-blur-sm animate-fade-in select-none">
       <div className="bg-slate-900 border border-slate-800 rounded-xl sm:rounded-2xl w-full max-w-3xl min-w-0 overflow-hidden shadow-2xl flex flex-col h-[96dvh] max-h-[96dvh] sm:h-auto sm:max-h-[90vh]">
         {/* Modal Header */}
         <div className="px-3 py-3 sm:px-6 sm:py-4 border-b border-slate-800 flex items-center justify-between gap-2 flex-shrink-0">

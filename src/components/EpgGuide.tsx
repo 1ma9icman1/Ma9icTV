@@ -318,6 +318,19 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     return ['All', ...Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true }))];
   }, [guideChannels]);
 
+  // Switching between Plex, Samsung, Pluto, and World must discard the
+  // previous playlist's category/search/scroll state. Otherwise a category such
+  // as "Work Countries" remains selected and filters every channel from the new list.
+  useEffect(() => {
+    setSelectedCategory('All');
+    setSearchQuery('');
+    setEpgPageLimit(100);
+    setEpgLoadError('');
+    setSelectedProgram(null);
+    if (gridScrollRef.current) gridScrollRef.current.scrollTop = 0;
+    if (categoryScrollRef.current) categoryScrollRef.current.scrollLeft = 0;
+  }, [activePlaylistTitle]);
+
   // The worldwide country-sorted lineup should open on the United Kingdom,
   // rather than showing every country at once. Match the real group label so
   // both "United Kingdom" and common "UK" naming variants are supported.
@@ -815,7 +828,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     }
     return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activePlaylistEpgUrl]);
+  }, [activePlaylistEpgUrl, activePlaylistTitle]);
 
   const updateExcludedEpgChannel = (channel: Channel, exclude: boolean) => {
     setExcludedEpgChannels((previous) => {

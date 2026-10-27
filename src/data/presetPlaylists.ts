@@ -48,7 +48,7 @@ export const INITIAL_PRESETS: Playlist[] = [
   {
     id: 'preset-world-live',
     title: 'Featured World Live Channels',
-    // Start the worldwide guide with US data, then merge additional regions.
+    // Start the worldwide guide with UK data, followed by Europe and then other regions.
     epgUrl: WORLD_EPG_URLS,
     type: 'preset',
     channelCount: 12,
@@ -347,16 +347,10 @@ const COUNTRY_EPG_CODES: Record<string, string> = {
 // the old /guides/us.xml.gz-style URLs are no longer valid. Combine working
 // provider feeds across regions for the worldwide and category playlists.
 const WORLDWIDE_EPG_SOURCES = [
-  'https://iptv-org.github.io/epg/guides/us/directv.com.epg.xml.gz',
-  'https://iptv-org.github.io/epg/guides/us/tvguide.com.epg.xml.gz',
-  'https://iptv-org.github.io/epg/guides/us/gatotv.com.epg.xml.gz',
-  'https://iptv-org.github.io/epg/guides/us/ontvtonight.com.epg.xml.gz',
+  // United Kingdom first, then the rest of Europe, then worldwide regions.
   'https://iptv-org.github.io/epg/guides/uk/sky.com.epg.xml.gz',
   'https://iptv-org.github.io/epg/guides/uk/tv24.co.uk.epg.xml.gz',
-  'https://iptv-org.github.io/epg/guides/ca/tvhebdo.com.epg.xml.gz',
-  'https://iptv-org.github.io/epg/guides/ca/watch.sportsnet.ca.epg.xml.gz',
-  'https://iptv-org.github.io/epg/guides/au/foxtel.com.au.epg.xml.gz',
-  'https://iptv-org.github.io/epg/guides/au/abc.net.au.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/ie/sky.com.epg.xml.gz',
   'https://iptv-org.github.io/epg/guides/fr/chaines-tv.orange.fr.epg.xml.gz',
   'https://iptv-org.github.io/epg/guides/fr/tv.sfr.fr.epg.xml.gz',
   'https://iptv-org.github.io/epg/guides/de/web.magentatv.de.epg.xml.gz',
@@ -364,10 +358,18 @@ const WORLDWIDE_EPG_SOURCES = [
   'https://iptv-org.github.io/epg/guides/it/superguidatv.it.epg.xml.gz',
   'https://iptv-org.github.io/epg/guides/pt/vodafone.pt.epg.xml.gz',
   'https://iptv-org.github.io/epg/guides/nl/tvgids.nl.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/ca/tvhebdo.com.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/ca/watch.sportsnet.ca.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/au/foxtel.com.au.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/au/abc.net.au.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/us/directv.com.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/us/tvguide.com.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/us/gatotv.com.epg.xml.gz',
+  'https://iptv-org.github.io/epg/guides/us/ontvtonight.com.epg.xml.gz',
   'https://iptv-org.github.io/epg/guides/za/dstv.com.epg.xml.gz',
   'https://iptv-org.github.io/epg/guides/in/tataplay.com.epg.xml.gz',
   'https://iptv-org.github.io/epg/guides/br/claro.com.br.epg.xml.gz',
-];
+;
 
 for (const playlist of CATALOG_PLAYLISTS) {
   // Do not change the working EPG configuration for streaming services.

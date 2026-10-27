@@ -29,6 +29,35 @@ import { XMLParser } from 'fast-xml-parser';
 import { VideoPlayer } from './VideoPlayer';
 import { getEpgExcludedChannels, saveEpgExcludedChannels } from '../utils/storage';
 
+const EpgProgramTitle: React.FC<{ title: string }> = ({ title }) => {
+  const titleRef = useRef<HTMLSpanElement | null>(null);
+  const windowRef = useRef<HTMLDivElement | null>(null);
+  const [overflows, setOverflows] = useState(false);
+  const [scrollDistance, setScrollDistance] = useState(0);
+  useEffect(() => {
+    const measure = () => {
+      const titleNode = titleRef.current;
+      const windowNode = windowRef.current;
+      if (!titleNode || !windowNode) return;
+      const distance = Math.max(0, titleNode.scrollWidth - windowNode.clientWidth);
+      setScrollDistance(distance);
+      setOverflows(distance > 2);
+    };
+    measure();
+    const observer = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null;
+    if (windowRef.current) observer?.observe(windowRef.current);
+    if (titleRef.current) observer?.observe(titleRef.current);
+    return () => observer?.disconnect();
+  }, [title]);
+  return (
+    <div ref={windowRef} className="epg-title-window flex h-[18px] min-w-0 items-center" title={title}>
+      <span ref={titleRef} className={overflows ? 'epg-title-marquee' : 'truncate'}
+        style={overflows ? ({ '--epg-title-distance': '-' + scrollDistance + 'px' } as React.CSSProperties) : undefined}>
+        {title}
+      </span>
+    </div>
+  );
+};
 function normalizeEpgName(value: string): string {
   return value.normalize('NFKD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
 }
@@ -1062,7 +1091,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
             {/* 1. Sticky Time Ruler Header */}
             <div className="relative z-10 flex bg-slate-950/95 border-b border-slate-800 shadow-md">
               {/* Corner Channel Header */}
-              <div className="sticky left-0 z-30 w-[112px] sm:w-[190px] flex-shrink-0 px-1 sm:px-2 py-1 border-r border-slate-700 bg-[#070b12] text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between gap-1">
+              <div className="sticky left-0 z-30 w-[148px] sm:w-[220px] flex-shrink-0 px-1 sm:px-2 py-1 border-r border-slate-700 bg-[#070b12] text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between gap-1">
                 <span>Channels ({filteredChannels.length})</span>
                 <span className="text-[10px] text-indigo-400 font-mono">LIVE TV</span>
               </div>
@@ -1126,7 +1155,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                         onSelectChannel(channel);
                         setSelectedProgram(null);
                       }}
-                      className={`sticky left-0 z-20 w-[112px] sm:w-[190px] flex-shrink-0 px-1 sm:px-1.5 py-1 border-r border-slate-700 flex items-center justify-between gap-1 sm:gap-3 cursor-pointer select-none transition-colors ${
+                      className={`sticky left-0 z-20 w-[148px] sm:w-[220px] flex-shrink-0 px-1 sm:px-1.5 py-1 border-r border-slate-700 flex items-center justify-between gap-1 sm:gap-3 cursor-pointer select-none transition-colors ${
                         isSelected ? 'bg-[#1b1b46] text-white' : remoteFocusedChannelIndex === cIdx ? 'bg-[#10263b] text-white ring-1 ring-inset ring-sky-400/70' : 'bg-[#070b12] text-slate-300'
                       }`}
                     >
@@ -1263,7 +1292,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                                 ></span>
                               )}
                             </div>
-                            <div className="epg-title-window" title={prog.title}><h5 className={`text-[10px] sm:text-[11px] font-semibold leading-tight ${prog.title.length > 20 ? 'epg-title-marquee' : 'truncate'}`}>{prog.title}</h5></div>
+                            <EpgProgramTitle title={prog.title} />
                           </div>
                         );
                       })}

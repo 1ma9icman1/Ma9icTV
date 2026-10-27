@@ -2,15 +2,6 @@ name: Build Ma9icTV Windows EXE
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - "package.json"
-      - "server.ts"
-      - "electron-main.cjs"
-      - "src/**"
-      - "index.html"
-      - "vite.config.ts"
-      - ".github/workflows/build-windows-exe.yml"
 
 permissions:
   contents: read

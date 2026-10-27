@@ -138,6 +138,18 @@ public final class LocalApiServer extends NanoHTTPD {
             InputStream input = "HEAD".equalsIgnoreCase(session.getMethod().name())
                 ? new ByteArrayInputStream(new byte[0]) : connection.getInputStream();
             String mime = contentType == null ? "application/octet-stream" : contentType;
+
+            // Android WebViews do not consistently expose DecompressionStream for gzip.
+            // XMLTV providers publish large guides as .xml.gz, so decompress those
+            // responses in the native bridge before the frontend's XML parser sees them.
+            // This leaves ordinary media/playlist responses and HLS range requests unchanged.
+            if (!"HEAD".equalsIgnoreCase(session.getMethod().name())
+                    && code == 200
+                    && lowerUrl.matches(".*\\.xml\\.gz(?:[?#].*)?$")) {
+                input = new java.util.zip.GZIPInputStream(input);
+                mime = "application/xml; charset=utf-8";
+            }
+
             Response response = newChunkedResponse(code == 206 ? Response.Status.PARTIAL_CONTENT : Response.Status.OK, mime,
                 new DisconnectingInputStream(input, connection));
             response.addHeader("Cache-Control", "no-store, no-cache, must-revalidate");

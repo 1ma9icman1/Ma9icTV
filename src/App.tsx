@@ -561,7 +561,7 @@ export default function App() {
   return (
     <div className={`flex h-[100dvh] w-full overflow-hidden ${themeClasses} font-sans`}>
       {showStartupLogo && <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-4 overflow-hidden bg-[#070b14]" role="status" aria-label="Ma9icTV starting">
-        <img src="/favicon.png" alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 m-auto h-[min(72vw,72vh)] w-[min(72vw,72vh)] object-contain opacity-25" />
+        <img src="/favicon.png" alt="" aria-hidden="true" className="pointer-events-none absolute inset-0 m-auto h-[min(72vw,72vh)] w-[min(72vw,72vh)] object-contain opacity-25 mix-blend-screen" />
         <div className="relative mt-24 text-[10px] uppercase tracking-[0.35em] text-slate-300 drop-shadow-[0_1px_4px_rgba(0,0,0,0.95)]">Loading television</div>
         <div className="relative mt-2 h-1 w-44 overflow-hidden rounded-full bg-slate-800/90 shadow-[0_0_12px_rgba(0,0,0,0.8)]" aria-hidden="true"><div className="h-full w-1/3 rounded-full bg-cyan-400 animate-pulse" /></div>
       </div>}

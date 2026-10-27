@@ -840,7 +840,8 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       return;
     }
     if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
-      if (isInteractive && !target.closest('[data-tune-channel="true"]')) return;
+      // Left/Right should always move the EPG timeline, even when a programme
+      // cell has focus. Up/Down continue to move the channel focus.
       event.preventDefault();
       event.stopPropagation();
       grid.scrollBy({ left: (event.key === 'ArrowRight' ? 1 : -1) * Math.max(180, grid.clientWidth * 0.65), behavior: 'smooth' });

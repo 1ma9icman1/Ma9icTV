@@ -303,8 +303,8 @@ export const ChannelList: React.FC<ChannelListProps> = ({
                       : 'bg-slate-950/40 border-slate-800/60 hover:bg-slate-800/70 hover:border-slate-700 text-slate-300'
                   }`}
                 >
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 p-1 flex items-center justify-center overflow-hidden flex-shrink-0">
+                  <div className="flex items-center gap-3 min-w-0 rounded-full px-2 py-1 bg-slate-900/80 border border-slate-700/80 shadow-sm">
+                    <div className="w-8 h-8 rounded-full bg-slate-950 border border-slate-700 p-1 flex items-center justify-center overflow-hidden flex-shrink-0">
                       {channel.logo ? (
                         <img
                           src={channel.logo}

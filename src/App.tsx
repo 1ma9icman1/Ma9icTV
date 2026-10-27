@@ -108,7 +108,7 @@ export default function App() {
   // Start in the combined EPG + live stream layout.
   // Fullscreen is requested separately below; browser policy may require one user gesture.
   const [currentView, setCurrentView] = useState<'player' | 'epg'>('epg');
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(true);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState<boolean>(false);
   const [isRefreshingPlaylist, setIsRefreshingPlaylist] = useState<boolean>(false);
   const [samsungReloadToken, setSamsungReloadToken] = useState<number>(0);
   const [isAppFullscreen, setIsAppFullscreen] = useState<boolean>(() => Boolean(document.fullscreenElement));
@@ -540,88 +540,15 @@ export default function App() {
 
   return (
     <div className={`flex h-[100dvh] w-full overflow-hidden ${themeClasses} font-sans`}>
-      {/* 1. Slim Left App Navigation Bar */}
-      <aside className="fixed bottom-0 left-0 right-0 z-40 h-14 w-full flex-shrink-0 bg-slate-950/95 border-t border-slate-800/80 flex flex-row items-center justify-around px-2 py-1 select-none md:static md:h-auto md:w-16 md:flex-col md:justify-between md:border-t-0 md:border-r md:px-0 md:py-4">
-        {/* Top: Logo & Main Navigation */}
-        <div className="flex flex-row items-center gap-2 h-full md:h-auto md:flex-col md:gap-6 w-auto md:w-full">
-          {/* IPTVnator Logo */}
-          <div
-            onClick={() => setCurrentView('player')}
-            className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-purple-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/25 cursor-pointer hover:scale-105 active:scale-95 transition-all"
-            title="IPTVnator Home"
-          >
-            <Tv className="w-5 h-5 stroke-[2.2]" />
-          </div>
-
-          <div className="hidden md:block w-8 h-[1px] bg-slate-800"></div>
-
-          {/* Nav Buttons */}
-          <nav className="flex flex-row items-center gap-1 h-full md:h-auto md:flex-col md:gap-2 w-auto md:w-full px-0 md:px-2">
-            {/* TV / Channels Mode */}
-            <button
-              onClick={() => setCurrentView('player')}
-              className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all ${
-                currentView === 'player'
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-              }`}
-              title="Channels & Live Player"
-            >
-              <Tv className="w-5 h-5" />
-            </button>
-
-            {/* EPG / TV Guide */}
-            <button
-              onClick={() => setCurrentView('epg')}
-              className={`w-11 h-11 rounded-xl flex items-center justify-center transition-all ${
-                currentView === 'epg'
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/30'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-              }`}
-              title="Electronic Program Guide (EPG)"
-            >
-              <Calendar className="w-5 h-5" />
-            </button>
-
-            {/* Playlists Catalog & Manager */}
-            <button
-              onClick={() => setIsPlaylistModalOpen(true)}
-              className="w-11 h-11 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-200 hover:bg-slate-900 transition-all relative"
-              title="Playlists & Channel Catalog (P)"
-            >
-              <Layers className="w-5 h-5" />
-              <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-indigo-500"></span>
-            </button>
-          </nav>
-        </div>
-
-        {/* Bottom: Settings & Shortcuts */}
-        <div className="flex flex-row items-center gap-1 w-auto md:flex-col md:gap-2 md:w-full px-0 md:px-2">
-          {/* Shortcuts Info */}
-          <button
-            onClick={() => setIsShortcutsModalOpen(true)}
-            className="w-11 h-11 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-200 hover:bg-slate-900 transition-all"
-            title="Keyboard Shortcuts (?)"
-          >
-            <HelpCircle className="w-5 h-5" />
-          </button>
-
-          {/* Settings */}
-          <button
-            onClick={() => setIsSettingsModalOpen(true)}
-            className="w-11 h-11 rounded-xl flex items-center justify-center text-slate-400 hover:text-slate-200 hover:bg-slate-900 transition-all"
-            title="Settings (S)"
-          >
-            <SettingsIcon className="w-5 h-5" />
-          </button>
-        </div>
-      </aside>
-
       {/* 2. Main Content Layout with Top Status Header */}
-      <div className="flex-1 min-w-0 flex flex-col overflow-hidden pb-14 md:pb-0">
+      <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
         {/* Top Header Bar */}
-        <header className="min-h-11 bg-slate-950/90 border-b border-slate-800/80 px-2 sm:px-4 py-1.5 flex flex-wrap gap-2 items-center justify-between text-xs select-none z-20">
-          <div className="flex items-center gap-3 min-w-0">
+        <header className="min-h-11 bg-slate-950/95 border-b border-slate-800/80 px-2 sm:px-3 py-1 flex flex-nowrap gap-2 items-center justify-between text-xs select-none z-20">
+          <div className="flex items-center gap-1.5 min-w-0">
+            <div className="flex items-center bg-slate-900 rounded-md border border-slate-800 p-0.5 flex-shrink-0">
+              <button onClick={() => { setCurrentView('player'); setIsSidebarCollapsed(false); }} className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors ${currentView === 'player' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`} aria-pressed={currentView === 'player'}>Player</button>
+              <button onClick={() => setCurrentView('epg')} className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors ${currentView === 'epg' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`} aria-pressed={currentView === 'epg'}>EPG Guide</button>
+            </div>
             <button
               onClick={() => setIsPlaylistModalOpen(true)}
               className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 transition-colors truncate max-w-xs sm:max-w-md"
@@ -664,26 +591,7 @@ export default function App() {
               <span>CHOOSE SERVICE</span>
             </button>
 
-            <div className="hidden sm:flex items-center bg-slate-900 rounded-lg border border-slate-800 p-0.5">
-              <button
-                onClick={() => setCurrentView('player')}
-                className={`px-2.5 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors ${
-                  currentView === 'player' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Tv className="w-3 h-3" />
-                <span>Player</span>
-              </button>
-              <button
-                onClick={() => setCurrentView('epg')}
-                className={`px-2.5 py-1 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors ${
-                  currentView === 'epg' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                <Calendar className="w-3 h-3" />
-                <span>EPG Guide</span>
-              </button>
-            </div>
+
           </div>
         </header>
 

@@ -9,6 +9,9 @@ import {
   Grid,
   List as ListIcon,
   ChevronDown,
+  Globe,
+  ExternalLink,
+  Camera,
 } from 'lucide-react';
 import { Channel } from '../types';
 
@@ -20,6 +23,47 @@ interface ChannelListProps {
   onToggleFavorite: (channelId: string) => void;
   recentlyPlayed: Channel[];
 }
+
+type LiveFeed = { name: string; region: string; category: string; description: string; url: string; };
+const LIVE_FEEDS: LiveFeed[] = [
+{name:'World Webcam Explorer',region:'Worldwide',category:'Landmarks & Cities',description:'Large directory of live cameras including city views and famous places.',url:'https://openearth.live/webcams'},
+{name:'EarthCam World Network',region:'Worldwide',category:'Landmarks & Cities',description:'Official webcam network with city streets, skylines and landmarks.',url:'https://www.earthcam.com/'},
+{name:'Times Square 4K',region:'New York, USA',category:'Landmarks & Cities',description:'Live views of Times Square and surrounding streets.',url:'https://www.earthcam.com/usa/newyork/timessquare/'},
+{name:'Statue of Liberty & New York Harbor',region:'New York, USA',category:'Historic Sites',description:'Official cameras showing the harbor, island and monument.',url:'https://www.statueofliberty.org/statue-of-liberty/earthcam/'},
+{name:'US National Parks Cameras',region:'United States',category:'Nature & Wildlife',description:'National Park Service area cameras hosted through EarthCam.',url:'https://static.earthcam.com/usa/nps/'},
+{name:'World Landmark Cameras',region:'Worldwide',category:'Historic Sites',description:'Live landmark and public-square cameras from multiple countries.',url:'https://earthlive24.com/cameras/landmarks'},
+{name:'Tabi Landmark Cameras',region:'Worldwide',category:'Historic Sites',description:'Public square, city and landmark webcams around the world.',url:'https://tabi.cam/monuments/'},
+{name:'GAIA News World Cameras',region:'Worldwide',category:'Landmarks & Cities',description:'Curated location cameras from identified operators, including Times Square and Shibuya.',url:'https://gaianews.com/'},
+{name:'Explore.org Live Nature Cams',region:'Worldwide',category:'Nature & Wildlife',description:'Wildlife and nature cameras, including bears, birds and marine life.',url:'https://explore.org/livecams'},
+{name:'Cornell Lab Bird Cams',region:'Worldwide',category:'Nature & Wildlife',description:'Live bird nests, feeders and wildlife habitats.',url:'https://www.allaboutbirds.org/cams/'},
+{name:'Monterey Bay Aquarium Live Cams',region:'California, USA',category:'Ocean & Aquariums',description:'Live exhibits including kelp forest and ocean wildlife cameras.',url:'https://www.montereybayaquarium.org/animals/live-cams'},
+{name:'Georgia Aquarium Live Cams',region:'Georgia, USA',category:'Ocean & Aquariums',description:'Aquarium cameras and underwater animal views.',url:'https://www.georgiaaquarium.org/webcam/'},
+{name:'Port of Cams: Surf, Coast & Nature',region:'Worldwide',category:'Ocean & Coastlines',description:'Browse live surf, beach, volcano, wildlife and city cameras.',url:'https://portofcams.com/'},
+{name:'afar.TV Nature Streams',region:'Worldwide',category:'Volcanoes & Geology',description:'Volcano, coastline, aurora and landscape livestream directory.',url:'https://www.afar.tv/'},
+{name:'Open Earth Live Streams',region:'Worldwide',category:'Earth Science',description:'Live and recent coverage of eruptions, storms, oceans, geology and space events.',url:'https://openearth.live/watch/live'},
+{name:'USGS Hawaiian Volcano Observatory',region:'Hawaii, USA',category:'Volcanoes & Geology',description:'Official Hawaiian volcano monitoring and camera resources.',url:'https://www.usgs.gov/observatories/hvo'},
+{name:'Yellowstone Volcano Observatory',region:'Wyoming, USA',category:'Volcanoes & Geology',description:'Official monitoring information and camera resources for Yellowstone.',url:'https://www.usgs.gov/observatories/yvo'},
+{name:'NASA Live / NASA TV',region:'Space',category:'Space & Astronomy',description:'Official NASA broadcasts, mission coverage and events.',url:'https://www.nasa.gov/nasatv/'},
+{name:'NASA Live on YouTube',region:'Low Earth Orbit / Space',category:'Space & Astronomy',description:'NASA live broadcasts, including Earth views when available.',url:'https://www.youtube.com/@NASA/live'},
+{name:'ESA Web TV',region:'Space',category:'Space & Astronomy',description:'European Space Agency mission, launch and science broadcasts.',url:'https://www.esa.int/ESA_Multimedia/ESA_Web_TV'},
+{name:'SpaceX Live',region:'Space',category:'Space & Astronomy',description:'Official launch webcasts and mission coverage when scheduled.',url:'https://www.youtube.com/@SpaceX/live'},
+{name:'NASA Jet Propulsion Laboratory',region:'Space',category:'Space & Astronomy',description:'Planetary science, spacecraft missions and live event coverage.',url:'https://www.jpl.nasa.gov/'},
+{name:'NOAA Ocean Exploration',region:'Oceans',category:'Ocean & Coastlines',description:'Deep-ocean expedition livestreams and exploration video.',url:'https://oceanexplorer.noaa.gov/'},
+{name:'NOAA Ocean Buoys',region:'Worldwide',category:'Earth Science',description:'Near-real-time ocean observations and marine conditions (data dashboard).',url:'https://www.ndbc.noaa.gov/'},
+{name:'NOAA Space Weather',region:'Space',category:'Space & Astronomy',description:'Solar wind, geomagnetic activity and space-weather monitoring.',url:'https://www.swpc.noaa.gov/'},
+{name:'USGS Earthquake Map',region:'Worldwide',category:'Earth Science',description:'Near-real-time earthquake map and event details (live data, not video).',url:'https://earthquake.usgs.gov/earthquakes/map/'},
+{name:'Open Earth Live Planet Monitor',region:'Worldwide',category:'Earth Science',description:'Near-real-time earthquakes, volcanoes, wildfires, storms, tsunamis and space events.',url:'https://openearth.live/'},
+{name:'Overwatch Earth Live Globe',region:'Worldwide',category:'Earth Science',description:'Interactive globe with environmental, transit, satellite and public-data layers.',url:'https://overwatch.earth/'},
+{name:'Zenitmap Live World Map',region:'Worldwide',category:'Earth Science',description:'Live globe for aurora, earthquakes, ISS, aircraft, ships and webcam discovery.',url:'https://zenitmap.com/en/'},
+{name:'Antarctic Research & Science',region:'Antarctica',category:'Polar & Remote Places',description:'Official Antarctic research, station updates and available camera links; continuous public webcams are limited.',url:'https://www.bas.ac.uk/'},
+{name:'US Antarctic Program',region:'Antarctica',category:'Polar & Remote Places',description:'Official US Antarctic Program station information and expedition media.',url:'https://www.usap.gov/'},
+{name:'Tokyo & Shibuya Cameras',region:'Tokyo, Japan',category:'Landmarks & Cities',description:'Find live street views and public camera links for Shibuya and Tokyo.',url:'https://gaianews.com/'},
+{name:'Abbey Road Crossing',region:'London, UK',category:'Historic Sites',description:'Find live camera coverage of the famous Abbey Road crossing when available.',url:'https://tabi.cam/monuments/'},
+{name:'Venice & St. Mark’s Square',region:'Venice, Italy',category:'Landmarks & Cities',description:'City and square cameras around Venice and its waterfront.',url:'https://earthlive24.com/cameras/landmarks'},
+{name:'African Wildlife & Waterholes',region:'Africa',category:'Nature & Wildlife',description:'Wildlife camera directory for animals and remote habitats.',url:'https://explore.org/livecams'},
+{name:'Coral Reefs & Tropical Seas',region:'Tropical oceans',category:'Ocean & Aquariums',description:'Underwater and marine-life cameras from public aquarium and nature networks.',url:'https://explore.org/livecams'}
+];
+const LIVE_FEED_CATEGORIES = ['All feeds', ...Array.from(new Set(LIVE_FEEDS.map((feed) => feed.category)))];
 
 export const ChannelList: React.FC<ChannelListProps> = ({
   channels,
@@ -33,6 +77,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
   const [selectedGroup, setSelectedGroup] = useState<string>('ALL');
   const [isGridView, setIsGridView] = useState<boolean>(false);
   const [pageLimit, setPageLimit] = useState<number>(150);
+  const [liveFeedCategory, setLiveFeedCategory] = useState('All feeds');
 
   // Reset pagination when filter changes
   useEffect(() => {
@@ -75,6 +120,13 @@ export const ChannelList: React.FC<ChannelListProps> = ({
         (c.tvgId && c.tvgId.toLowerCase().includes(query))
     );
   }, [channels, selectedGroup, favorites, recentlyPlayed, searchQuery]);
+
+  const filteredLiveFeeds = useMemo(() => LIVE_FEEDS.filter((feed) => {
+    const matchesCategory = liveFeedCategory === 'All feeds' || feed.category === liveFeedCategory;
+    const query = searchQuery.toLowerCase().trim();
+    const matchesQuery = !query || [feed.name, feed.region, feed.category, feed.description].some((value) => value.toLowerCase().includes(query));
+    return matchesCategory && matchesQuery;
+  }), [liveFeedCategory, searchQuery]);
 
   const visibleChannels = useMemo(() => {
     return filteredChannels.slice(0, pageLimit);
@@ -134,6 +186,8 @@ export const ChannelList: React.FC<ChannelListProps> = ({
             </button>
           </div>
         </div>
+
+        <button onClick={() => { setSelectedGroup('LIVE_FEEDS'); setSearchQuery(''); }} className={`w-full px-3 py-2 rounded-lg border text-xs font-semibold flex items-center justify-center gap-2 ${selectedGroup === 'LIVE_FEEDS' ? 'bg-emerald-600/20 border-emerald-500 text-emerald-200' : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-emerald-500/60'}`}><Camera className="w-4 h-4" /><span>WORLD LIVE FEEDS</span><span className="rounded-full bg-emerald-500/20 px-1.5 py-0.5 text-[10px]">{LIVE_FEEDS.length}</span></button>
 
         {/* Group Filter Tabs (Horizontally scrollable) */}
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
@@ -207,7 +261,22 @@ export const ChannelList: React.FC<ChannelListProps> = ({
 
       {/* Channels List / Grid Area */}
       <div className="flex-1 min-h-0 min-w-0 overflow-y-auto overscroll-contain p-2 space-y-1">
-        {filteredChannels.length === 0 ? (
+        {selectedGroup === 'LIVE_FEEDS' ? (
+          <div className="space-y-3">
+            <div className="rounded-xl border border-emerald-500/20 bg-emerald-950/20 p-3">
+              <div className="flex items-center gap-2 text-emerald-300 font-semibold text-sm"><Globe className="w-4 h-4" /> World Live Feeds</div>
+              <p className="text-[11px] text-slate-400 mt-1">Landmarks, ancient places, cities, wildlife, volcanoes, oceans, Antarctica and space. Select a feed to open its viewing page.</p>
+              <p className="text-[10px] text-slate-500 mt-1">Some sources are live video; others are live-data dashboards or directories. Availability is controlled by each provider.</p>
+            </div>
+            <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">{LIVE_FEED_CATEGORIES.map((category) => <button key={category} onClick={() => setLiveFeedCategory(category)} className={`px-2.5 py-1.5 rounded-md text-[10px] whitespace-nowrap border ${liveFeedCategory === category ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'}`}>{category}</button>)}</div>
+            {filteredLiveFeeds.length === 0 ? <div className="p-6 text-center text-xs text-slate-500">No live feeds match that search.</div> : filteredLiveFeeds.map((feed) => (
+              <a key={feed.name} href={feed.url} target="_blank" rel="noopener noreferrer" className="group block rounded-xl border border-slate-800 bg-slate-950/60 p-3 hover:border-emerald-500/50 hover:bg-slate-800/70 transition-colors">
+                <div className="flex items-start gap-2"><div className="mt-0.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-2 text-emerald-300"><Camera className="w-4 h-4" /></div><div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><h3 className="text-xs font-semibold text-slate-100 group-hover:text-emerald-200">{feed.name}</h3><ExternalLink className="w-3.5 h-3.5 flex-shrink-0 text-slate-500 group-hover:text-emerald-300" /></div><p className="text-[10px] text-emerald-300/80 mt-0.5">{feed.region} · {feed.category}</p><p className="text-[11px] leading-relaxed text-slate-400 mt-1">{feed.description}</p></div></div>
+              </a>
+            ))}
+            <p className="text-center text-[10px] text-slate-600 py-2">Curated directory · {filteredLiveFeeds.length} feeds shown · External sources may change or go offline.</p>
+          </div>
+        ) : filteredChannels.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-8 text-center text-slate-500 h-64">
             <Sparkles className="w-10 h-10 mb-2 stroke-[1.5] text-slate-600" />
             <p className="text-sm font-medium text-slate-400">No channels found</p>
@@ -377,9 +446,9 @@ export const ChannelList: React.FC<ChannelListProps> = ({
       {/* Footer Info */}
       <div className="p-2 border-t border-slate-800 text-[11px] text-slate-500 text-center flex items-center justify-between px-4">
         <span>
-          Showing {Math.min(visibleChannels.length, filteredChannels.length)} of {filteredChannels.length} channels
+          {selectedGroup === 'LIVE_FEEDS' ? `Showing ${filteredLiveFeeds.length} live feeds` : `Showing ${Math.min(visibleChannels.length, filteredChannels.length)} of ${filteredChannels.length} channels`}
         </span>
-        <span>{favorites.length} favorited</span>
+        <span>{selectedGroup === 'LIVE_FEEDS' ? 'External viewing links' : `${favorites.length} favorited`}</span>
       </div>
     </div>
   );

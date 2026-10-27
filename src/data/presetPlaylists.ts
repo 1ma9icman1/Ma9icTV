@@ -164,46 +164,18 @@ const WORLD_EPG_URLS = [
 ].join(',');
 
 export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
-  // --- 1. Worldwide Complete Playlists ---
+  // --- 1. Worldwide channels: one list, starting with the UK ---
+  // Start with the UK playlist so the first guide loaded is relevant to the
+  // first channels shown. Expand this single World catalog to other countries
+  // after UK stream/EPG matching is verified.
   {
-    name: 'Free-TV Curated Quality Playlist',
-    url: 'https://raw.githubusercontent.com/Free-TV/IPTV/master/playlist.m3u8',
+    name: 'World Channels — United Kingdom',
+    url: 'https://iptv-org.github.io/iptv/countries/uk.m3u',
     category: 'Worldwide',
-    description: 'Quality-focused, tested public television channels with high availability.',
-    channelEstimate: '~1,200 channels',
-    epgUrl: WORLD_EPG_URLS,
-  },
-  {
-    name: 'All Worldwide Channels (iptv-org)',
-    url: 'https://iptv-org.github.io/iptv/index.m3u',
-    category: 'Worldwide',
-    description: 'Comprehensive global collection of publicly available TV channels.',
-    channelEstimate: '~8,000 channels',
-    epgUrl: WORLD_EPG_URLS,
-  },
-  {
-    name: 'Worldwide Channels (Grouped by Country)',
-    url: 'https://iptv-org.github.io/iptv/index.country.m3u',
-    category: 'Worldwide',
-    description: 'Global channels with country names formatted as group categories.',
-    channelEstimate: '~8,000 channels',
-    epgUrl: WORLD_EPG_URLS,
-  },
-  {
-    name: 'Worldwide Channels (Grouped by Category)',
-    url: 'https://iptv-org.github.io/iptv/index.category.m3u',
-    category: 'Worldwide',
-    description: 'Channels organized by genre (News, Sports, Movies, Animation, etc.).',
-    channelEstimate: '~8,000 channels',
-    epgUrl: WORLD_EPG_URLS,
-  },
-  {
-    name: 'Worldwide Channels (Grouped by Language)',
-    url: 'https://iptv-org.github.io/iptv/index.language.m3u',
-    category: 'Worldwide',
-    description: 'Channels organized by broadcast language (English, Spanish, French, etc.).',
-    channelEstimate: '~8,000 channels',
-    epgUrl: WORLD_EPG_URLS,
+    description: 'Single World channel list, starting with UK streams and UK programme data.',
+    flag: '🇬🇧',
+    channelEstimate: 'UK channels',
+    epgUrl: 'https://iptv-org.github.io/epg/guides/uk/sky.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/uk/tv24.co.uk.epg.xml.gz',
   },
 
   // --- 2. FAST Streaming Services (BuddyChewChew App M3U Generator) ---
@@ -296,6 +268,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
     description: 'Live channels, regional news, and community broadcasts from the UK.',
     flag: '🇬🇧',
     channelEstimate: '~220 channels',
+    epgUrl: 'https://iptv-org.github.io/epg/guides/uk/sky.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/uk/tv24.co.uk.epg.xml.gz',
   },
   {
     name: 'Canada',

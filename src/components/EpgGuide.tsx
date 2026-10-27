@@ -561,8 +561,25 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       }
       const grid = gridScrollRef.current;
       if (!grid) return;
-      // Let the focused guide grid handle its own D-pad keys so channel focus
-      // and horizontal timeline movement do not fight the window-level handler.
+      // The first Down from the header/player enters the guide and focuses a real channel target.
+      if (!(event.target instanceof Node) || !grid.contains(event.target)) {
+        if (event.key === 'ArrowDown') {
+          const firstRow = grid.querySelector<HTMLElement>('[data-channel-index="0"] [data-tune-channel="true"]')
+            || grid.querySelector<HTMLElement>('[data-channel-index="0"]');
+          if (firstRow) {
+            event.preventDefault();
+            event.stopPropagation();
+            firstRow.focus();
+            firstRow.scrollIntoView({ block: 'nearest' });
+            return;
+          }
+        }
+        if (event.key === 'ArrowUp') return;
+        event.preventDefault();
+        event.stopPropagation();
+        grid.focus();
+        return;
+      }
       if (event.target instanceof Node && grid.contains(event.target)) return;
       event.preventDefault();
       event.stopPropagation();
@@ -1079,6 +1096,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                   <div
                     key={channel.id}
                     data-channel-index={cIdx}
+                    tabIndex={-1}
                     className={`flex items-stretch transition-colors ${
                       isSelected
                         ? 'bg-indigo-950/25 ring-1 ring-inset ring-indigo-500/40'
@@ -1090,6 +1108,16 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                     {/* Sticky Left Channel Card */}
                     <div
                       data-tune-channel="true"
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`Tune ${channel.name}`}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          onSelectChannel(channel);
+                          setSelectedProgram(null);
+                        }
+                      }}
                       onClick={(event) => {
                         event.preventDefault();
                         event.stopPropagation();
@@ -1233,7 +1261,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                                 ></span>
                               )}
                             </div>
-                            <h5 className="text-[10px] sm:text-[11px] font-semibold truncate leading-tight">{prog.title}</h5>
+                            <div className="epg-title-window" title={prog.title}><h5 className={`text-[10px] sm:text-[11px] font-semibold leading-tight ${prog.title.length > 20 ? 'epg-title-marquee' : 'truncate'}`}>{prog.title}</h5></div>
                           </div>
                         );
                       })}

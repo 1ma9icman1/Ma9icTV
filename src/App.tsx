@@ -113,6 +113,12 @@ export default function App() {
   const [isEpgLoading, setIsEpgLoading] = useState(false);
   const [samsungReloadToken, setSamsungReloadToken] = useState<number>(0);
   const [isAppFullscreen, setIsAppFullscreen] = useState<boolean>(() => Boolean(document.fullscreenElement));
+  const [showStartupLogo, setShowStartupLogo] = useState(true);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setShowStartupLogo(false), 3000);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const syncFullscreenState = () => setIsAppFullscreen(Boolean(document.fullscreenElement));
@@ -554,92 +560,43 @@ export default function App() {
 
   return (
     <div className={`flex h-[100dvh] w-full overflow-hidden ${themeClasses} font-sans`}>
+      {showStartupLogo && <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-4 bg-[#070b14]" role="status" aria-label="Ma9icTV starting">
+        <img src="/favicon.png" alt="Ma9icTV" className="w-28 h-28 sm:w-36 sm:h-36 object-contain drop-shadow-[0_0_28px_rgba(99,102,241,0.55)]" />
+        <div className="text-2xl sm:text-3xl font-extrabold tracking-[0.22em] text-white">MA9IC<span className="text-cyan-300">TV</span></div>
+        <div className="text-[10px] uppercase tracking-[0.35em] text-slate-400">Live television • Worldwide</div>
+        <div className="mt-2 h-1 w-36 overflow-hidden rounded-full bg-slate-800"><div className="h-full w-1/3 rounded-full bg-cyan-400 animate-pulse" /></div>
+      </div>
       {/* 2. Main Content Layout with Top Status Header */}
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
-        {/* Top Header Bar */}
-        <header className="min-h-11 bg-slate-950/95 border-b border-slate-800/80 px-2 sm:px-3 py-1 flex flex-nowrap gap-2 items-center justify-between text-xs select-none z-20">
-          <div className="flex items-center gap-1.5 min-w-0">
-            <div className="flex items-center bg-slate-900 rounded-md border border-slate-800 p-0.5 flex-shrink-0">
-              <button onClick={() => { setCurrentView('player'); setIsSidebarCollapsed(false); }} className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors ${currentView === 'player' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`} aria-pressed={currentView === 'player'}>Player</button>
-              <button onClick={() => setCurrentView('epg')} className={`px-2.5 py-1 rounded text-[11px] font-semibold transition-colors ${currentView === 'epg' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`} aria-pressed={currentView === 'epg'}>EPG Guide</button>
-            </div>
-            {currentView === 'epg' && (
-              <>
-                <div className="relative flex-1 min-w-[90px] max-w-[240px]">
-                  <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2" />
-                  <input
-                    type="search"
-                    placeholder="Search channels & shows"
-                    value={epgSearchQuery}
-                    onChange={(e) => setEpgSearchQuery(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter' || e.key === 'Go' || e.key === 'Search') {
-                        e.preventDefault();
-                        e.currentTarget.blur();
-                      }
-                    }}
-                    enterKeyHint="search"
-                    className="w-full h-8 bg-slate-900 border border-slate-800 rounded-md pl-6 pr-1.5 text-[10px] text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-                  />
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowFavoriteEpg((value) => !value)}
-                  aria-pressed={showFavoriteEpg}
-                  title={showFavoriteEpg ? 'Return to active playlist' : 'Show favorite channels'}
-                  className={`h-8 w-8 flex-shrink-0 rounded-md border flex items-center justify-center ${showFavoriteEpg ? 'border-amber-400/60 bg-amber-400/15 text-amber-300' : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-amber-300'}`}
-                >
-                  <Star className={`h-3.5 w-3.5 ${showFavoriteEpg ? 'fill-current' : ''}`} />
-                </button>
-                <div className="flex flex-shrink-0 items-center gap-1 text-[10px] font-semibold uppercase" role="status" aria-live="polite">
-                  <span className={isEpgLoading ? 'text-indigo-300' : 'text-slate-400'}>EPG</span>
-                  {isEpgLoading && <RefreshCw className="h-3.5 w-3.5 animate-spin text-indigo-400" />}
-                </div>
-              </>
-            )}
-            <button
-              onClick={() => setIsPlaylistModalOpen(true)}
-              className="flex items-center gap-2 px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 transition-colors truncate max-w-xs sm:max-w-md"
-              title="Change active playlist"
-            >
+        {/* Top Header Bar: service controls left, navigation/search centered, status/actions right */}
+        <header className="min-h-11 bg-slate-950/95 border-b border-slate-800/80 px-2 sm:px-3 py-1 flex flex-nowrap gap-2 items-center text-xs select-none z-20">
+          <div className="flex items-center gap-1.5 min-w-0 flex-1">
+            <button onClick={() => setIsPlaylistModalOpen(true)} className="flex flex-shrink-0 items-center gap-1.5 px-2.5 py-2 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-200 hover:text-white border border-indigo-500/40 text-[10px] sm:text-xs font-bold transition-all shadow-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-300" title="Choose a streaming service or playlist">
+              <Sparkles className="w-3.5 h-3.5 text-amber-300" /><span>CHOOSE SERVICE</span>
+            </button>
+            <button onClick={() => setIsPlaylistModalOpen(true)} className="flex items-center gap-1.5 min-w-0 px-2 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 transition-colors" title="Change active playlist">
               <FolderOpen className="w-3.5 h-3.5 text-indigo-400 flex-shrink-0" />
-              <span className="font-semibold truncate">{activePlaylist.title}</span>
-              <span className="text-[10px] text-slate-400 bg-slate-950 px-1.5 py-0.2 rounded border border-slate-800">
-                {activePlaylist.channelCount} channels
-              </span>
+              <span className="font-semibold truncate max-w-[115px] sm:max-w-[190px]">{activePlaylist.title}</span>
+              <span className="text-[10px] text-slate-300 bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 whitespace-nowrap">{activePlaylist.channels.length || activePlaylist.channelCount} channels</span>
             </button>
-
-            {activePlaylist.url && (
-              <button
-                disabled={isRefreshingPlaylist}
-                onClick={handleRefreshActivePlaylist}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 transition-colors"
-                title="Refresh current playlist from URL"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 ${isRefreshingPlaylist ? 'animate-spin text-indigo-400' : ''}`} />
-              </button>
-            )}
+            {activePlaylist.url && <button disabled={isRefreshingPlaylist} onClick={handleRefreshActivePlaylist} className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-900 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-400" title="Refresh current playlist" aria-label="Refresh current playlist"><RefreshCw className={`w-3.5 h-3.5 ${isRefreshingPlaylist ? 'animate-spin text-indigo-400' : ''}`} /></button>}
           </div>
-
-          <div className="flex items-center gap-2">
-            <button
-              onClick={toggleAppFullscreen}
-              className="flex items-center justify-center gap-1.5 min-w-9 min-h-9 px-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-800 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-400"
-              title={isAppFullscreen ? 'Exit fullscreen' : 'Fullscreen — hide browser controls'}
-              aria-label={isAppFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
-            >
-              {isAppFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
-              <span className="hidden lg:inline">{isAppFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</span>
-            </button>
-            <button
-              onClick={() => setIsPlaylistModalOpen(true)}
-              className="hidden sm:flex px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/30 text-xs font-semibold items-center gap-1.5 transition-all shadow-sm"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>CHOOSE SERVICE</span>
-            </button>
-
-
+          <div className="flex items-center justify-center gap-1.5 flex-shrink-0">
+            <div className="flex items-center bg-slate-900 rounded-md border border-slate-800 p-0.5">
+              <button onClick={() => { setCurrentView('player'); setIsSidebarCollapsed(false); }} className={`px-2.5 py-1.5 rounded text-[11px] font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-300 ${currentView === 'player' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`} aria-pressed={currentView === 'player'}>Player</button>
+              <button onClick={() => setCurrentView('epg')} className={`px-2.5 py-1.5 rounded text-[11px] font-semibold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-300 ${currentView === 'epg' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`} aria-pressed={currentView === 'epg'}>EPG Guide</button>
+            </div>
+            {currentView === 'epg' && <div className="relative w-[clamp(100px,19vw,250px)]">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
+              <input type="search" placeholder="Search channels & shows" value={epgSearchQuery} onChange={(e) => setEpgSearchQuery(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === 'Go' || e.key === 'Search') { e.preventDefault(); e.currentTarget.blur(); } }} enterKeyHint="search" aria-label="Search channels and shows" className="w-full h-8 bg-slate-900 border border-slate-800 rounded-md pl-7 pr-2 text-[10px] sm:text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500" />
+            </div>}
+          </div>
+          <div className="flex items-center justify-end gap-1.5 flex-1 min-w-0">
+            {currentView === 'epg' && <>
+              <button type="button" onClick={() => setShowFavoriteEpg((value) => !value)} aria-pressed={showFavoriteEpg} title={showFavoriteEpg ? 'Return to active playlist' : 'Show favorite channels'} aria-label={showFavoriteEpg ? 'Return to active playlist' : 'Show favorite channels'} className={`h-8 w-8 flex-shrink-0 rounded-md border flex items-center justify-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-amber-300 ${showFavoriteEpg ? 'border-amber-400/60 bg-amber-400/15 text-amber-300' : 'border-slate-800 bg-slate-900 text-slate-400 hover:text-amber-300'}`}><Star className={`h-3.5 w-3.5 ${showFavoriteEpg ? 'fill-current' : ''}`} /></button>
+              <div className="flex flex-shrink-0 items-center gap-1 text-[10px] font-semibold uppercase min-w-[36px]" role="status" aria-live="polite"><span className={isEpgLoading ? 'text-indigo-300' : 'text-slate-400'}>EPG</span>{isEpgLoading && <RefreshCw className="h-3.5 w-3.5 animate-spin text-indigo-400" />}</div>
+            </>}
+            <button onClick={toggleAppFullscreen} className="flex items-center justify-center min-w-8 min-h-8 px-2 rounded-lg text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-800 transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-400" title={isAppFullscreen ? 'Exit fullscreen' : 'Fullscreen'} aria-label={isAppFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}>{isAppFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}</button>
           </div>
         </header>
 

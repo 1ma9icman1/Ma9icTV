@@ -1064,7 +1064,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
           <button
             key={cat}
             onClick={() => setSelectedCategory(cat)}
-            className={`flex-shrink-0 px-1.5 py-0 rounded text-[8px] leading-4 font-semibold whitespace-nowrap transition-all ${
+            className={`flex-shrink-0 px-1.5 py-0 rounded text-[7px] leading-3 font-semibold whitespace-nowrap transition-all ${
               selectedCategory === cat
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'

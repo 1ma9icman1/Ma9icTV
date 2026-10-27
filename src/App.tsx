@@ -561,10 +561,8 @@ export default function App() {
   return (
     <div className={`flex h-[100dvh] w-full overflow-hidden ${themeClasses} font-sans`}>
       {showStartupLogo && <div className="fixed inset-0 z-[100] flex flex-col items-center justify-center gap-4 bg-[#070b14]" role="status" aria-label="Ma9icTV starting">
-        <img src="/favicon.png" alt="Ma9icTV" className="w-28 h-28 sm:w-36 sm:h-36 object-contain drop-shadow-[0_0_28px_rgba(99,102,241,0.55)]" />
-        <div className="text-2xl sm:text-3xl font-extrabold tracking-[0.22em] text-white">MA9IC<span className="text-cyan-300">TV</span></div>
-        <div className="text-[10px] uppercase tracking-[0.35em] text-slate-400">Live television • Worldwide</div>
-        <div className="mt-2 h-1 w-36 overflow-hidden rounded-full bg-slate-800"><div className="h-full w-1/3 rounded-full bg-cyan-400 animate-pulse" /></div>
+        <div className="text-[10px] uppercase tracking-[0.35em] text-slate-400">Loading television</div>
+        <div className="mt-2 h-1 w-44 overflow-hidden rounded-full bg-slate-800" aria-hidden="true"><div className="h-full w-1/3 rounded-full bg-cyan-400 animate-pulse" /></div>
       </div>}
       {/* 2. Main Content Layout with Top Status Header */}
       <div className="flex-1 min-w-0 flex flex-col overflow-hidden">

@@ -206,6 +206,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [epgPageLimit, setEpgPageLimit] = useState(100);
+  const [remoteFocusedChannelIndex, setRemoteFocusedChannelIndex] = useState(0);
   const [selectedProgram, setSelectedProgram] = useState<EpgProgram | null>(null);
   const [epgUrlInput, setEpgUrlInput] = useState(() => localStorage.getItem('ma9ictv-epg-url') || '');
   const [isLoadingEpg, setIsLoadingEpg] = useState(false);
@@ -800,6 +801,48 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     }
   };
 
+  // Android TV / D-pad navigation: arrows move guide focus without switching streams.
+  useEffect(() => {
+    const selectedIndex = filteredChannels.findIndex((channel) => channel.id === selectedChannel?.id);
+    if (selectedIndex >= 0) setRemoteFocusedChannelIndex(selectedIndex);
+    else setRemoteFocusedChannelIndex((index) => Math.min(index, Math.max(0, filteredChannels.length - 1)));
+  }, [selectedChannel?.id, filteredChannels]);
+
+  const handleGuideRemoteKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const grid = gridScrollRef.current;
+    if (!grid || !filteredChannels.length) return;
+    const target = event.target as HTMLElement;
+    const isInteractive = !!target.closest('button, input, textarea, select, a, [role="button"]');
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+      if (isInteractive && !target.closest('[data-tune-channel="true"]')) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const delta = event.key === 'ArrowDown' ? 1 : -1;
+      const nextIndex = Math.max(0, Math.min(filteredChannels.length - 1, remoteFocusedChannelIndex + delta));
+      setRemoteFocusedChannelIndex(nextIndex);
+      const row = grid.querySelector<HTMLElement>('[data-channel-index="' + nextIndex + '"]');
+      if (row) {
+        const top = row.offsetTop;
+        const bottom = top + row.offsetHeight;
+        if (top < grid.scrollTop + 42) grid.scrollTo({ top: Math.max(0, top - 42), behavior: 'auto' });
+        else if (bottom > grid.scrollTop + grid.clientHeight) grid.scrollTo({ top: bottom - grid.clientHeight, behavior: 'auto' });
+      }
+      return;
+    }
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      if (isInteractive && !target.closest('[data-tune-channel="true"]')) return;
+      event.preventDefault();
+      event.stopPropagation();
+      grid.scrollBy({ left: (event.key === 'ArrowRight' ? 1 : -1) * Math.max(180, grid.clientWidth * 0.65), behavior: 'smooth' });
+      return;
+    }
+    if (event.key === 'Enter' || event.key === ' ') {
+      if (isInteractive) return;
+      event.preventDefault();
+      const channel = filteredChannels[remoteFocusedChannelIndex];
+      if (channel) { onSelectChannel(channel); setSelectedProgram(null); }
+    }
+  };
   return (
     <div className="flex-1 min-h-0 min-w-0 flex flex-col h-full bg-[#0a0e17] text-slate-100 overflow-hidden select-none">
       {/* =========================================================================
@@ -1049,7 +1092,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
           ========================================================================= */}
       <div className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col relative bg-[#070b12]">
         {/* Scrollable Container */}
-        <div ref={gridScrollRef} onPointerDown={handleDragPointerDown} onPointerMove={handleDragPointerMove} onPointerUp={handleDragPointerUp} onPointerCancel={handleDragPointerUp} onClickCapture={handleDragClickCapture} className="flex-1 min-h-0 min-w-0 relative overscroll-contain cursor-grab active:cursor-grabbing" style={{ height: 0, overflowX: "auto", overflowY: "scroll", WebkitOverflowScrolling: "touch", touchAction: "pan-x pan-y", overscrollBehavior: "contain", scrollbarWidth: "auto", scrollbarColor: "#6366f1 #0f172a", userSelect: "none" }} aria-label="Scrollable TV guide. Click and drag horizontally for times and vertically for channels, or use TV remote arrows." tabIndex={0}>
+        <div ref={gridScrollRef} onPointerDown={handleDragPointerDown} onPointerMove={handleDragPointerMove} onPointerUp={handleDragPointerUp} onPointerCancel={handleDragPointerUp} onClickCapture={handleDragClickCapture} onKeyDown={handleGuideRemoteKeyDown} className="flex-1 min-h-0 min-w-0 relative overscroll-contain cursor-grab active:cursor-grabbing" style={{ height: 0, overflowX: "auto", overflowY: "scroll", WebkitOverflowScrolling: "touch", touchAction: "pan-x pan-y", overscrollBehavior: "contain", scrollbarWidth: "auto", scrollbarColor: "#6366f1 #0f172a", userSelect: "none" }} aria-label="Scrollable TV guide. Click and drag horizontally for times and vertically for channels, or use TV remote arrows." tabIndex={0}>
           <div
             className="min-w-max flex flex-col relative"
             style={{ width: `${(typeof window !== "undefined" && window.innerWidth < 640 ? 150 : 260) + (timeSlots.length - 1) * 30 * minuteWidthPx}px` }}
@@ -1105,9 +1148,12 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                 return (
                   <div
                     key={channel.id}
+                    data-channel-index={cIdx}
                     className={`flex items-stretch transition-colors ${
                       isSelected
                         ? 'bg-indigo-950/25 ring-1 ring-inset ring-indigo-500/40'
+                        : remoteFocusedChannelIndex === cIdx
+                        ? 'bg-sky-950/30 ring-1 ring-inset ring-sky-400/70'
                         : 'hover:bg-slate-900/40'
                     }`}
                   >
@@ -1121,7 +1167,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                         setSelectedProgram(null);
                       }}
                       className={`sticky left-0 z-20 w-[150px] sm:w-[260px] flex-shrink-0 px-2 sm:px-3 py-2.5 border-r border-slate-700 flex items-center justify-between gap-1 sm:gap-3 cursor-pointer select-none transition-colors ${
-                        isSelected ? 'bg-[#1b1b46] text-white' : 'bg-[#070b12] text-slate-300'
+                        isSelected ? 'bg-[#1b1b46] text-white' : remoteFocusedChannelIndex === cIdx ? 'bg-[#10263b] text-white ring-1 ring-inset ring-sky-400/70' : 'bg-[#070b12] text-slate-300'
                       }`}
                     >
                       <div className="flex items-center gap-2.5 min-w-0">

@@ -62,8 +62,18 @@ const LIVE_FEEDS: LiveFeed[] = [
 {name:'Venice & St. Mark’s Square',region:'Venice, Italy',category:'Landmarks & Cities',description:'City and square cameras around Venice and its waterfront.',url:'https://earthlive24.com/cameras/landmarks'},
 {name:'African Wildlife & Waterholes',region:'Africa',category:'Nature & Wildlife',description:'Wildlife camera directory for animals and remote habitats.',url:'https://explore.org/livecams'},
 {name:'Coral Reefs & Tropical Seas',region:'Tropical oceans',category:'Ocean & Aquariums',description:'Underwater and marine-life cameras from public aquarium and nature networks.',url:'https://explore.org/livecams'}
-];
-const LIVE_FEED_CATEGORIES = ['All feeds', ...Array.from(new Set(LIVE_FEEDS.map((feed) => feed.category)))];
+
+{name:'SkylineWebcams: World Live Cameras',region:'Worldwide',category:'Landmarks & Cities',description:'Large live-camera network covering city squares, UNESCO sites, beaches, volcanoes and landscapes.',url:'https://www.skylinewebcams.com/en/webcam.html'},
+{name:'UNESCO Heritage Camera Collection',region:'Worldwide',category:'Historic Sites',description:'Live camera collection featuring historic squares, bridges, ruins and heritage landmarks.',url:'https://www.skylinewebcams.com/en/live-cams-category/unesco-cams.html'},
+{name:'Rome Colosseum',region:'Rome, Italy',category:'Historic Sites',description:'Live webcam listing for the Colosseum and nearby ancient Roman ruins.',url:'https://www.skylinewebcams.com/en/webcam/italia/lazio/roma/colosseo.html'},
+{name:'Stonehenge Skyscape',region:'Wiltshire, England',category:'Historic Sites',description:'English Heritage live sky view from Stonehenge with sun, moon and planet context.',url:'https://www.english-heritage.org.uk/visit/places/stonehenge/history-and-stories/stonehenge360'},
+{name:'Western Wall Live Camera',region:'Jerusalem',category:'Historic Sites',description:'Official Western Wall Heritage Foundation live view of the prayer plaza and nearby areas.',url:'https://thekotel.org/en/western-wall/israel-live-cam/'},
+{name:'Eiffel Tower & Paris Views',region:'Paris, France',category:'Landmarks & Cities',description:'Live and frequently refreshed camera listings for the Eiffel Tower and central Paris.',url:'https://www.skylinewebcams.com/en/live-cams-category/city-cams.html'},
+{name:'Acropolis & Athens Landmarks',region:'Athens, Greece',category:'Historic Sites',description:'Landmark webcam directory includes views of the Acropolis and historic city centers.',url:'https://earthlive24.com/cameras/landmarks'},
+{name:'Sydney Harbour',region:'Sydney, Australia',category:'Ocean & Coastlines',description:'Live camera directory with Sydney Harbour, the Harbour Bridge and waterfront views.',url:'https://www.skylinewebcams.com/en/webcam.html'},
+{name:'Mount Etna & Stromboli',region:'Italy',category:'Volcanoes & Geology',description:'Volcano webcam listings for Stromboli and other active volcanic areas.',url:'https://www.skylinewebcams.com/en/webcam.html'},
+{name:'Jerusalem Old City Cameras',region:'Jerusalem',category:'Historic Sites',description:'Multiple live views of the Western Wall and Old City from public webcam directories.',url:'https://www.eta-il.com/en/webcams'},
+];\nconst LIVE_FEED_CATEGORIES = ['All feeds', ...Array.from(new Set(LIVE_FEEDS.map((feed) => feed.category)))];
 
 export const ChannelList: React.FC<ChannelListProps> = ({
   channels,

@@ -168,10 +168,13 @@ async function parseXmltvInBrowser(sourceValue: string) {
         const stop = String(programme?.['@_stop'] || '').trim();
         const showTitle = readXmltvText(programme?.title).trim();
         const episodeTitle = readXmltvText(programme?.['sub-title']).trim();
-        const title = showTitle && episodeTitle
-          && episodeTitle.toLocaleLowerCase() !== showTitle.toLocaleLowerCase()
-          ? `${showTitle} — ${episodeTitle}`
-          : (showTitle || episodeTitle);
+        const cleanTitle = (value: string) => value.replace(/\s*;\s*/g, ' ').replace(/\s+/g, ' ').trim();
+        const cleanShowTitle = cleanTitle(showTitle);
+        const cleanEpisodeTitle = cleanTitle(episodeTitle);
+        const title = cleanShowTitle && cleanEpisodeTitle
+          && cleanEpisodeTitle.toLocaleLowerCase() !== cleanShowTitle.toLocaleLowerCase()
+          ? `${cleanShowTitle} — ${cleanEpisodeTitle}`
+          : (cleanShowTitle || cleanEpisodeTitle);
         if (!channel || !start || !stop || !title) continue;
 
         const startMs = parseXmltvDate(start).getTime();

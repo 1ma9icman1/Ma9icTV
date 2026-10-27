@@ -532,6 +532,19 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
+  // Android TV: a short remote Back press dismisses the topmost UI layer,
+  // or returns from EPG to the player. The native activity only exits on a long hold.
+  useEffect(() => {
+    const handleRemoteBack = () => {
+      if (isShortcutsModalOpen) setIsShortcutsModalOpen(false);
+      else if (isSettingsModalOpen) setIsSettingsModalOpen(false);
+      else if (isPlaylistModalOpen) setIsPlaylistModalOpen(false);
+      else if (currentView === 'epg') setCurrentView('player');
+    };
+    window.addEventListener('ma9ictv-back', handleRemoteBack);
+    return () => window.removeEventListener('ma9ictv-back', handleRemoteBack);
+  }, [isShortcutsModalOpen, isSettingsModalOpen, isPlaylistModalOpen, currentView]);
+
   // Theme application
   const themeClasses = useMemo(() => {
     if (settings.theme === 'oled') return 'bg-black text-slate-100';

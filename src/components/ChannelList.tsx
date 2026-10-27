@@ -186,7 +186,7 @@ export const ChannelList: React.FC<ChannelListProps> = ({
   }, [filteredChannels, pageLimit]);
 
   return (
-    <div className="flex flex-col h-[40%] min-h-[145px] max-h-[44dvh] md:h-full md:max-h-none md:min-h-0 bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 w-full md:w-80 lg:w-96 min-w-0 flex-shrink-0 select-none">
+    <div className="flex flex-col h-[48dvh] min-h-[220px] max-h-[56dvh] md:h-full md:max-h-none md:min-h-0 bg-slate-900 border-b md:border-b-0 md:border-r border-slate-800 w-full md:w-80 lg:w-96 min-w-0 flex-shrink-0 select-none">
       {/* Search Bar & View Mode Header */}
       <div className="p-3 border-b border-slate-800 space-y-2">
         <div className="flex items-center gap-2">

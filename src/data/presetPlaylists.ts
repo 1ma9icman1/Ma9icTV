@@ -369,7 +369,7 @@ const WORLDWIDE_EPG_SOURCES = [
   'https://iptv-org.github.io/epg/guides/za/dstv.com.epg.xml.gz',
   'https://iptv-org.github.io/epg/guides/in/tataplay.com.epg.xml.gz',
   'https://iptv-org.github.io/epg/guides/br/claro.com.br.epg.xml.gz',
-;
+];
 
 for (const playlist of CATALOG_PLAYLISTS) {
   // Do not change the working EPG configuration for streaming services.

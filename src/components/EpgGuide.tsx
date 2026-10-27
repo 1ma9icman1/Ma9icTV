@@ -281,10 +281,6 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   const guideHeaderHeight = 34;
   const guideViewportHeight = gridScrollRef.current?.clientHeight || 600;
   const firstVisibleGuideRow = Math.max(0, Math.floor(Math.max(0, gridScrollTop - guideHeaderHeight) / guideRowHeight) - 8);
-  const lastVisibleGuideRow = Math.min(
-    Math.min(filteredChannels.length, epgPageLimit),
-    Math.ceil(Math.max(0, gridScrollTop - guideHeaderHeight + guideViewportHeight) / guideRowHeight) + 8
-  );
   const categoryScrollRef = useRef<HTMLDivElement | null>(null);
   const dragStateRef = useRef<{ pointerId: number; startX: number; startY: number; scrollLeft: number; scrollTop: number; active: boolean; suppressClick: boolean } | null>(null);
   const legacySavedEpgUrl = useRef(localStorage.getItem('ma9ictv-epg-url') || '');
@@ -349,6 +345,11 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       );
     });
   }, [guideChannels, selectedCategory, searchQuery, excludedChannelKeys, showExcludedEpgChannels, showFavoritePlaylist]);
+
+  const lastVisibleGuideRow = Math.min(
+    Math.min(filteredChannels.length, epgPageLimit),
+    Math.ceil(Math.max(0, gridScrollTop - guideHeaderHeight + guideViewportHeight) / guideRowHeight) + 8
+  );
 
   // Start with 100 rows for a fast first render, then expand the guide in
   // background batches after a channel has been selected. This avoids making

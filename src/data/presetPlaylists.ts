@@ -11,12 +11,45 @@ export interface CatalogPlaylist {
   sourceUrls?: string[];
 }
 
+export const WORLD_EPG_URLS = [
+  'https://epgshare01.online/epgshare01/epg_ripper_UK1.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_IE1.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_FR1.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_DE1.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_IT1.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_ES1.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_PT1.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_NL1.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_CH1.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_AT1.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_DK1.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_FI1.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_GR1.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_HR1.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_HU1.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_NO1.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_PL1.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_RO1.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_RS1.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_SE1.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_SK1.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_CZ1.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_UA1.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_TR1.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_US2.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_AU1.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_NZ1.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_IN1.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_MX1.xml.gz',
+  'https://epgshare01.online/epgshare01/epg_ripper_ZA1.xml.gz',
+].join(',');
+
 export const INITIAL_PRESETS: Playlist[] = [
   {
     id: 'preset-world-live',
     title: 'Featured World Live Channels',
     // Start the worldwide guide with US data, then merge additional regions.
-    epgUrl: 'https://iptv-org.github.io/epg/guides/us/directv.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/us/tvguide.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/us/gatotv.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/us/ontvtonight.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/uk/sky.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/ca/tvhebdo.com.epg.xml.gz',
+    epgUrl: WORLD_EPG_URLS,
     type: 'preset',
     channelCount: 12,
     addedAt: Date.now(),
@@ -135,34 +168,7 @@ export const INITIAL_PRESETS: Playlist[] = [
   },
 ];
 
-// Public XMLTV guides used by the worldwide catalog. iptv-org/epg is the
-// guide-generation toolkit; these are published XMLTV feeds, not the toolkit repo.
-// IDs in iptv-org playlists follow the iptv-org database convention. Name aliases
-// in EpgGuide also help Free-TV entries whose IDs differ or are absent.
-const WORLD_EPG_URLS = [
-  // Start with US guides so the global EPG has useful data immediately.
-  'https://iptv-org.github.io/epg/guides/us/directv.com.epg.xml.gz',
-  'https://iptv-org.github.io/epg/guides/us/tvguide.com.epg.xml.gz',
-  'https://iptv-org.github.io/epg/guides/us/gatotv.com.epg.xml.gz',
-  'https://iptv-org.github.io/epg/guides/us/ontvtonight.com.epg.xml.gz',
-  'https://iptv-org.github.io/epg/guides/uk/sky.com.epg.xml.gz',
-  'https://iptv-org.github.io/epg/guides/uk/tv24.co.uk.epg.xml.gz',
-  'https://iptv-org.github.io/epg/guides/ca/tvhebdo.com.epg.xml.gz',
-  'https://iptv-org.github.io/epg/guides/ca/watch.sportsnet.ca.epg.xml.gz',
-  'https://iptv-org.github.io/epg/guides/au/foxtel.com.au.epg.xml.gz',
-  'https://iptv-org.github.io/epg/guides/au/abc.net.au.epg.xml.gz',
-  'https://iptv-org.github.io/epg/guides/fr/chaines-tv.orange.fr.epg.xml.gz',
-  'https://iptv-org.github.io/epg/guides/fr/tv.sfr.fr.epg.xml.gz',
-  'https://iptv-org.github.io/epg/guides/de/web.magentatv.de.epg.xml.gz',
-  'https://iptv-org.github.io/epg/guides/it/guidatv.sky.it.epg.xml.gz',
-  'https://iptv-org.github.io/epg/guides/it/superguidatv.it.epg.xml.gz',
-  'https://iptv-org.github.io/epg/guides/pt/vodafone.pt.epg.xml.gz',
-  'https://iptv-org.github.io/epg/guides/nl/tvgids.nl.epg.xml.gz',
-  'https://iptv-org.github.io/epg/guides/za/dstv.com.epg.xml.gz',
-  'https://iptv-org.github.io/epg/guides/in/tataplay.com.epg.xml.gz',
-  'https://iptv-org.github.io/epg/guides/br/claro.com.br.epg.xml.gz',
-].join(',');
-
+// Current XMLTV feeds from EPGShare; UK loads first, then European and global regions.
 export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
   // --- 1. Worldwide channels: one country-sorted lineup + multi-country EPG ---
   // The country-grouped master M3U keeps every country in one channel list.
@@ -175,7 +181,7 @@ export const CATALOG_PLAYLISTS: CatalogPlaylist[] = [
     description: 'One global channel list grouped by country, with merged EPG guides for the most-used regions.',
     flag: '🌍',
     channelEstimate: '~8,000 channels',
-    epgUrl: 'https://iptv-org.github.io/epg/guides/uk/sky.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/uk/tv24.co.uk.epg.xml.gz,https://iptv-org.github.io/epg/guides/ie/sky.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/fr/chaines-tv.orange.fr.epg.xml.gz,https://iptv-org.github.io/epg/guides/fr/tv.sfr.fr.epg.xml.gz,https://iptv-org.github.io/epg/guides/de/web.magentatv.de.epg.xml.gz,https://iptv-org.github.io/epg/guides/it/guidatv.sky.it.epg.xml.gz,https://iptv-org.github.io/epg/guides/it/superguidatv.it.epg.xml.gz,https://iptv-org.github.io/epg/guides/es/guia-tv.es.epg.xml.gz,https://iptv-org.github.io/epg/guides/pt/vodafone.pt.epg.xml.gz,https://iptv-org.github.io/epg/guides/nl/tvgids.nl.epg.xml.gz,https://iptv-org.github.io/epg/guides/be/tv.vrt.be.epg.xml.gz,https://iptv-org.github.io/epg/guides/se/tv.nu.epg.xml.gz,https://iptv-org.github.io/epg/guides/no/tvguide.no.epg.xml.gz,https://iptv-org.github.io/epg/guides/dk/tvtid.dk.epg.xml.gz,https://iptv-org.github.io/epg/guides/fi/telkku.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/pl/teleman.pl.epg.xml.gz,https://iptv-org.github.io/epg/guides/cz/programy-tv.cz.epg.xml.gz,https://iptv-org.github.io/epg/guides/at/tv.orf.at.epg.xml.gz,https://iptv-org.github.io/epg/guides/ch/tv.blue.ch.epg.xml.gz,https://iptv-org.github.io/epg/guides/gr/athinorama.gr.epg.xml.gz,https://iptv-org.github.io/epg/guides/tr/digiturk.com.tr.epg.xml.gz,https://iptv-org.github.io/epg/guides/ro/program-tv.ro.epg.xml.gz,https://iptv-org.github.io/epg/guides/hu/port.hu.epg.xml.gz,https://iptv-org.github.io/epg/guides/us/directv.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/us/tvguide.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/us/gatotv.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/us/ontvtonight.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/ca/tvhebdo.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/ca/watch.sportsnet.ca.epg.xml.gz,https://iptv-org.github.io/epg/guides/ca/rogers.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/au/foxtel.com.au.epg.xml.gz,https://iptv-org.github.io/epg/guides/au/abc.net.au.epg.xml.gz,https://iptv-org.github.io/epg/guides/nz/sky.co.nz.epg.xml.gz,https://iptv-org.github.io/epg/guides/za/dstv.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/in/tataplay.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/br/claro.com.br.epg.xml.gz,https://iptv-org.github.io/epg/guides/mx/totalplay.com.mx.epg.xml.gz,https://iptv-org.github.io/epg/guides/ve/directv.com.ve.epg.xml.gz,https://iptv-org.github.io/epg/guides/uy/directv.com.uy.epg.xml.gz,https://iptv-org.github.io/epg/guides/py/directv.com.py.epg.xml.gz,https://iptv-org.github.io/epg/guides/pe/directv.com.pe.epg.xml.gz,https://iptv-org.github.io/epg/guides/ec/directv.com.ec.epg.xml.gz,https://iptv-org.github.io/epg/guides/co/directv.com.co.epg.xml.gz,https://iptv-org.github.io/epg/guides/cl/vtr.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/bo/tv.yandex.ru.epg.xml.gz,https://iptv-org.github.io/epg/guides/ar/cablevision.com.ar.epg.xml.gz,https://iptv-org.github.io/epg/guides/jp/tvguide.or.jp.epg.xml.gz,https://iptv-org.github.io/epg/guides/kr/skylife.co.kr.epg.xml.gz,https://iptv-org.github.io/epg/guides/ph/sky.com.ph.epg.xml.gz,https://iptv-org.github.io/epg/guides/cn/tv.cctv.com.epg.xml.gz,https://iptv-org.github.io/epg/guides/ru/tv.yandex.ru.epg.xml.gz',
+    epgUrl: WORLD_EPG_URLS,
   },
 
   // --- 2. FAST Streaming Services (BuddyChewChew App M3U Generator) ---

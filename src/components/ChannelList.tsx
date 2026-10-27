@@ -93,6 +93,15 @@ export const ChannelList: React.FC<ChannelListProps> = ({
               placeholder="Search channels, categories, IDs..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => {
+                // Android keyboards send the Go/Search action as Enter. Filtering
+                // is live, so consume the action and dismiss the keyboard cleanly.
+                if (e.key === 'Enter' || e.key === 'Go' || e.key === 'Search') {
+                  e.preventDefault();
+                  e.currentTarget.blur();
+                }
+              }}
+              enterKeyHint="search"
               className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all"
             />
             {searchQuery && (

@@ -184,6 +184,11 @@ interface EpgGuideProps {
   onExpandPlayer?: () => void;
   activePlaylistTitle: string;
   activePlaylistEpgUrl?: string;
+  searchQuery: string;
+  onSearchQueryChange: (value: string) => void;
+  showFavoritePlaylist: boolean;
+  onToggleFavoritePlaylist: () => void;
+  onEpgLoadingChange: (loading: boolean) => void;
 }
 
 export const EpgGuide: React.FC<EpgGuideProps> = ({
@@ -202,19 +207,23 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   onExpandPlayer,
   activePlaylistTitle,
   activePlaylistEpgUrl,
+  searchQuery,
+  onSearchQueryChange,
+  showFavoritePlaylist,
+  onToggleFavoritePlaylist,
+  onEpgLoadingChange,
 }) => {
-  const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [epgPageLimit, setEpgPageLimit] = useState(100);
   const [remoteFocusedChannelIndex, setRemoteFocusedChannelIndex] = useState(0);
   const [selectedProgram, setSelectedProgram] = useState<EpgProgram | null>(null);
   const [epgUrlInput, setEpgUrlInput] = useState(() => localStorage.getItem('ma9ictv-epg-url') || '');
   const [isLoadingEpg, setIsLoadingEpg] = useState(false);
+  useEffect(() => { onEpgLoadingChange(isLoadingEpg); }, [isLoadingEpg, onEpgLoadingChange]);
   const [streamConnectedForBatchLoad, setStreamConnectedForBatchLoad] = useState(false);
   const [hasConnectedForEpg, setHasConnectedForEpg] = useState(false);
   const [excludedEpgChannels, setExcludedEpgChannels] = useState<Channel[]>(() => getEpgExcludedChannels());
   const [showExcludedEpgChannels, setShowExcludedEpgChannels] = useState(false);
-  const [showFavoritePlaylist, setShowFavoritePlaylist] = useState(false);
   const guideChannels = showFavoritePlaylist ? favoriteChannels : channels;
   const favoriteFileInputRef = useRef<HTMLInputElement | null>(null);
   const [epgLoadError, setEpgLoadError] = useState('');
@@ -847,46 +856,6 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   };
   return (
     <div className="flex-1 min-h-0 min-w-0 flex flex-col h-full bg-[#0a0e17] text-slate-100 overflow-hidden select-none">
-      {/* =========================================================================
-          TOP MENU: SEARCH & EPG STATUS
-          ========================================================================= */}
-      <div className="order-first flex-shrink-0 bg-slate-950 border-b border-slate-800/80 px-1.5 py-1 flex flex-nowrap items-center gap-1.5 z-30">
-        <div className="relative flex-1 min-w-0">
-          <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Search channels & shows..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onKeyDown={(e) => {
-              // Android keyboards send the Go/Search action as Enter. Filtering
-              // is live, so consume the action and dismiss the keyboard cleanly.
-              if (e.key === 'Enter' || e.key === 'Go' || e.key === 'Search') {
-                e.preventDefault();
-                e.currentTarget.blur();
-              }
-            }}
-            enterKeyHint="search"
-            className="w-full h-7 bg-slate-900 border border-slate-800 rounded-md pl-6 pr-1.5 py-0.5 text-[10px] text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-          />
-        </div>
-        <button
-          type="button"
-          onClick={() => { setShowFavoritePlaylist((value) => !value); setShowExcludedEpgChannels(false); setSelectedCategory('All'); }}
-          aria-pressed={showFavoritePlaylist}
-          title={showFavoritePlaylist ? 'Return to active playlist' : `Show favorites (${favoriteChannels.length})`}
-          disabled={favoriteChannels.length === 0}
-          className={`h-7 w-7 flex-shrink-0 rounded-md border flex items-center justify-center disabled:opacity-40 ${showFavoritePlaylist ? 'border-amber-400/60 bg-amber-400/15 text-amber-300' : 'border-slate-800 bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-amber-300'}`}
-          aria-label={showFavoritePlaylist ? 'Show active playlist EPG' : 'Show favorite channels'}
-        >
-          <Star className={`h-3.5 w-3.5 ${showFavoritePlaylist ? 'fill-current' : ''}`} />
-        </button>
-        <div className="flex flex-shrink-0 items-center gap-1.5 px-1 text-[10px] font-semibold uppercase tracking-wide" role="status" aria-live="polite" aria-label={isLoadingEpg ? 'Loading EPG' : 'EPG'}>
-          <span className={isLoadingEpg ? 'text-indigo-300' : 'text-slate-400'}>EPG</span>
-          {isLoadingEpg && <RefreshCw className="h-3.5 w-3.5 animate-spin text-indigo-400" />}
-        </div>
-      </div>
-
       {/* =========================================================================
           STAGE 1: TOP HERO SECTION (LIVE VIDEO PLAYER + PROGRAM INFO PANE)
           ========================================================================= */}

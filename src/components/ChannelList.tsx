@@ -61,7 +61,7 @@ const LIVE_FEEDS: LiveFeed[] = [
 {name:'Abbey Road Crossing',region:'London, UK',category:'Historic Sites',description:'Find live camera coverage of the famous Abbey Road crossing when available.',url:'https://tabi.cam/monuments/'},
 {name:'Venice & St. Mark’s Square',region:'Venice, Italy',category:'Landmarks & Cities',description:'City and square cameras around Venice and its waterfront.',url:'https://earthlive24.com/cameras/landmarks'},
 {name:'African Wildlife & Waterholes',region:'Africa',category:'Nature & Wildlife',description:'Wildlife camera directory for animals and remote habitats.',url:'https://explore.org/livecams'},
-{name:'Coral Reefs & Tropical Seas',region:'Tropical oceans',category:'Ocean & Aquariums',description:'Underwater and marine-life cameras from public aquarium and nature networks.',url:'https://explore.org/livecams'}
+{name:'Coral Reefs & Tropical Seas',region:'Tropical oceans',category:'Ocean & Aquariums',description:'Underwater and marine-life cameras from public aquarium and nature networks.',url:'https://explore.org/livecams'},
 
 {name:'SkylineWebcams: World Live Cameras',region:'Worldwide',category:'Landmarks & Cities',description:'Large live-camera network covering city squares, UNESCO sites, beaches, volcanoes and landscapes.',url:'https://www.skylinewebcams.com/en/webcam.html'},
 {name:'UNESCO Heritage Camera Collection',region:'Worldwide',category:'Historic Sites',description:'Live camera collection featuring historic squares, bridges, ruins and heritage landmarks.',url:'https://www.skylinewebcams.com/en/live-cams-category/unesco-cams.html'},

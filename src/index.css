@@ -280,3 +280,15 @@ button, [role="button"] {
 @media (prefers-reduced-motion: reduce) {
   .epg-title-marquee { animation: none; white-space: normal; }
 }
+
+
+/* Fill the EPG channel rail cleanly while preserving rounded tile corners. */
+[data-testid="epg-guide"] [class*="h-12"][class*="rounded-xl"][class*="cursor-pointer"],
+.epg-guide [class*="h-12"][class*="rounded-xl"][class*="cursor-pointer"] {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  border-radius: 12px !important;
+}
+.epg-title-window { overflow: hidden; }
+.epg-title-window > span { white-space: nowrap; }

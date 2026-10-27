@@ -553,6 +553,9 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       }
       const grid = gridScrollRef.current;
       if (!grid) return;
+      // Let the focused guide grid handle its own D-pad keys so channel focus
+      // and horizontal timeline movement do not fight the window-level handler.
+      if (event.target instanceof Node && grid.contains(event.target)) return;
       event.preventDefault();
       event.stopPropagation();
       const horizontal = event.key === 'ArrowLeft' || event.key === 'ArrowRight';

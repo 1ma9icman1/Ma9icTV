@@ -323,7 +323,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   // as "Work Countries" remains selected and filters every channel from the new list.
   useEffect(() => {
     setSelectedCategory('All');
-    setSearchQuery('');
+    onSearchQueryChange('');
     setEpgPageLimit(100);
     setEpgLoadError('');
     setSelectedProgram(null);

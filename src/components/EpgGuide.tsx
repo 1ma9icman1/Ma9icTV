@@ -261,7 +261,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   onToggleFavoritePlaylist,
   onEpgLoadingChange,
 }) => {
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
+  const [selectedCategory, setSelectedCategory] = useState<string>(() => /world/i.test(activePlaylistTitle) ? 'United Kingdom' : 'All');
   const [epgPageLimit, setEpgPageLimit] = useState(100);
   const [remoteFocusedChannelIndex, setRemoteFocusedChannelIndex] = useState(0);
   const [selectedProgram, setSelectedProgram] = useState<EpgProgram | null>(null);
@@ -336,14 +336,14 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     // On World Channels, show UK first, Europe next, other countries after,
     // and put the "All" option last rather than ahead of the UK.
     // Other playlists keep the familiar "All" option first.
-    return /world/i.test(activePlaylistTitle) ? [...values, 'All'] : ['All', ...values];
+    return /world/i.test(activePlaylistTitle) ? values : ['All', ...values];
   }, [guideChannels, activePlaylistTitle]);
 
   // Switching between Plex, Samsung, Pluto, and World must discard the
   // previous playlist's category/search/scroll state. Otherwise a category such
   // as "Work Countries" remains selected and filters every channel from the new list.
   useEffect(() => {
-    setSelectedCategory('All');
+    setSelectedCategory(/world/i.test(activePlaylistTitle) ? 'United Kingdom' : 'All');
     onSearchQueryChange('');
     setEpgPageLimit(100);
     setEpgLoadError('');
@@ -353,8 +353,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   }, [activePlaylistTitle]);
 
   // World Channels defaults to the UK category when its M3U groups arrive.
-  // This makes the first visible guide UK-first while retaining every country
-  // in the ordered category strip and the combined EPG source bundle.
+  // The guide then loads only the selected country's EPG source.
   useEffect(() => {
     if (!/world/i.test(activePlaylistTitle) || showFavoritePlaylist) return;
     const available = categories.filter((category) => category !== 'All');
@@ -823,12 +822,676 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   // Load the guide after the first successful stream; channel changes must not
   // restart large XMLTV downloads. Changing the playlist guide still reloads it.
   const rawPlaylistEpgSource = activePlaylistEpgUrl?.trim() || '';
-  // Existing installs may have the retired iptv-org URLs saved in their World
-  // playlist. Migrate automatically without asking users to clear app storage.
-  const playlistEpgSource = /world/i.test(activePlaylistTitle) &&
-    /iptv-org\.github\.io\/epg\/guides/i.test(rawPlaylistEpgSource)
-      ? WORLD_EPG_URLS
-      : rawPlaylistEpgSource;
+  // World Channels loads only the guide for the currently selected country.
+  // Never fan out the full multi-country bundle: it is large and overwhelms
+  // mobile devices. Other playlists retain their existing EPG source behavior.
+  const playlistEpgSource = (() => {
+    if (!/world/i.test(activePlaylistTitle)) return rawPlaylistEpgSource;
+    const sources = WORLD_EPG_URLS.split(',').map((url) => url.trim()).filter(Boolean);
+    const sourceCodes: Record<string, string> = {
+      'united kingdom': 'UK1', 'great britain': 'UK1', uk: 'UK1', gb: 'UK1',
+      ireland: 'IE1', france: 'FR1', germany: 'DE1', italy: 'IT1', spain: 'ES1',
+      portugal: 'PT1', netherlands: 'NL1', switzerland: 'CH1', austria: 'AT1',
+      denmark: 'DK1', finland: 'FI1', greece: 'GR1', croatia: 'HR1', hungary: 'HU1',
+      norway: 'NO1', poland: 'PL1', romania: 'RO1', serbia: 'RS1', sweden: 'SE1',
+      slovakia: 'SK1', czechia: 'CZ1', 'czech republic': 'CZ1', ukraine: 'UA1',
+      turkey: 'TR1', 'united states': 'US2', usa: 'US2', us: 'US2',
+      australia: 'AU1', 'new zealand': 'NZ1', india: 'IN1', mexico: 'MX1',
+      'south africa': 'ZA1',
+    };
+    const selected = selectedCategory.trim().toLocaleLowerCase();
+    const code = sourceCodes[selected] || sourceCodes[selected.replace(/\\s*[:|–—-].*$/, '').trim()];
+    const wantedCode = code || 'UK1';
+    return sources.find((url) => new RegExp('epg_ripper_' + wantedCode + '\\.xml\\.gz  useEffect(() => {
+    // Load programme data as soon as the active playlist is known. Guide
+    // availability must not depend on a stream successfully connecting.
+    let manualUrl = localStorage.getItem('ma9ictv-manual-epg-url')?.trim() || '';
+    if (!legacyEpgResolved.current) {
+      if (!manualUrl && legacySavedEpgUrl.current && legacySavedEpgUrl.current !== playlistEpgSource) {
+        manualUrl = legacySavedEpgUrl.current;
+        localStorage.setItem('ma9ictv-manual-epg-url', manualUrl);
+      }
+      legacyEpgResolved.current = true;
+    }
+
+    const sourceUrl = playlistEpgSource || manualUrl;
+    setXmltvProgrammes([]);
+    setXmltvChannelAliases({});
+    setEpgUrlInput(sourceUrl);
+
+    let cancelled = false;
+    if (sourceUrl) {
+      localStorage.setItem('ma9ictv-epg-url', sourceUrl);
+      const sources = sourceUrl.split(',').map((url) => url.trim()).filter(Boolean);
+      if (sources.length > 1) {
+        // Load one region first, then progressively merge small regional batches.
+        // This keeps the first guide visible quickly without dropping sources
+        // after the old eight-source server limit.
+        void (async () => {
+          await handleLoadXmltv(false, sources[0], false);
+          if (cancelled) return;
+          for (let index = 1; index < sources.length; index += 4) {
+            if (cancelled) return;
+            await handleLoadXmltv(false, sources.slice(index, index + 4).join(','), true);
+          }
+        })();
+      } else {
+        void handleLoadXmltv(false, sourceUrl, false);
+      }
+    } else {
+      localStorage.removeItem('ma9ictv-epg-url');
+      setEpgLoadError('');
+    }
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activePlaylistEpgUrl, activePlaylistTitle, selectedCategory]);
+
+  const updateExcludedEpgChannel = (channel: Channel, exclude: boolean) => {
+    setExcludedEpgChannels((previous) => {
+      const matches = (item: Channel) => item.id === channel.id ||
+        item.url.trim().toLowerCase() === channel.url.trim().toLowerCase();
+      const next = exclude ? [...previous.filter((item) => !matches(item)), channel] : previous.filter((item) => !matches(item));
+      saveEpgExcludedChannels(next);
+      return next;
+    });
+  };
+
+  const exportFavoritesText = () => {
+    const lines = [
+      '# Ma9icTV Favorites & Personal EPG v1',
+      ...favoriteChannels.map((channel) => JSON.stringify({ type: 'favorite', channel })),
+      ...excludedEpgChannels.map((channel) => JSON.stringify({ type: 'epg-excluded', channel })),
+    ];
+    const file = new Blob([lines.join('\r\n')], { type: 'text/plain;charset=utf-8' });
+    const objectUrl = URL.createObjectURL(file);
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = 'ma9ictv-favorites.txt';
+    document.body.appendChild(anchor);
+    anchor.click();
+    anchor.remove();
+    window.setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+  };
+
+  const importFavoritesText = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    try {
+      const rawText = (await file.text()).trim();
+      let records: unknown[] = [];
+      try {
+        const parsed: unknown = JSON.parse(rawText);
+        if (Array.isArray(parsed)) records = parsed;
+        else if (parsed && typeof parsed === 'object' && Array.isArray((parsed as any).channels)) records = (parsed as any).channels;
+        else records = [parsed];
+      } catch {
+        records = rawText.split(/\r?\n/).map((line) => line.trim())
+          .filter((line) => line && !line.startsWith('#')).map((line) => JSON.parse(line));
+      }
+      const validChannel = (value: unknown): value is Channel => {
+        if (!value || typeof value !== 'object') return false;
+        const channel = value as Partial<Channel>;
+        return typeof channel.id === 'string' && typeof channel.name === 'string' &&
+          typeof channel.url === 'string' &&
+          (channel.url.startsWith('https://') || channel.url.startsWith('http://'));
+      };
+      const importedFavorites: Channel[] = [];
+      const importedExcluded: Channel[] = [];
+      for (const record of records) {
+        if (!record || typeof record !== 'object') continue;
+        const row = record as any;
+        if (row.type === 'favorite' && validChannel(row.channel)) importedFavorites.push(row.channel);
+        else if (row.type === 'epg-excluded' && validChannel(row.channel)) importedExcluded.push(row.channel);
+        else if (validChannel(row.channel)) importedFavorites.push(row.channel);
+        else if (validChannel(row)) importedFavorites.push(row);
+      }
+      if (!importedFavorites.length && !importedExcluded.length) {
+        throw new Error('No valid favorites or personal EPG entries were found in this text file.');
+      }
+      if (importedFavorites.length) onImportFavoriteChannels(importedFavorites);
+      if (importedExcluded.length) {
+        setExcludedEpgChannels((previous) => {
+          const byUrl = new Map<string, Channel>();
+          [...previous, ...importedExcluded].forEach((channel) => byUrl.set(channel.url.trim().toLowerCase(), channel));
+          const next = [...byUrl.values()];
+          saveEpgExcludedChannels(next);
+          return next;
+        });
+      }
+      alert(`Loaded ${importedFavorites.length} favorite(s) and ${importedExcluded.length} excluded EPG channel(s).`);
+    } catch (error: any) {
+      alert(error?.message || 'Could not read the favorites text file.');
+    } finally {
+      event.target.value = '';
+    }
+  };
+
+  // Android TV / D-pad navigation: arrows move guide focus without switching streams.
+  useEffect(() => {
+    const selectedIndex = filteredChannels.findIndex((channel) => channel.id === selectedChannel?.id);
+    if (selectedIndex >= 0) setRemoteFocusedChannelIndex(selectedIndex);
+    else setRemoteFocusedChannelIndex((index) => Math.min(index, Math.max(0, filteredChannels.length - 1)));
+  }, [selectedChannel?.id, filteredChannels]);
+
+  const handleGuideRemoteKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+    const grid = gridScrollRef.current;
+    if (!grid || !filteredChannels.length) return;
+    const target = event.target as HTMLElement;
+    const isInteractive = !!target.closest('button, input, textarea, select, a, [role="button"]');
+    if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+      event.preventDefault();
+      event.stopPropagation();
+      const delta = event.key === 'ArrowDown' ? 1 : -1;
+      const nextIndex = Math.max(0, Math.min(filteredChannels.length - 1, remoteFocusedChannelIndex + delta));
+
+      // At the first EPG row, Up returns to the top navigation. Otherwise,
+      // vertical arrows stay inside the guide and move one channel at a time.
+      if (event.key === 'ArrowUp' && remoteFocusedChannelIndex === 0) {
+        const topStop = document.querySelector<HTMLElement>('header button[aria-pressed="true"]')
+          || document.querySelector<HTMLElement>('header button');
+        topStop?.focus();
+        return;
+      }
+
+      setRemoteFocusedChannelIndex(nextIndex);
+      const row = grid.querySelector<HTMLElement>('[data-channel-index="' + nextIndex + '"]');
+      if (row) {
+        const top = row.offsetTop;
+        const bottom = top + row.offsetHeight;
+        if (top < grid.scrollTop + 42) grid.scrollTo({ top: Math.max(0, top - 42), behavior: 'auto' });
+        else if (bottom > grid.scrollTop + grid.clientHeight) grid.scrollTo({ top: bottom - grid.clientHeight, behavior: 'auto' });
+        const channelTarget = row.querySelector<HTMLElement>('[data-tune-channel="true"]');
+        channelTarget?.focus();
+      }
+      return;
+    }
+    if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+      // Left/Right should always move the EPG timeline, even when a programme
+      // cell has focus. Up/Down continue to move the channel focus.
+      event.preventDefault();
+      event.stopPropagation();
+      grid.scrollBy({ left: (event.key === 'ArrowRight' ? 1 : -1) * Math.max(180, grid.clientWidth * 0.65), behavior: 'smooth' });
+      return;
+    }
+    if (event.key === 'Enter' || event.key === ' ') {
+      if (isInteractive) return;
+      event.preventDefault();
+      const channel = filteredChannels[remoteFocusedChannelIndex];
+      if (channel) { onSelectChannel(channel); setSelectedProgram(null); }
+    }
+  };
+  return (
+    <div className="flex-1 min-h-0 min-w-0 flex flex-col h-full bg-[#0a0e17] text-slate-100 overflow-hidden select-none">
+      {/* =========================================================================
+          STAGE 1: TOP HERO SECTION (LIVE VIDEO PLAYER + PROGRAM INFO PANE)
+          ========================================================================= */}
+      <section className="h-[clamp(190px,35dvh,420px)] flex-shrink-0 bg-black border-b border-slate-800/80 p-1 sm:p-1.5 flex flex-col gap-1 items-stretch z-20 shadow-lg">
+        {/* Left: Live Video Player Preview Stage */}
+        <div className="w-full h-full min-h-0 flex-shrink-0 relative">
+          <VideoPlayer
+            key={selectedChannel?.id || selectedChannel?.url || 'no-channel'}
+            channel={selectedChannel}
+            settings={settings}
+            onNextChannel={onNextChannel}
+            onPrevChannel={onPrevChannel}
+            onStreamFailed={onStreamFailed}
+            isFavorite={selectedChannel ? favorites.includes(selectedChannel.id) : false}
+            onToggleFavorite={() => selectedChannel && onToggleFavorite(selectedChannel.id)}
+            mode="epg-preview"
+            onExpandPlayer={onExpandPlayer}
+            onStreamConnected={() => {
+              setHasConnectedForEpg(true);
+              setStreamConnectedForBatchLoad(true);
+            }}
+          />
+        </div>
+
+        {/* Right: Rich Channel & Current Program Synopsis */}
+        <div className="hidden">
+          {selectedChannel ? (
+            <>
+              {/* Top Row: Channel Badge & Live Tags */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-12 h-12 rounded-xl bg-slate-950 border border-slate-800 p-1.5 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-md">
+                    {selectedChannel.logo ? (
+                      <img
+                        src={selectedChannel.logo}
+                        alt=""
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <Tv className="w-6 h-6 text-indigo-400" />
+                    )}
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <h2 className="text-base sm:text-lg font-bold text-white truncate tracking-tight">
+                        {selectedChannel.name}
+                      </h2>
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-600/20 text-indigo-300 border border-indigo-500/30 uppercase tracking-wider">
+                        {selectedChannel.group || 'Live'}
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-400 font-mono truncate max-w-sm">
+                      {selectedChannel.tvgId || activePlaylistTitle}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <button
+                    onClick={() => onToggleFavorite(selectedChannel.id)}
+                    className={`p-2 rounded-xl border transition-all ${
+                      favorites.includes(selectedChannel.id)
+                        ? 'bg-rose-500/20 text-rose-400 border-rose-500/40 shadow-sm'
+                        : 'bg-slate-950/80 text-slate-400 hover:text-white border-slate-800'
+                    }`}
+                    title={favorites.includes(selectedChannel.id) ? 'Remove Favorite' : 'Add Favorite'}
+                  >
+                    <Heart className={`w-4 h-4 ${favorites.includes(selectedChannel.id) ? 'fill-current' : ''}`} />
+                  </button>
+                  {onExpandPlayer && (
+                    <button
+                      onClick={onExpandPlayer}
+                      className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold flex items-center gap-1.5 shadow-md transition-all active:scale-95"
+                      title="Switch to Full Player Mode"
+                    >
+                      <Maximize2 className="w-3.5 h-3.5" />
+                      <span className="hidden sm:inline">Full Player</span>
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Middle: Current Show Title & Progress */}
+              <div className="my-2 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-extrabold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    {currentProgram ? 'NOW PLAYING' : 'NO CURRENT LISTING'}
+                  </span>
+                  {currentProgram && (
+                    <span className="text-xs text-slate-300 font-medium">
+                      {currentProgram.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -{' '}
+                      {currentProgram.stopTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  )}
+                </div>
+
+                <h3 className="text-sm sm:text-base font-bold text-slate-100 truncate">
+                  {currentProgram?.title || 'No programme information available'}
+                </h3>
+
+                {/* Progress bar */}
+                <div className="w-full bg-slate-950 h-1.5 rounded-full mt-2 overflow-hidden border border-slate-800/80">
+                  <div
+                    className="bg-gradient-to-r from-indigo-500 to-purple-500 h-full rounded-full transition-all duration-500"
+                    style={{ width: `${currentProgram?.progress || 0}%` }}
+                  ></div>
+                </div>
+
+                {/* Description */}
+                <p className="text-xs text-slate-400 line-clamp-2 mt-2 leading-relaxed">
+                  {currentProgram?.desc ||
+                    'Load a real XMLTV guide to see the actual episode, movie, and programme titles for this channel.'}
+                </p>
+              </div>
+
+              {/* Bottom: Next Up preview */}
+              <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+                <div className="flex items-center gap-2 truncate">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">UP NEXT:</span>
+                  <span className="text-slate-300 font-medium truncate">
+                    {nextProgram
+                      ? `${nextProgram.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} — ${nextProgram.title}`
+                      : 'Upcoming TV Feature & Schedule'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-[11px] text-indigo-400 flex-shrink-0">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>{new Date(currentTimeMs).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-slate-500">
+              <Tv className="w-8 h-8 mb-2 stroke-[1.5]" />
+              <p className="text-xs">Select any channel below to start watching</p>
+            </div>
+          )}
+        </div>
+      </section>
+
+      {/* Category Pills Bar */}
+      <div ref={categoryScrollRef} onPointerDown={handleDragPointerDown} onPointerMove={handleDragPointerMove} onPointerUp={handleDragPointerUp} onPointerCancel={handleDragPointerUp} onClickCapture={handleDragClickCapture} className="bg-slate-950/60 border-b border-slate-800/60 px-1 py-0.5 overflow-x-auto overflow-y-hidden flex flex-nowrap items-center gap-0.5 cursor-grab active:cursor-grabbing select-none" style={{ touchAction: "pan-x", WebkitOverflowScrolling: "touch", scrollbarWidth: "thin", scrollbarColor: "#6366f1 #0f172a" }} aria-label="Scrollable channel categories">
+        {categories.map((cat) => (
+          <button
+            key={cat}
+            onClick={() => setSelectedCategory(cat)}
+            className={`flex-shrink-0 px-1.5 py-0 rounded text-[7px] leading-3 font-semibold whitespace-nowrap transition-all ${
+              selectedCategory === cat
+                ? 'bg-indigo-600 text-white shadow-sm'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+            }`}
+          >
+            {cat}
+          </button>
+        ))}
+      </div>
+
+      {/* =========================================================================
+          STAGE 3: THE EPG MULTI-CHANNEL HORIZONTAL GRID
+          ========================================================================= */}
+      <div className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col relative bg-[#070b12]">
+        {/* Scrollable Container */}
+        <div ref={gridScrollRef} onScroll={(event) => {
+          const nextTop = event.currentTarget.scrollTop;
+          if (gridScrollRafRef.current !== null) return;
+          gridScrollRafRef.current = window.requestAnimationFrame(() => {
+            gridScrollRafRef.current = null;
+            setGridScrollTop(gridScrollRef.current?.scrollTop ?? nextTop);
+          });
+        }} onPointerDown={handleDragPointerDown} onPointerMove={handleDragPointerMove} onPointerUp={handleDragPointerUp} onPointerCancel={handleDragPointerUp} onClickCapture={handleDragClickCapture} onKeyDown={handleGuideRemoteKeyDown} className="flex-1 min-h-0 min-w-0 relative overscroll-contain cursor-grab active:cursor-grabbing" style={{ height: 0, overflowX: "auto", overflowY: "scroll", WebkitOverflowScrolling: "touch", touchAction: "pan-x pan-y", overscrollBehavior: "contain", scrollbarWidth: "auto", scrollbarColor: "#6366f1 #0f172a", userSelect: "none" }} aria-label="Scrollable TV guide. Click and drag horizontally for times and vertically for channels, or use TV remote arrows." tabIndex={0}>
+          <div
+            className="min-w-max flex flex-col relative"
+            style={{ width: `${(typeof window !== "undefined" && window.innerWidth < 640 ? 112 : 190) + timeSlots.length * 30 * minuteWidthPx}px` }}
+          >
+            {/* Current-time marker spans the complete EPG schedule, not just the time ruler. */}
+            {currentTimeMs >= timelineStartMs && (
+              <div
+                className="absolute top-0 bottom-0 z-20 pointer-events-none"
+                style={{
+                  left: `${(typeof window !== "undefined" && window.innerWidth < 640 ? 112 : 190) + ((currentTimeMs - timelineStartMs) / 60000) * minuteWidthPx}px`,
+                }}
+                aria-hidden="true"
+              >
+                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2.5 h-2.5 rounded-full bg-rose-500 shadow-md shadow-rose-500/50" />
+                <div className="absolute top-2 bottom-0 left-1/2 -translate-x-1/2 w-[2px] bg-rose-500/90 shadow-sm" />
+              </div>
+            )}
+            {/* 1. Sticky Time Ruler Header */}
+            <div className="relative z-10 flex bg-slate-950/95 border-b border-slate-800 shadow-md">
+              {/* Corner Channel Header */}
+              <div className="sticky left-0 z-30 w-[148px] sm:w-[220px] flex-shrink-0 px-1 sm:px-2 py-1 border-r border-slate-700 bg-[#070b12] text-[10px] sm:text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center justify-between gap-1">
+                <span>Channels ({filteredChannels.length})</span>
+                <span className="text-[10px] text-indigo-400 font-mono">LIVE TV</span>
+              </div>
+
+              {/* Time Interval Slots */}
+              <div className="flex relative">
+                {timeSlots.map((slot, index) => {
+                  const timeLabel = slot.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  return (
+                    <div
+                      key={index}
+                      className="flex-shrink-0 border-r border-slate-800/80 px-1.5 py-1 text-[10px] font-mono font-semibold text-slate-400 flex items-center"
+                      style={{ width: `${30 * minuteWidthPx}px` }}
+                    >
+                      <span>{timeLabel}</span>
+                    </div>
+                  );
+                })}
+
+
+              </div>
+            </div>
+
+            {/* 2. Virtualized channel rows with spacers preserving scroll height */}
+            <div className="flex flex-col divide-y divide-slate-800/50">
+              <div aria-hidden="true" style={{ height: firstVisibleGuideRow * guideRowHeight, flexShrink: 0 }} />
+              {filteredChannels.slice(firstVisibleGuideRow, lastVisibleGuideRow).map((channel, visibleIdx) => {
+                const cIdx = firstVisibleGuideRow + visibleIdx;
+                const isSelected = selectedChannel?.id === channel.id;
+                const isFavorite = favorites.includes(channel.id);
+                const isExcluded = showExcludedEpgChannels;
+                const programs = channelSchedules.get(channel.id) || [];
+
+                return (
+                  <div
+                    key={channel.id}
+                    data-channel-index={cIdx}
+                    tabIndex={-1}
+                    className={`flex items-stretch transition-colors ${
+                      isSelected
+                        ? 'bg-indigo-950/25 ring-1 ring-inset ring-indigo-500/40'
+                        : remoteFocusedChannelIndex === cIdx
+                        ? 'bg-sky-950/30 ring-1 ring-inset ring-sky-400/70'
+                        : 'hover:bg-slate-900/40'
+                    }`}
+                  >
+                    {/* Sticky Left Channel Card */}
+                    <div
+                      data-tune-channel="true"
+                      tabIndex={0}
+                      role="button"
+                      aria-label={`Tune ${channel.name}`}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          onSelectChannel(channel);
+                          setSelectedProgram(null);
+                        }
+                      }}
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        onSelectChannel(channel);
+                        setSelectedProgram(null);
+                      }}
+                      className={`sticky left-0 z-20 w-[148px] sm:w-[220px] flex-shrink-0 px-1 sm:px-1.5 py-1 border-r border-slate-700 flex items-center justify-between gap-1 sm:gap-3 cursor-pointer select-none transition-colors ${
+                        isSelected ? 'bg-[#1b1b46] text-white' : remoteFocusedChannelIndex === cIdx ? 'bg-[#10263b] text-white ring-1 ring-inset ring-sky-400/70' : 'bg-[#070b12] text-slate-300'
+                      }`}
+                    >
+                      <div className="flex items-center gap-1 min-w-0">
+                        {/* Channel number and personal EPG include/exclude toggle */}
+                        <div className="flex flex-col items-center gap-0.5 flex-shrink-0">
+                          <span className="hidden sm:block text-[11px] font-mono font-bold text-slate-500 w-5 text-right">
+                            {cIdx + 1}
+                          </span>
+                          <button type="button" onClick={(e) => { e.stopPropagation(); updateExcludedEpgChannel(channel, !isExcluded); }}
+                            className={`p-1 rounded-md transition-colors ${isExcluded ? 'text-emerald-300 bg-emerald-500/10 hover:bg-emerald-500/20' : 'text-slate-600 hover:text-amber-300 hover:bg-slate-800'}`}
+                            title={isExcluded ? 'Add channel back to personal EPG' : 'Remove channel from personal EPG'}
+                            aria-label={isExcluded ? `Add ${channel.name} back to personal EPG` : `Remove ${channel.name} from personal EPG`}>
+                            {isExcluded ? <Plus className="w-3.5 h-3.5" /> : <Minus className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+
+                        {/* Plain channel logo and title; no surrounding pill/button */}
+                        <div className="flex items-center gap-1.5 min-w-0 max-w-full">
+                          <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-950 border border-slate-600 p-0.5 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
+                            {channel.logo ? (
+                              <img
+                                src={channel.logo}
+                                alt=""
+                                className="w-full h-full object-contain rounded-full"
+                                onError={(e) => {
+                                  (e.target as HTMLElement).style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <Tv className="w-4 h-4 text-slate-500" />
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <h4 className="text-[10px] sm:text-[11px] font-semibold truncate leading-tight">{channel.name}</h4>
+                            <span className="text-[8px] text-slate-500 truncate block">
+                              {channel.group || 'General'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-0.5 flex-shrink-0">
+                        <button type="button" onClick={(e) => { e.stopPropagation(); onToggleFavorite(channel.id); }}
+                          className={`p-1 rounded transition-colors ${isFavorite ? 'text-amber-300 bg-amber-400/10' : 'text-slate-500 hover:text-amber-300 hover:bg-slate-800'}`}
+                          title={isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
+                          aria-label={isFavorite ? `Remove ${channel.name} from Favorites` : `Add ${channel.name} to Favorites`}
+                          aria-pressed={isFavorite}>
+                          <Star className={`w-3.5 h-3.5 ${isFavorite ? 'fill-current' : ''}`} />
+                        </button>
+                        <button type="button" onClick={(e) => { e.stopPropagation(); onSelectChannel(channel); }}
+                          className={`p-1 rounded transition-colors flex-shrink-0 ${isSelected ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:text-white hover:bg-slate-800'}`}
+                          title="Tune Channel" aria-label={`Tune ${channel.name}`}>
+                          <Play className="w-3.5 h-3.5 fill-current" />
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Timeline Program Blocks */}
+                    <div
+                      className="relative flex-shrink-0 py-0.5"
+                      style={{ width: `${timeSlots.length * 30 * minuteWidthPx}px`, height: '48px' }}
+                    >
+                      {programs.length === 0 && (
+                        <div
+                          className="absolute left-2 top-1/2 -translate-y-1/2 text-[10px] text-slate-600 italic pointer-events-none"
+                          aria-label={xmltvProgrammes.length > 0 ? 'No matching programme listing for this channel' : 'Programme guide is loading or unavailable'}
+                        >
+                          {xmltvProgrammes.length > 0 ? 'No matching show listing' : isLoadingEpg ? 'Loading show listings…' : 'No show listing available'}
+                        </div>
+                      )}
+                      {programs.map((prog) => {
+                        const startMin = (prog.startTime.getTime() - timelineStartMs) / 60000;
+                        const durationMin = (prog.stopTime.getTime() - prog.startTime.getTime()) / 60000;
+                        const visibleEndMin = timeSlots.length * 30;
+
+                        // Place each programme at its actual clock-time position. Previously
+                        // blocks flowed next to one another, hiding schedule gaps and shifting
+                        // programme highlights away from the red current-time line.
+                        if (startMin + durationMin <= 0 || startMin >= visibleEndMin) return null;
+
+                        const visibleStartMin = Math.max(0, startMin);
+                        const visibleDurationMin = Math.min(visibleEndMin, startMin + durationMin) - visibleStartMin;
+                        const isNowPlayingThis =
+                          currentTimeMs >= prog.startTime.getTime() && currentTimeMs < prog.stopTime.getTime();
+
+                        return (
+                          <div
+                            key={prog.id}
+                            data-tune-channel="true"
+                            onClick={(event) => {
+                              // Every visible programme block is a channel-tune target,
+                              // whether it is in the past, live now, or scheduled later.
+                              // Tune immediately instead of opening a details overlay first.
+                              event.preventDefault();
+                              event.stopPropagation();
+                              onSelectChannel(channel);
+                              setSelectedProgram(null);
+                            }}
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`Tune ${channel.name} from programme: ${prog.title}`}
+                            title={`Watch ${channel.name}`}
+                            onKeyDown={(event) => {
+                              if (event.key === 'Enter' || event.key === ' ') {
+                                event.preventDefault();
+                                onSelectChannel(channel);
+                                setSelectedProgram(null);
+                              }
+                            }}
+                            className={`absolute top-1 h-10 rounded-md p-1.5 flex flex-col justify-between overflow-hidden cursor-pointer transition-colors border ${
+                              isNowPlayingThis && isSelected
+                                ? 'bg-indigo-600 text-white border-indigo-400 shadow-md shadow-indigo-600/30'
+                                : isNowPlayingThis
+                                ? 'bg-indigo-950/70 border-indigo-500/60 text-slate-100 hover:border-indigo-400'
+                                : isSelected
+                                ? 'bg-slate-900 border-indigo-900/60 text-slate-300 hover:bg-slate-800 hover:text-white'
+                                : 'bg-slate-900/60 border-slate-800/80 text-slate-300 hover:bg-slate-800 hover:text-white hover:border-slate-700'
+                            }`}
+                            style={{
+                              left: `${visibleStartMin * minuteWidthPx}px`,
+                              width: `${Math.max(0, visibleDurationMin * minuteWidthPx - 3)}px`,
+                            }}
+                          >
+                            <div className="flex items-center justify-between gap-1">
+                              <span className="text-[10px] font-mono opacity-80 truncate">
+                                {prog.startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                              {isNowPlayingThis && (
+                                <span
+                                  className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse flex-shrink-0 shadow-[0_0_8px_rgba(52,211,153,0.9)]"
+                                  title="Currently airing"
+                                  aria-label="Currently airing"
+                                ></span>
+                              )}
+                            </div>
+                            <EpgProgramTitle title={prog.title} active={isSelected} />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+              <div aria-hidden="true" style={{ height: Math.max(0, Math.min(filteredChannels.length, epgPageLimit) - lastVisibleGuideRow) * guideRowHeight, flexShrink: 0 }} />
+              {filteredChannels.length > epgPageLimit && (
+                <div className="sticky left-0 flex items-center justify-center gap-2 p-2 bg-slate-950 border-t border-slate-800">
+                  <span className="text-xs text-slate-400">
+                    Showing {Math.min(epgPageLimit, filteredChannels.length).toLocaleString()} of {filteredChannels.length.toLocaleString()} channels
+                  </span>
+                  <button
+                    onClick={() => setEpgPageLimit((limit) => Math.min(limit + 100, filteredChannels.length))}
+                    className="px-2 py-1 rounded-md bg-indigo-600 hover:bg-indigo-500 text-[10px] font-semibold"
+                  >
+                    Load 100 More Channels
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Program Details Modal */}
+      {selectedProgram && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 uppercase">
+                  {selectedProgram.category || 'Program Details'}
+                </span>
+                <h3 className="text-lg font-bold text-white mt-1.5 leading-snug">{selectedProgram.title}</h3>
+              </div>
+              <button
+                onClick={() => setSelectedProgram(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 text-xs text-slate-300 font-mono bg-slate-950 p-2.5 rounded-xl border border-slate-800">
+              <Clock className="w-4 h-4 text-indigo-400 flex-shrink-0" />
+              <span>
+                {selectedProgram.startTime.toLocaleString()} — {selectedProgram.stopTime.toLocaleTimeString()}
+              </span>
+            </div>
+
+            <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-slate-300 leading-relaxed">
+              {selectedProgram.desc}
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                onClick={() => setSelectedProgram(null)}
+                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+, 'i').test(url)) || '';
+  })();
   useEffect(() => {
     // Load programme data as soon as the active playlist is known. Guide
     // availability must not depend on a stream successfully connecting.

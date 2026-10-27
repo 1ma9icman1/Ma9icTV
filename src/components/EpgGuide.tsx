@@ -340,12 +340,12 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   // Wait until the M3U categories exist; never leave the guide stuck on "All".
   useEffect(() => {
     if (!/world channels/i.test(activePlaylistTitle) || showFavoritePlaylist) return;
-    const normalized = (value: string) => value.trim().toLocaleLowerCase().replace(/\\s+/g, ' ');
+    const normalized = (value: string) => value.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
     const exactNames = new Set(['united kingdom', 'uk', 'great britain', 'gb']);
     const available = categories.filter((category) => category !== 'All');
     const ukCategory =
       available.find((category) => exactNames.has(normalized(category))) ||
-      available.find((category) => /^(united kingdom|great britain|uk|gb)(?:\\s*[:|–—-]|\\s+)/i.test(category.trim()));
+      available.find((category) => /^(united kingdom|great britain|uk|gb)(?:\s*[:|–—-]|\s+)/i.test(category.trim()));
     if (ukCategory) {
       setSelectedCategory((current) => current === ukCategory ? current : ukCategory);
     } else if (available.length > 0) {

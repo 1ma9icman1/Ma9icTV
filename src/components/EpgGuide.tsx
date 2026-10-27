@@ -258,6 +258,17 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   const [xmltvProgrammes, setXmltvProgrammes] = useState<EpgProgram[]>([]);
   const [xmltvChannelAliases, setXmltvChannelAliases] = useState<Record<string, string[]>>({});
   const gridScrollRef = useRef<HTMLDivElement | null>(null);
+  // Keep the guide DOM small even when playlists contain thousands of channels.
+  const [gridScrollTop, setGridScrollTop] = useState(0);
+  const gridScrollRafRef = useRef<number | null>(null);
+  const guideRowHeight = 49;
+  const guideHeaderHeight = 34;
+  const guideViewportHeight = gridScrollRef.current?.clientHeight || 600;
+  const firstVisibleGuideRow = Math.max(0, Math.floor(Math.max(0, gridScrollTop - guideHeaderHeight) / guideRowHeight) - 8);
+  const lastVisibleGuideRow = Math.min(
+    Math.min(filteredChannels.length, epgPageLimit),
+    Math.ceil(Math.max(0, gridScrollTop - guideHeaderHeight + guideViewportHeight) / guideRowHeight) + 8
+  );
   const categoryScrollRef = useRef<HTMLDivElement | null>(null);
   const dragStateRef = useRef<{ pointerId: number; startX: number; startY: number; scrollLeft: number; scrollTop: number; active: boolean; suppressClick: boolean } | null>(null);
   const legacySavedEpgUrl = useRef(localStorage.getItem('ma9ictv-epg-url') || '');
@@ -1080,7 +1091,14 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
           ========================================================================= */}
       <div className="flex-1 min-h-0 min-w-0 overflow-hidden flex flex-col relative bg-[#070b12]">
         {/* Scrollable Container */}
-        <div ref={gridScrollRef} onPointerDown={handleDragPointerDown} onPointerMove={handleDragPointerMove} onPointerUp={handleDragPointerUp} onPointerCancel={handleDragPointerUp} onClickCapture={handleDragClickCapture} onKeyDown={handleGuideRemoteKeyDown} className="flex-1 min-h-0 min-w-0 relative overscroll-contain cursor-grab active:cursor-grabbing" style={{ height: 0, overflowX: "auto", overflowY: "scroll", WebkitOverflowScrolling: "touch", touchAction: "pan-x pan-y", overscrollBehavior: "contain", scrollbarWidth: "auto", scrollbarColor: "#6366f1 #0f172a", userSelect: "none" }} aria-label="Scrollable TV guide. Click and drag horizontally for times and vertically for channels, or use TV remote arrows." tabIndex={0}>
+        <div ref={gridScrollRef} onScroll={(event) => {
+          const nextTop = event.currentTarget.scrollTop;
+          if (gridScrollRafRef.current !== null) return;
+          gridScrollRafRef.current = window.requestAnimationFrame(() => {
+            gridScrollRafRef.current = null;
+            setGridScrollTop(gridScrollRef.current?.scrollTop ?? nextTop);
+          });
+        }} onPointerDown={handleDragPointerDown} onPointerMove={handleDragPointerMove} onPointerUp={handleDragPointerUp} onPointerCancel={handleDragPointerUp} onClickCapture={handleDragClickCapture} onKeyDown={handleGuideRemoteKeyDown} className="flex-1 min-h-0 min-w-0 relative overscroll-contain cursor-grab active:cursor-grabbing" style={{ height: 0, overflowX: "auto", overflowY: "scroll", WebkitOverflowScrolling: "touch", touchAction: "pan-x pan-y", overscrollBehavior: "contain", scrollbarWidth: "auto", scrollbarColor: "#6366f1 #0f172a", userSelect: "none" }} aria-label="Scrollable TV guide. Click and drag horizontally for times and vertically for channels, or use TV remote arrows." tabIndex={0}>
           <div
             className="min-w-max flex flex-col relative"
             style={{ width: `${(typeof window !== "undefined" && window.innerWidth < 640 ? 112 : 190) + timeSlots.length * 30 * minuteWidthPx}px` }}
@@ -1125,9 +1143,11 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
               </div>
             </div>
 
-            {/* 2. Channel Rows with Horizontal Program Blocks */}
+            {/* 2. Virtualized channel rows with spacers preserving scroll height */}
             <div className="flex flex-col divide-y divide-slate-800/50">
-              {filteredChannels.slice(0, epgPageLimit).map((channel, cIdx) => {
+              <div aria-hidden="true" style={{ height: firstVisibleGuideRow * guideRowHeight, flexShrink: 0 }} />
+              {filteredChannels.slice(firstVisibleGuideRow, lastVisibleGuideRow).map((channel, visibleIdx) => {
+                const cIdx = firstVisibleGuideRow + visibleIdx;
                 const isSelected = selectedChannel?.id === channel.id;
                 const isFavorite = favorites.includes(channel.id);
                 const isExcluded = showExcludedEpgChannels;
@@ -1313,6 +1333,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                   </div>
                 );
               })}
+              <div aria-hidden="true" style={{ height: Math.max(0, Math.min(filteredChannels.length, epgPageLimit) - lastVisibleGuideRow) * guideRowHeight, flexShrink: 0 }} />
               {filteredChannels.length > epgPageLimit && (
                 <div className="sticky left-0 flex items-center justify-center gap-2 p-2 bg-slate-950 border-t border-slate-800">
                   <span className="text-xs text-slate-400">

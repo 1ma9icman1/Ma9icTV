@@ -853,6 +853,8 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
         const bottom = top + row.offsetHeight;
         if (top < grid.scrollTop + 42) grid.scrollTo({ top: Math.max(0, top - 42), behavior: 'auto' });
         else if (bottom > grid.scrollTop + grid.clientHeight) grid.scrollTo({ top: bottom - grid.clientHeight, behavior: 'auto' });
+        const channelTarget = row.querySelector<HTMLElement>('[data-tune-channel="true"]');
+        channelTarget?.focus();
       }
       return;
     }

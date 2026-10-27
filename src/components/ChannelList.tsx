@@ -119,33 +119,6 @@ const LIVE_FEEDS: LiveFeed[] = [
 {name:'Naturism Destinations (18+)',region:'Worldwide',category:'Naturist Beaches (18+)',description:'Find designated clothing-optional beaches and naturist destinations; check local laws and access rules.',url:'https://www.naturism.com/'},
 {name:'American Association for Nude Recreation (18+)',region:'United States',category:'Naturist Beaches (18+)',description:'Information about naturist recreation, etiquette and affiliated locations for adults.',url:'https://www.aanr.com/'},
 ];
-const LIVE_FEED_CATEGORIES = [
-  'All feeds',
-  'Science',
-  'Space',
-  'Oceans & Seas',
-  'UFOs & UAP',
-  'Intriguing Places',
-  'World Wonders',
-  'Famous Animals & Zoos',
-  'Parks & Wild Places',
-  'Beaches',
-  'Naturist Beaches (18+)',
-];
-function getLiveFeedSection(feed: LiveFeed): string {
-  const text = `${feed.name} ${feed.region} ${feed.category} ${feed.description}`.toLowerCase();
-  if (/naturist|nude beach|naked beach/.test(text)) return 'Naturist Beaches (18+)';
-  if (/beach|surf|coast|island|atoll|reef|sea turtle|coral/.test(text)) return 'Beaches';
-  if (/zoo|animal|wildlife|eagle|bear cam|bird cam|panda|cheetah|waterhole/.test(text)) return 'Famous Animals & Zoos';
-  if (/national park|park webcam|grand canyon|yellowstone|yosemite|antarctic|antarctica|polar/.test(text)) return 'Parks & Wild Places';
-  if (/niagara|falls|machu picchu|iguaz|victoria falls|wonder|colosseum|stonehenge|acropolis|western wall|historic|landmark|temple|monument|city|skyline|paris|rome|venice|tokyo|jerusalem|eiffel|sydney harbour/.test(text)) return 'World Wonders';
-  if (/ufo|uap|alien|extraterrestrial|seti|breakthrough listen/.test(text)) return 'UFOs & UAP';
-  if (/nasa|space|astronomy|solar system|exoplanet|mars|esa|spacex|solar dynamics|star|orbit/.test(text)) return 'Space';
-  if (/ocean|underwater|aquarium|deep.sea|buoy|marine|surf|coast|water/.test(text)) return 'Oceans & Seas';
-  if (/science|earth science|geology|volcano|earthquake|weather|observator|research|live data|monitor|exploration|noaa|usgs/.test(text)) return 'Science';
-  return 'Intriguing Places';
-}
-
 export const ChannelList: React.FC<ChannelListProps> = ({
   channels,
   selectedChannel,
@@ -158,7 +131,6 @@ export const ChannelList: React.FC<ChannelListProps> = ({
   const [selectedGroup, setSelectedGroup] = useState<string>('ALL');
   const [isGridView, setIsGridView] = useState<boolean>(false);
   const [pageLimit, setPageLimit] = useState<number>(150);
-  const [liveFeedCategory, setLiveFeedCategory] = useState('All feeds');
 
   // Reset pagination when filter changes
   useEffect(() => {
@@ -203,11 +175,9 @@ export const ChannelList: React.FC<ChannelListProps> = ({
   }, [channels, selectedGroup, favorites, recentlyPlayed, searchQuery]);
 
   const filteredLiveFeeds = useMemo(() => LIVE_FEEDS.filter((feed) => {
-    const matchesCategory = liveFeedCategory === 'All feeds' || getLiveFeedSection(feed) === liveFeedCategory;
     const query = searchQuery.toLowerCase().trim();
-    const matchesQuery = !query || [feed.name, feed.region, feed.category, feed.description].some((value) => value.toLowerCase().includes(query));
-    return matchesCategory && matchesQuery;
-  }), [liveFeedCategory, searchQuery]);
+    return !query || [feed.name, feed.region, feed.category, feed.description].some((value) => value.toLowerCase().includes(query));
+  }), [searchQuery]);
 
   const visibleChannels = useMemo(() => {
     return filteredChannels.slice(0, pageLimit);
@@ -349,10 +319,9 @@ export const ChannelList: React.FC<ChannelListProps> = ({
               <p className="text-[11px] text-slate-400 mt-1">Landmarks, ancient places, cities, wildlife, volcanoes, oceans, Antarctica and space. Select a feed to open its viewing page.</p>
               <p className="text-[10px] text-slate-500 mt-1">Some sources are live video; others are live-data dashboards or directories. Availability is controlled by each provider.</p>
             </div>
-            <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-1">{LIVE_FEED_CATEGORIES.map((category) => <button key={category} onClick={() => setLiveFeedCategory(category)} className={`px-2.5 py-1.5 rounded-md text-[10px] whitespace-nowrap border ${liveFeedCategory === category ? 'bg-emerald-600 border-emerald-500 text-white' : 'bg-slate-950 border-slate-800 text-slate-400'}`}>{category}</button>)}</div>
             {filteredLiveFeeds.length === 0 ? <div className="p-6 text-center text-xs text-slate-500">No live feeds match that search.</div> : filteredLiveFeeds.map((feed) => (
               <a key={feed.name} href={feed.url} target="_blank" rel="noopener noreferrer" className="group block rounded-xl border border-slate-800 bg-slate-950/60 p-3 hover:border-emerald-500/50 hover:bg-slate-800/70 transition-colors">
-                <div className="flex items-start gap-2"><div className="mt-0.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-2 text-emerald-300"><Camera className="w-4 h-4" /></div><div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><h3 className="text-xs font-semibold text-slate-100 group-hover:text-emerald-200">{feed.name}</h3><ExternalLink className="w-3.5 h-3.5 flex-shrink-0 text-slate-500 group-hover:text-emerald-300" /></div><p className="text-[10px] text-emerald-300/80 mt-0.5">{feed.region} · {getLiveFeedSection(feed)}</p><p className="text-[11px] leading-relaxed text-slate-400 mt-1">{feed.description}</p></div></div>
+                <div className="flex items-start gap-2"><div className="mt-0.5 rounded-lg border border-emerald-500/20 bg-emerald-500/10 p-2 text-emerald-300"><Camera className="w-4 h-4" /></div><div className="min-w-0 flex-1"><div className="flex items-center justify-between gap-2"><h3 className="text-xs font-semibold text-slate-100 group-hover:text-emerald-200">{feed.name}</h3><ExternalLink className="w-3.5 h-3.5 flex-shrink-0 text-slate-500 group-hover:text-emerald-300" /></div><p className="text-[10px] text-emerald-300/80 mt-0.5">{feed.region}</p><p className="text-[11px] leading-relaxed text-slate-400 mt-1">{feed.description}</p></div></div>
               </a>
             ))}
             <p className="text-center text-[10px] text-slate-600 py-2">Curated directory · {filteredLiveFeeds.length} feeds shown · External sources may change or go offline.</p>

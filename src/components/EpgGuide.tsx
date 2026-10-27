@@ -890,7 +890,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                     )}
                   </div>
                   <div className="min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1 flex-shrink-0">
                       <h2 className="text-base sm:text-lg font-bold text-white truncate tracking-tight">
                         {selectedChannel.name}
                       </h2>
@@ -904,7 +904,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 flex-shrink-0">
+                <div className="flex items-center gap-1 flex-shrink-0">
                   <button
                     onClick={() => onToggleFavorite(selectedChannel.id)}
                     className={`p-2 rounded-xl border transition-all ${
@@ -991,14 +991,14 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       {/* =========================================================================
           STAGE 2: FILTER & CONTROLS TOOLBAR
           ========================================================================= */}
-      <div className="bg-slate-950 border-b border-slate-800/80 px-2 sm:px-4 py-2 flex flex-wrap items-center justify-between gap-2 sm:gap-3 z-10">
+      <div className="bg-slate-950 border-b border-slate-800/80 px-1.5 py-1 flex flex-nowrap items-center gap-1.5 z-10 overflow-x-auto">
         <div className="flex items-center gap-2">
           <button
             onClick={scrollToNow}
-            className="min-h-10 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-indigo-300 border border-slate-800 text-sm font-semibold flex items-center justify-center gap-2 transition-colors shadow-sm touch-manipulation"
+            className="min-h-7 px-2 py-1 rounded-md bg-slate-900 hover:bg-slate-800 text-indigo-300 border border-slate-800 text-[10px] font-semibold flex items-center justify-center gap-1 transition-colors touch-manipulation whitespace-nowrap"
           >
-            <Clock className="w-4 h-4 text-indigo-400" />
-            <span>Jump to Now</span>
+            <Clock className="w-3 h-3 text-indigo-400" />
+            <span>Jump</span>
           </button>
         </div>
 
@@ -1015,13 +1015,13 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
           aria-pressed={showFavoritePlaylist}
           title={showFavoritePlaylist ? 'Return to the active playlist EPG' : `Load favorite channels in the EPG guide (${favoriteChannels.length})`}
           disabled={favoriteChannels.length === 0}
-          className={`min-h-9 min-w-9 rounded-lg border flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${showFavoritePlaylist ? 'border-amber-400/60 bg-amber-400/15 text-amber-300' : 'border-slate-800 bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-amber-300'}`}
+          className={`min-h-7 min-w-7 rounded-md border flex items-center justify-center transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${showFavoritePlaylist ? 'border-amber-400/60 bg-amber-400/15 text-amber-300' : 'border-slate-800 bg-slate-900 text-slate-400 hover:bg-slate-800 hover:text-amber-300'}`}
           aria-label={showFavoritePlaylist ? 'Show active playlist EPG' : 'Load favorite playlist in EPG guide'}>
-          <Star className={`h-4 w-4 ${showFavoritePlaylist ? 'fill-current' : ''}`} />
+          <Star className={`h-3.5 w-3.5 ${showFavoritePlaylist ? 'fill-current' : ''}`} />
         </button>
 
         {/* EPG loading indicator */}
-        <div className="flex min-w-[110px] flex-1 flex-col justify-center gap-1 px-1 sm:px-2" role="status" aria-live="polite" aria-label={isLoadingEpg ? "Loading EPG guide" : xmltvProgrammes.length > 0 ? `EPG loaded: ${xmltvProgrammes.length} programmes` : "EPG guide waiting"}>
+        <div className="flex min-w-[66px] flex-1 flex-col justify-center gap-0.5 px-1" role="status" aria-live="polite" aria-label={isLoadingEpg ? "Loading EPG guide" : xmltvProgrammes.length > 0 ? `EPG loaded: ${xmltvProgrammes.length} programmes` : "EPG guide waiting"}>
           <div className="flex items-center justify-between gap-2 text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider">
             <span className={isLoadingEpg ? "text-indigo-300" : xmltvProgrammes.length > 0 ? "text-emerald-400" : "text-slate-500"}>
               {showFavoritePlaylist ? 'Favorite Playlist' : isLoadingEpg ? "Loading EPG" : xmltvProgrammes.length > 0 ? `EPG Loaded · ${xmltvProgrammes.length.toLocaleString()} programmes` : "EPG Guide"}
@@ -1034,14 +1034,14 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
         </div>
 
         {/* Center: Search */}
-        <div className="relative w-full sm:w-64 flex-1 sm:flex-none min-w-[140px]">
-          <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+        <div className="relative flex-1 min-w-[92px] max-w-[220px]">
+          <Search className="w-3 h-3 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             placeholder="Search channels & shows..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-slate-900 border border-slate-800 rounded-xl pl-8 pr-3 py-1 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+            className="w-full min-h-7 bg-slate-900 border border-slate-800 rounded-md pl-6 pr-1.5 py-1 text-[10px] text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
           />
         </div>
         <div className="flex items-center gap-1.5 flex-shrink-0">
@@ -1050,18 +1050,18 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
           <button type="button" onClick={exportFavoritesText}
             disabled={favoriteChannels.length === 0 && excludedEpgChannels.length === 0}
             title="Export favorites and personal EPG exclusions to a reloadable text file"
-            className="min-h-9 px-2.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 text-slate-300 text-xs font-semibold flex items-center gap-1.5">
+            className="min-h-7 px-1.5 rounded-md border border-slate-800 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 text-slate-300 text-[10px] font-semibold flex items-center gap-1">
             <Download className="w-3.5 h-3.5" /><span className="hidden md:inline">Export</span>
           </button>
           <button type="button" onClick={() => favoriteFileInputRef.current?.click()}
             title="Reload favorites and personal EPG from text file"
-            className="min-h-9 px-2.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300 text-xs font-semibold flex items-center gap-1.5">
+            className="min-h-7 px-1.5 rounded-md border border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300 text-[10px] font-semibold flex items-center gap-1">
             <FileUp className="w-3.5 h-3.5" /><span className="hidden md:inline">Import</span>
           </button>
           <button type="button" onClick={() => setShowExcludedEpgChannels((value) => !value)}
             aria-pressed={showExcludedEpgChannels}
             title={showExcludedEpgChannels ? 'Return to personal EPG channels' : 'Manage channels removed from personal EPG'}
-            className={`min-h-9 px-2.5 rounded-lg border text-xs font-semibold flex items-center gap-1.5 ${showExcludedEpgChannels ? 'border-amber-500/50 bg-amber-500/10 text-amber-200' : 'border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300'}`}>
+            className={`min-h-7 px-1.5 rounded-md border text-[10px] font-semibold flex items-center gap-1 ${showExcludedEpgChannels ? 'border-amber-500/50 bg-amber-500/10 text-amber-200' : 'border-slate-800 bg-slate-900 hover:bg-slate-800 text-slate-300'}`}>
             {showExcludedEpgChannels ? <Plus className="w-3.5 h-3.5" /> : <Minus className="w-3.5 h-3.5" />}
             <span className="hidden sm:inline">{showExcludedEpgChannels ? 'Restore channels' : 'Personal EPG'}</span>
             <span>({excludedEpgChannels.length})</span>
@@ -1070,12 +1070,12 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
       </div>
 
       {/* Category Pills Bar */}
-      <div ref={categoryScrollRef} onPointerDown={handleDragPointerDown} onPointerMove={handleDragPointerMove} onPointerUp={handleDragPointerUp} onPointerCancel={handleDragPointerUp} onClickCapture={handleDragClickCapture} className="bg-slate-950/60 border-b border-slate-800/60 px-4 py-1.5 overflow-x-auto overflow-y-hidden flex flex-nowrap items-center gap-1.5 cursor-grab active:cursor-grabbing select-none" style={{ touchAction: "pan-x", WebkitOverflowScrolling: "touch", scrollbarWidth: "thin", scrollbarColor: "#6366f1 #0f172a" }} aria-label="Scrollable channel categories">
+      <div ref={categoryScrollRef} onPointerDown={handleDragPointerDown} onPointerMove={handleDragPointerMove} onPointerUp={handleDragPointerUp} onPointerCancel={handleDragPointerUp} onClickCapture={handleDragClickCapture} className="bg-slate-950/60 border-b border-slate-800/60 px-2 py-1 overflow-x-auto overflow-y-hidden flex flex-nowrap items-center gap-1 cursor-grab active:cursor-grabbing select-none" style={{ touchAction: "pan-x", WebkitOverflowScrolling: "touch", scrollbarWidth: "thin", scrollbarColor: "#6366f1 #0f172a" }} aria-label="Scrollable channel categories">
         {categories.map((cat) => (
           <button
             key={cat}
             onClick={() => setSelectedCategory(cat)}
-            className={`flex-shrink-0 px-3 py-1 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-all ${
+            className={`flex-shrink-0 px-2 py-0.5 rounded-md text-[10px] font-semibold whitespace-nowrap transition-all ${
               selectedCategory === cat
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'

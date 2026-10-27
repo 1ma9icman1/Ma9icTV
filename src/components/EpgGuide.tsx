@@ -339,7 +339,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
   // "UK: Entertainment"). Prefer an exact country group, then a safe prefix.
   // Wait until the M3U categories exist; never leave the guide stuck on "All".
   useEffect(() => {
-    if (!/world channels/i.test(activePlaylistTitle) || showFavoritePlaylist) return;
+    if (!/world/i.test(activePlaylistTitle) || showFavoritePlaylist) return;
     const normalized = (value: string) => value.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
     const exactNames = new Set(['united kingdom', 'uk', 'great britain', 'gb']);
     const available = categories.filter((category) => category !== 'All');

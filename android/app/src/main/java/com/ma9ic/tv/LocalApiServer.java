@@ -65,10 +65,10 @@ public final class LocalApiServer extends NanoHTTPD {
                 InputStream data = status >= 400 ? xtream.getErrorStream() : xtream.getInputStream();
                 String json = data == null ? "{}" : readText(data);
                 xtream.disconnect();
-                if (status >= 400) return cors(newFixedLengthResponse(Response.Status.BAD_GATEWAY, "application/json", "{\"error\":\"Xtream API request failed\"}"));
+                if (status >= 400) return cors(newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json", "{\"error\":\"Xtream API request failed\"}"));
                 return cors(newFixedLengthResponse(Response.Status.OK, "application/json", json));
             } catch (Exception error) {
-                return cors(newFixedLengthResponse(Response.Status.BAD_GATEWAY, "application/json",
+                return cors(newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "application/json",
                     "{\"error\":\"Xtream request failed\"}"));
             }
         }
@@ -104,7 +104,7 @@ public final class LocalApiServer extends NanoHTTPD {
                 InputStream error = connection.getErrorStream();
                 String detail = error == null ? "Upstream HTTP " + code : readText(error);
                 connection.disconnect();
-                return cors(newFixedLengthResponse(Response.Status.BAD_GATEWAY, "text/plain",
+                return cors(newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain",
                     "Upstream HTTP " + code + ": " + detail));
             }
             if (manifest && !"HEAD".equalsIgnoreCase(session.getMethod().name())) {
@@ -150,7 +150,7 @@ public final class LocalApiServer extends NanoHTTPD {
             return cors(response);
         } catch (Exception error) {
             if (connection != null) connection.disconnect();
-            return cors(newFixedLengthResponse(Response.Status.BAD_GATEWAY, "text/plain",
+            return cors(newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain",
                 "Embedded media bridge failed: " + error.getClass().getSimpleName()));
         }
     }

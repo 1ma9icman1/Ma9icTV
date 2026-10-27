@@ -1174,12 +1174,12 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
                         </div>
 
                         {/* Logo */}
-                        <div className="w-5 h-5 sm:w-6 sm:h-6 rounded bg-slate-900 border border-slate-800 p-0.5 flex items-center justify-center overflow-hidden flex-shrink-0">
+                        <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-full bg-slate-950 border border-slate-700 p-0.5 flex items-center justify-center overflow-hidden flex-shrink-0 shadow-sm">
                           {channel.logo ? (
                             <img
                               src={channel.logo}
                               alt=""
-                              className="w-full h-full object-contain"
+                              className="w-full h-full object-contain rounded-full"
                               onError={(e) => {
                                 (e.target as HTMLElement).style.display = 'none';
                               }}

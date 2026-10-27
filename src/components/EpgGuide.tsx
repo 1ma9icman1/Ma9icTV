@@ -335,7 +335,7 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     }
     // Do not cap this list: every group remains reachable by scrolling.
     return ['All', ...values];
-  }, [guideChannels]);
+  }, [guideChannels, activePlaylistTitle]);
 
   // Switching between Plex, Samsung, Pluto, and World must discard the
   // previous playlist's category/search/scroll state. Otherwise a category such
@@ -350,29 +350,8 @@ export const EpgGuide: React.FC<EpgGuideProps> = ({
     if (categoryScrollRef.current) categoryScrollRef.current.scrollLeft = 0;
   }, [activePlaylistTitle]);
 
-  // World Channels must reliably open on the UK, even when playlist providers
-  // decorate country group names (for example "United Kingdom - News" or
-  // "UK: Entertainment"). Prefer an exact country group, then a safe prefix.
-  // Wait until the M3U categories exist; never leave the guide stuck on "All".
-  useEffect(() => {
-    if (!/world/i.test(activePlaylistTitle) || showFavoritePlaylist) return;
-    const normalized = (value: string) => value.trim().toLocaleLowerCase().replace(/\s+/g, ' ');
-    const exactNames = new Set(['united kingdom', 'uk', 'great britain', 'gb']);
-    const available = categories.filter((category) => category !== 'All');
-    const ukCategory =
-      available.find((category) => exactNames.has(normalized(category))) ||
-      available.find((category) => /^(united kingdom|great britain|uk|gb)(?:\s*[:|–—-]|\s+)/i.test(category.trim()));
-    if (ukCategory) {
-      setSelectedCategory((current) => current === ukCategory ? current : ukCategory);
-    } else if (available.length > 0) {
-      // Country-sorted IPTV-org lists normally contain "United Kingdom".
-      // If a feed uses an unexpected label, choose a UK-labelled group only;
-      // never silently pick the first (often US) category.
-      const fallback = available.find((category) => /united kingdom|great britain|\buk\b/i.test(category));
-      if (fallback) setSelectedCategory(fallback);
-    }
-  }, [activePlaylistTitle, categories, showFavoritePlaylist]);
-
+  // World Channels intentionally starts with "All" so every country remains
+  // visible in one list; the country sort below places the UK first, then Europe.
   // Filter channels by category and search
   const excludedChannelKeys = useMemo(() => {
     const keys = new Set<string>();

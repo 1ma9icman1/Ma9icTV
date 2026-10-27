@@ -581,7 +581,7 @@ export default function App() {
               <button onClick={() => { setCurrentView('player'); setIsSidebarCollapsed(false); }} className={`px-2 py-1.5 rounded text-[10px] font-semibold ${currentView === 'player' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`} aria-pressed={currentView === 'player'}>Player</button>
               <button onClick={() => setCurrentView('epg')} className={`px-2 py-1.5 rounded text-[10px] font-semibold ${currentView === 'epg' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'}`} aria-pressed={currentView === 'epg'}>EPG</button>
             </div>
-            {currentView === 'epg' && <div className="hidden sm:flex items-center gap-1 text-[10px] font-semibold uppercase" role="status" aria-live="polite"><span className={isEpgLoading ? 'text-indigo-300' : 'text-slate-400'}>EPG</span>{isEpgLoading && <RefreshCw className="h-3.5 w-3.5 animate-spin text-indigo-400" />}</div>}
+
           </div>
           {currentView === 'epg' && <div className="absolute left-1/2 -translate-x-1/2 w-[clamp(150px,26vw,320px)] max-w-[32%]">
             <Search className="w-3.5 h-3.5 text-slate-400 absolute left-2 top-1/2 -translate-y-1/2 pointer-events-none" />
